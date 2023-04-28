@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity 0.8.4;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IPoolValidators.sol";
 import "../interfaces/IPool.sol";
 
 /**
- * @title PoolValidators
- *
- * @dev PoolValidators contract keeps track of the pool validators' deposit data and onboards new operators.
- */
-contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
+
+@title PoolValidators
+
+@dev PoolValidators contract keeps track of the pool validators' deposit data and onboards new operators.
+*/
+contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, ReentrancyGuard {
     using AddressUpgradeable for address payable;
-    using SafeMathUpgradeable for uint256;
 
     // Maps hash of the validator public key to whether it is registered.
     mapping(bytes32 => bool) public override isValidatorRegistered;
@@ -33,8 +36,8 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
     address private oracles;
 
     /**
-     * @dev See {IPoolValidators-initialize}.
-     */
+    * @dev See {IPoolValidators-initialize}.
+    */
     function initialize(address _admin, address _pool, address _oracles) external override initializer {
         require(_admin != address(0), "Pool: invalid admin address");
         require(_pool != address(0), "Pool: invalid Pool address");
@@ -46,53 +49,51 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-     * @dev See {IPoolValidators-getOperator}.
-     */
+    * @dev See {IPoolValidators-getOperator}.
+    */
     function getOperator(address _operator) external view override returns (bytes32, bool) {
         Operator storage operator = operators[_operator];
         return (
-            operator.depositDataMerkleRoot,
-            operator.committed
+        operator.depositDataMerkleRoot,
+        operator.committed
         );
     }
 
     /**
-     * @dev See {IPoolValidators-addOperator}.
-     */
+    * @dev See {IPoolValidators-addOperator}.
+    */
     function addOperator(
         address _operator,
         bytes32 depositDataMerkleRoot,
         string calldata depositDataMerkleProofs
-    )
-        external override onlyAdmin whenNotPaused
-    {
-        require(_operator != address(0), "PoolValidators: invalid operator");
-        // merkle root and proofs must be validated off chain prior submitting the transaction
-        require(depositDataMerkleRoot != "", "PoolValidators: invalid merkle root");
-        require(bytes(depositDataMerkleProofs).length != 0, "PoolValidators: invalid merkle proofs");
+    ) external override onlyAdmin whenNotPaused {
+    require(_operator != address(0), "PoolValidators: invalid operator");
+    // merkle root and proofs must be validated off chain prior submitting the transaction
+    require(depositDataMerkleRoot != bytes32(0), "PoolValidators: invalid merkle root");
+    require(bytes(depositDataMerkleProofs).length != 0, "PoolValidators: invalid merkle proofs");
 
-        // load operator
-        Operator storage operator = operators[_operator];
-        require(operator.depositDataMerkleRoot != depositDataMerkleRoot, "PoolValidators: same merkle root");
+    // load operator
+    Operator storage operator = operators[_operator];
+    require(operator.depositDataMerkleRoot != depositDataMerkleRoot, "PoolValidators: same merkle root");
 
-        // update operator
-        operator.depositDataMerkleRoot = depositDataMerkleRoot;
-        operator.committed = false;
+    // update operator
+    operator.depositDataMerkleRoot = depositDataMerkleRoot;
+    operator.committed = false;
 
-        emit OperatorAdded(
-            _operator,
-            depositDataMerkleRoot,
-            depositDataMerkleProofs
-        );
-    }
+    emit OperatorAdded(
+    _operator,
+    depositDataMerkleRoot,
+        depositDataMerkleProofs
+    );
+}
 
     /**
      * @dev See {IPoolValidators-commitOperator}.
-     */
+ */
     function commitOperator() external override whenNotPaused {
         // mark operator as committed
         Operator storage operator = operators[msg.sender];
-        require(operator.depositDataMerkleRoot != "" && !operator.committed, "PoolValidators: invalid operator");
+        require(operator.depositDataMerkleRoot != bytes32(0) && !operator.committed, "PoolValidators: invalid operator");
         operator.committed = true;
 
         emit OperatorCommitted(msg.sender);
@@ -100,12 +101,12 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
 
     /**
      * @dev See {IPoolValidators-removeOperator}.
-     */
+    */
     function removeOperator(address _operator) external override whenNotPaused {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || msg.sender == _operator, "PoolValidators: access denied");
 
         Operator storage operator = operators[_operator];
-        require(operator.depositDataMerkleRoot != "", "PoolValidators: invalid operator");
+        require(operator.depositDataMerkleRoot != bytes32(0), "PoolValidators: invalid operator");
 
         // clean up operator
         delete operators[_operator];
@@ -115,7 +116,7 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
 
     /**
      * @dev See {IPoolValidators-registerValidator}.
-     */
+    */
     function registerValidator(DepositData calldata depositData, bytes32[] calldata merkleProof) external override {
         require(msg.sender == oracles, "PoolValidators: access denied");
 
@@ -127,15 +128,15 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
         // fetch deposit data merkle root
         Operator storage operator = operators[depositData.operator];
         bytes32 depositDataMerkleRoot = operator.depositDataMerkleRoot;
-        require(depositDataMerkleRoot != "" && operator.committed, "PoolValidators: invalid operator");
+        require(depositDataMerkleRoot != bytes32(0) && operator.committed, "PoolValidators: invalid operator");
 
         // check whether provided deposit data was previously approved
         bytes32 node = keccak256(abi.encode(
-            depositData.publicKey,
-            depositData.withdrawalCredentials,
-            depositData.signature,
-            depositData.depositDataRoot
-        ));
+                depositData.publicKey,
+                depositData.withdrawalCredentials,
+                depositData.signature,
+                depositData.depositDataRoot
+            ));
         require(
             MerkleProofUpgradeable.verify(merkleProof, depositDataMerkleRoot, node),
             "PoolValidators: invalid merkle proof"

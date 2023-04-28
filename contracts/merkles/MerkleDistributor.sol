@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/drafts/IERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IMerkleDistributor.sol";
 import "../interfaces/IOracles.sol";
@@ -18,7 +18,6 @@ import "../interfaces/IRewardEthToken.sol";
  * @dev MerkleDistributor contract distributes rETH2 and other tokens calculated by oracles.
  */
 contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     // @dev Merkle Root for proving rewards ownership.
     bytes32 public override merkleRoot;
@@ -81,7 +80,8 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
         uint256 endBlock = startBlock + durationInBlocks;
         require(endBlock > startBlock, "MerkleDistributor: invalid blocks duration");
 
-        IERC20Upgradeable(token).safeTransferFrom(from, address(this), amount);
+        _transferToken(from, address(this), token, amount);
+
         emit PeriodicDistributionAdded(from, token, beneficiary, amount, startBlock, endBlock);
     }
 
@@ -99,7 +99,7 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
     {
         require(amount > 0, "MerkleDistributor: invalid amount");
 
-        IERC20Upgradeable(token).safeTransferFrom(from, address(this), amount);
+        _transferToken(from, address(this), token, amount);
         emit OneTimeDistributionAdded(from, origin, token, amount, rewardsLink);
     }
 
@@ -158,9 +158,19 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
             if (token == _rewardEthToken) {
                 IRewardEthToken(_rewardEthToken).claim(account, amount);
             } else {
-                IERC20Upgradeable(token).safeTransfer(account, amount);
+                _transferToken(address(this), account, token, amount);
             }
         }
         emit Claimed(account, index, tokens, amounts);
+    }
+
+    function _transferToken(
+        address from,
+        address to,
+        address token,
+        uint256 amount
+    ) internal {
+        IERC20 erc20Token = IERC20(token);
+        SafeERC20.safeTransferFrom(erc20Token, from, to, amount);
     }
 }

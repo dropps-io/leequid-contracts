@@ -62,9 +62,6 @@ contract('VestingEscrow', ([recipient, beneficiary, anyone]) => {
 
   it('sets variables correctly upon initialization', async () => {
     expect(await escrow.isAdmin(admin)).to.equal(true);
-    expect(
-      await escrow.getRoleMemberCount(await escrow.DEFAULT_ADMIN_ROLE())
-    ).to.bignumber.equal(new BN(1));
     expect(await escrow.token()).to.equal(stakeWiseToken.address);
     expect(await escrow.recipient()).to.equal(recipient);
     expect(await escrow.beneficiary()).to.equal(beneficiary);

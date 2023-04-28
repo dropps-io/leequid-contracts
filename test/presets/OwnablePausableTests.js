@@ -6,7 +6,7 @@ function ownablePausableTests({ getOwnableContract, accounts }) {
   let [admin, otherAdmin, pauser, otherPauser, anyone] = accounts;
 
   beforeEach(async () => {
-    ownableContract = await getOwnableContract(admin);
+    ownableContract = await getOwnableContract();
   });
 
   describe('assigning admins', () => {

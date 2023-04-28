@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "./ERC20PermitUpgradeable.sol";
 
@@ -10,8 +9,6 @@ import "./ERC20PermitUpgradeable.sol";
  * @title StakeWiseToken
  */
 contract StakeWiseToken is OwnablePausableUpgradeable, ERC20PermitUpgradeable {
-    using SafeMathUpgradeable for uint256;
-
     mapping (address => uint256) private _balances;
 
     uint256 private _totalSupply;
@@ -52,8 +49,8 @@ contract StakeWiseToken is OwnablePausableUpgradeable, ERC20PermitUpgradeable {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[sender] = _balances[sender] - amount;
+        _balances[recipient] = _balances[recipient] + amount;
         emit Transfer(sender, recipient, amount);
     }
 }

@@ -271,10 +271,7 @@ async function resetFork() {
 }
 
 async function setupOracleAccounts({ admin, oracles, accounts }) {
-  let oracleRole = await oracles.ORACLE_ROLE();
-  const totalOracles = (
-    await oracles.getRoleMemberCount(oracleRole)
-  ).toNumber();
+  const totalOracles = (await oracles.oracleCount()).toNumber();
 
   // remove oracles
   for (let i = 0; i < totalOracles; i++) {

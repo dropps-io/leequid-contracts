@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/SafeCastUpgradeable.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IStakedEthToken.sol";
 import "../interfaces/IRewardEthToken.sol";
@@ -19,8 +20,7 @@ import "./ERC20PermitUpgradeable.sol";
  * If deploying contract for the first time, the `initialize` function should replace the `upgrade` function.
  */
 contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20PermitUpgradeable {
-    using SafeMathUpgradeable for uint256;
-    using SafeCastUpgradeable for uint256;
+    using SafeCast for uint256;
 
     // @dev Address of the StakedEthToken contract.
     IStakedEthToken private stakedEthToken;
@@ -64,8 +64,8 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
 
         uint128 _rewardPerToken = rewardPerToken;
         checkpoints[account] = Checkpoint({
-            reward: _balanceOf(account, _rewardPerToken).toUint128(),
-            rewardPerToken: _rewardPerToken
+        reward: _balanceOf(account, _rewardPerToken).toUint128(),
+        rewardPerToken: _rewardPerToken
         });
 
         rewardsDisabled[account] = isDisabled;
@@ -120,7 +120,7 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
         if (stakedEthAmount == 0) return cp.reward;
 
         // return checkpoint reward + current reward
-        return _calculateNewReward(cp.reward, stakedEthAmount, _rewardPerToken.sub(cp.rewardPerToken));
+        return _calculateNewReward(cp.reward, stakedEthAmount, _rewardPerToken - cp.rewardPerToken);
     }
 
     /**
@@ -133,12 +133,12 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
 
         uint128 _rewardPerToken = rewardPerToken; // gas savings
         checkpoints[sender] = Checkpoint({
-            reward: _balanceOf(sender, _rewardPerToken).sub(amount).toUint128(),
-            rewardPerToken: _rewardPerToken
+        reward: (_balanceOf(sender, _rewardPerToken) - amount).toUint128(),
+        rewardPerToken: _rewardPerToken
         });
         checkpoints[recipient] = Checkpoint({
-            reward: _balanceOf(recipient, _rewardPerToken).add(amount).toUint128(),
-            rewardPerToken: _rewardPerToken
+        reward: (_balanceOf(recipient, _rewardPerToken) + amount).toUint128(),
+        rewardPerToken: _rewardPerToken
         });
 
         emit Transfer(sender, recipient, amount);
@@ -165,14 +165,14 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
         }
         if (stakedEthAmount == 0) {
             checkpoints[account] = Checkpoint({
-                reward: cp.reward,
-                rewardPerToken: newRewardPerToken
+            reward: cp.reward,
+            rewardPerToken: newRewardPerToken
             });
         } else {
-            uint256 periodRewardPerToken = uint256(newRewardPerToken).sub(cp.rewardPerToken);
+            uint256 periodRewardPerToken = uint256(newRewardPerToken) - cp.rewardPerToken;
             checkpoints[account] = Checkpoint({
-                reward: _calculateNewReward(cp.reward, stakedEthAmount, periodRewardPerToken).toUint128(),
-                rewardPerToken: newRewardPerToken
+            reward: _calculateNewReward(cp.reward, stakedEthAmount, periodRewardPerToken).toUint128(),
+            rewardPerToken: newRewardPerToken
             });
         }
     }
@@ -182,9 +182,9 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
         uint256 stakedEthAmount,
         uint256 periodRewardPerToken
     )
-        internal pure returns (uint256)
+    internal pure returns (uint256)
     {
-        return currentReward.add(stakedEthAmount.mul(periodRewardPerToken).div(1e18));
+        return currentReward + stakedEthAmount * periodRewardPerToken / 1e18;
     }
 
     /**
@@ -206,8 +206,8 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
     function updateTotalRewards(uint256 newTotalRewards) external override {
         require(msg.sender == oracles, "RewardEthToken: access denied");
 
-        newTotalRewards = newTotalRewards.add(feesEscrow.transferToPool());
-        uint256 periodRewards = newTotalRewards.sub(totalRewards);
+        newTotalRewards = newTotalRewards + feesEscrow.transferToPool();
+        uint256 periodRewards = newTotalRewards - totalRewards;
         if (periodRewards == 0) {
             lastUpdateBlockNumber = block.number;
             emit RewardsUpdated(0, newTotalRewards, rewardPerToken, 0, 0);
@@ -215,9 +215,9 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
         }
 
         // calculate protocol reward and new reward per token amount
-        uint256 protocolReward = periodRewards.mul(protocolFee).div(1e4);
+        uint256 protocolReward = periodRewards * protocolFee / 1e4;
         uint256 prevRewardPerToken = rewardPerToken;
-        uint256 newRewardPerToken = prevRewardPerToken.add(periodRewards.sub(protocolReward).mul(1e18).div(stakedEthToken.totalDeposits()));
+        uint256 newRewardPerToken = prevRewardPerToken + (periodRewards - protocolReward * 1e18 / stakedEthToken.totalDeposits());
         uint128 newRewardPerToken128 = newRewardPerToken.toUint128();
 
         // store previous distributor rewards for period reward calculation
@@ -230,20 +230,20 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
         address _protocolFeeRecipient = protocolFeeRecipient;
         if (_protocolFeeRecipient == address(0) && protocolReward > 0) {
             // add protocol reward to the merkle distributor
-            newDistributorBalance = newDistributorBalance.add(protocolReward);
+            newDistributorBalance = newDistributorBalance + protocolReward;
         } else if (protocolReward > 0) {
             // update fee recipient's checkpoint and add its period reward
             checkpoints[_protocolFeeRecipient] = Checkpoint({
-                reward: _balanceOf(_protocolFeeRecipient, newRewardPerToken).add(protocolReward).toUint128(),
-                rewardPerToken: newRewardPerToken128
+            reward: (_balanceOf(_protocolFeeRecipient, newRewardPerToken) + protocolReward).toUint128(),
+            rewardPerToken: newRewardPerToken128
             });
         }
 
         // update distributor's checkpoint
         if (newDistributorBalance != prevDistributorBalance) {
             checkpoints[address(0)] = Checkpoint({
-                reward: newDistributorBalance.toUint128(),
-                rewardPerToken: newRewardPerToken128
+            reward: newDistributorBalance.toUint128(),
+            rewardPerToken: newRewardPerToken128
             });
         }
 
@@ -252,7 +252,7 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
             periodRewards,
             newTotalRewards,
             newRewardPerToken,
-            newDistributorBalance.sub(prevDistributorBalance),
+            newDistributorBalance - prevDistributorBalance,
             _protocolFeeRecipient == address(0) ? protocolReward: 0
         );
     }
@@ -267,12 +267,12 @@ contract RewardEthToken is IRewardEthToken, OwnablePausableUpgradeable, ERC20Per
         // update checkpoints, transfer amount from distributor to account
         uint128 _rewardPerToken = rewardPerToken;
         checkpoints[address(0)] = Checkpoint({
-            reward: _balanceOf(address(0), _rewardPerToken).sub(amount).toUint128(),
-            rewardPerToken: _rewardPerToken
+        reward: (_balanceOf(address(0), _rewardPerToken) - amount).toUint128(),
+        rewardPerToken: _rewardPerToken
         });
         checkpoints[account] = Checkpoint({
-            reward: _balanceOf(account, _rewardPerToken).add(amount).toUint128(),
-            rewardPerToken: _rewardPerToken
+        reward: (_balanceOf(account, _rewardPerToken) + amount).toUint128(),
+        rewardPerToken: _rewardPerToken
         });
         emit Transfer(address(0), account, amount);
     }

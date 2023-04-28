@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 pragma abicoder v2;
-
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "../interfaces/IOracles.sol";
@@ -39,7 +38,7 @@ contract MulticallMock {
         address payee,
         bytes[] calldata signatures
     )
-        external
+    external
     {
         rewardEthToken.transferFrom(msg.sender, payee, rewardEthToken.balanceOf(msg.sender));
         oracles.submitRewards(totalRewards, activatedValidators, signatures);
@@ -51,7 +50,7 @@ contract MulticallMock {
         address payee,
         bytes[] calldata signatures
     )
-        external
+    external
     {
         oracles.submitRewards(totalRewards, activatedValidators, signatures);
         rewardEthToken.transferFrom(msg.sender, payee, rewardEthToken.balanceOf(msg.sender));
@@ -65,7 +64,7 @@ contract MulticallMock {
         uint256[] calldata amounts,
         bytes32[] calldata merkleProof
     )
-        external
+    external
     {
         oracles.submitRewards(oracleRewards.totalRewards, oracleRewards.activatedValidators, oracleRewards.signatures);
         merkleDistributor.claim(index, account, tokens, amounts, merkleProof);
@@ -79,7 +78,7 @@ contract MulticallMock {
         uint256[] calldata amounts,
         bytes32[] calldata merkleProof
     )
-        external
+    external
     {
         merkleDistributor.claim(index, account, tokens, amounts, merkleProof);
         oracles.submitRewards(oracleRewards.totalRewards, oracleRewards.activatedValidators, oracleRewards.signatures);
@@ -93,7 +92,7 @@ contract MulticallMock {
         uint256[] calldata amounts,
         bytes32[] calldata merkleProof
     )
-        external
+    external
     {
         merkleDistributor.claim(index, account, tokens, amounts, merkleProof);
         oracles.submitMerkleRoot(merkleRoot.merkleRoot, merkleRoot.merkleProofs, merkleRoot.signatures);
@@ -107,7 +106,7 @@ contract MulticallMock {
         uint256[] calldata amounts,
         bytes32[] calldata merkleProof
     )
-        external
+    external
     {
         oracles.submitMerkleRoot(merkleRoot.merkleRoot, merkleRoot.merkleProofs, merkleRoot.signatures);
         merkleDistributor.claim(index, account, tokens, amounts, merkleProof);
@@ -119,7 +118,7 @@ contract MulticallMock {
         address payee,
         bytes[] calldata signatures
     )
-        external
+    external
     {
         oracles.submitRewards(totalRewards, activatedValidators, signatures);
         stakedEthToken.transferFrom(msg.sender, payee, stakedEthToken.balanceOf(msg.sender));
@@ -131,7 +130,7 @@ contract MulticallMock {
         address payee,
         bytes[] calldata signatures
     )
-        external
+    external
     {
         stakedEthToken.transferFrom(msg.sender, payee, stakedEthToken.balanceOf(msg.sender));
         oracles.submitRewards(totalRewards, activatedValidators, signatures);
@@ -141,7 +140,7 @@ contract MulticallMock {
         OracleRewards memory oracleRewards,
         MerkleRoot memory merkleRoot
     )
-        external
+    external
     {
         oracles.submitRewards(oracleRewards.totalRewards, oracleRewards.activatedValidators, oracleRewards.signatures);
         oracles.submitMerkleRoot(merkleRoot.merkleRoot, merkleRoot.merkleProofs, merkleRoot.signatures);

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity 0.8.4;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol"; // Updated import
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./presets/OwnablePausableUpgradeable.sol";
 import "./interfaces/IRewardEthToken.sol";
@@ -21,10 +20,10 @@ import "./interfaces/IPoolValidators.sol";
  * The threshold of inputs from different oracles is required to submit the data.
  */
 contract Oracles is IOracles, OwnablePausableUpgradeable {
-    using SafeMathUpgradeable for uint256;
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+    uint256 public oracleCount;
 
     // @dev Rewards nonce is used to protect from submitting the same rewards vote several times.
     CountersUpgradeable.Counter private rewardsNonce;
@@ -50,6 +49,10 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     modifier onlyOracle() {
         require(hasRole(ORACLE_ROLE, msg.sender), "Oracles: access denied");
         _;
+    }
+
+    constructor() {
+        oracleCount = 0;
     }
 
     /**
@@ -79,6 +82,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     function addOracle(address account) external override {
         require(account != address(0), "Oracles: invalid oracle address");
         grantRole(ORACLE_ROLE, account);
+        oracleCount++;
         emit OracleAdded(account);
     }
 
@@ -87,6 +91,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      */
     function removeOracle(address account) external override {
         revokeRole(ORACLE_ROLE, account);
+        oracleCount--;
         emit OracleRemoved(account);
     }
 
@@ -99,24 +104,21 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     }
 
     /**
-    * @dev Function for checking whether number of signatures is enough to update the value.
+    * @dev Function for checking whether the number of signatures is enough to update the value.
     * @param signaturesCount - number of signatures.
     */
     function isEnoughSignatures(uint256 signaturesCount) internal view returns (bool) {
-        uint256 totalOracles = getRoleMemberCount(ORACLE_ROLE);
-        return totalOracles >= signaturesCount && signaturesCount.mul(3) > totalOracles.mul(2);
+        return oracleCount >= signaturesCount && signaturesCount * 3 > oracleCount * 2;
     }
 
     /**
      * @dev See {IOracles-submitRewards}.
-     */
+    */
     function submitRewards(
         uint256 totalRewards,
         uint256 activatedValidators,
         bytes[] calldata signatures
-    )
-        external override onlyOracle whenNotPaused
-    {
+    ) external override onlyOracle whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
 
         // calculate candidate ID hash
@@ -153,54 +155,54 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
     /**
      * @dev See {IOracles-submitMerkleRoot}.
-     */
+ */
     function submitMerkleRoot(
         bytes32 merkleRoot,
         string calldata merkleProofs,
         bytes[] calldata signatures
     )
-        external override onlyOracle whenNotPaused
-    {
-        require(isMerkleRootVoting(), "Oracles: too early");
-        require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
+    external override onlyOracle whenNotPaused
+{
+require(isMerkleRootVoting(), "Oracles: too early");
+require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
 
-        // calculate candidate ID hash
-        uint256 nonce = rewardsNonce.current();
-        bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
-            keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
-        );
+// calculate candidate ID hash
+uint256 nonce = rewardsNonce.current();
+bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
+keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
+);
 
-        // check signatures and calculate number of submitted oracle votes
-        address[] memory signedOracles = new address[](signatures.length);
-        for (uint256 i = 0; i < signatures.length; i++) {
-            bytes memory signature = signatures[i];
-            address signer = ECDSAUpgradeable.recover(candidateId, signature);
-            require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
+// check signatures and calculate number of submitted oracle votes
+address[] memory signedOracles = new address[](signatures.length);
+for (uint256 i = 0; i < signatures.length; i++) {
+bytes memory signature = signatures[i];
+address signer = ECDSAUpgradeable.recover(candidateId, signature);
+require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
 
-            for (uint256 j = 0; j < i; j++) {
-                require(signedOracles[j] != signer, "Oracles: repeated signature");
-            }
-            signedOracles[i] = signer;
-            emit MerkleRootVoteSubmitted(msg.sender, signer, nonce, merkleRoot, merkleProofs);
-        }
+for (uint256 j = 0; j < i; j++) {
+require(signedOracles[j] != signer, "Oracles: repeated signature");
+}
+signedOracles[i] = signer;
+emit MerkleRootVoteSubmitted(msg.sender, signer, nonce, merkleRoot, merkleProofs);
+}
 
-        // increment nonce for future signatures
-        rewardsNonce.increment();
+// increment nonce for future signatures
+    rewardsNonce.increment();
 
-        // update merkle root
-        merkleDistributor.setMerkleRoot(merkleRoot, merkleProofs);
-    }
+    // update merkle root
+    merkleDistributor.setMerkleRoot(merkleRoot, merkleProofs);
+}
 
     /**
     * @dev See {IOracles-registerValidators}.
-    */
+*/
     function registerValidators(
         IPoolValidators.DepositData[] calldata depositData,
         bytes32[][] calldata merkleProofs,
         bytes32 validatorsDepositRoot,
         bytes[] calldata signatures
     )
-        external override onlyOracle whenNotPaused
+    external override onlyOracle whenNotPaused
     {
         require(
             pool.validatorRegistration().get_deposit_root() == validatorsDepositRoot,

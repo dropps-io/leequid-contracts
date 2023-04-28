@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IStakedEthToken.sol";
 import "../interfaces/IDepositContract.sol";
@@ -12,13 +11,12 @@ import "../interfaces/IPool.sol";
 import "../interfaces/IPoolValidators.sol";
 
 /**
- * @title Pool
- *
- * @dev Pool contract accumulates deposits from the users, mints tokens and registers validators.
- */
-contract Pool is IPool, OwnablePausableUpgradeable {
-    using SafeMathUpgradeable for uint256;
 
+@title Pool
+
+@dev Pool contract accumulates deposits from the users, mints tokens and registers validators.
+*/
+contract Pool is IPool, OwnablePausableUpgradeable {
     // @dev Validator deposit amount.
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
 
@@ -53,16 +51,15 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     uint256 public override pendingValidatorsLimit;
 
     /**
-     * @dev See {IPool-setMinActivatingDeposit}.
-     */
+    * @dev See {IPool-setMinActivatingDeposit}.
+    */
     function setMinActivatingDeposit(uint256 newMinActivatingDeposit) external override onlyAdmin {
         minActivatingDeposit = newMinActivatingDeposit;
         emit MinActivatingDepositUpdated(newMinActivatingDeposit, msg.sender);
     }
-
     /**
-     * @dev See {IPool-setPendingValidatorsLimit}.
-     */
+    * @dev See {IPool-setPendingValidatorsLimit}.
+    */
     function setPendingValidatorsLimit(uint256 newPendingValidatorsLimit) external override onlyAdmin {
         require(newPendingValidatorsLimit < 1e4, "Pool: invalid limit");
         pendingValidatorsLimit = newPendingValidatorsLimit;
@@ -70,34 +67,34 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     }
 
     /**
-     * @dev See {IPool-setActivatedValidators}.
-     */
+    * @dev See {IPool-setActivatedValidators}.
+    */
     function setActivatedValidators(uint256 newActivatedValidators) external override {
         require(msg.sender == oracles || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
 
         // subtract activated validators from pending validators
-        pendingValidators = pendingValidators.sub(newActivatedValidators.sub(activatedValidators));
+        pendingValidators = pendingValidators - newActivatedValidators - activatedValidators;
         activatedValidators = newActivatedValidators;
         emit ActivatedValidatorsUpdated(newActivatedValidators, msg.sender);
     }
 
     /**
-     * @dev See {IPool-stake}.
-     */
+    * @dev See {IPool-stake}.
+    */
     function stake() external payable override {
         _stake(msg.sender, msg.value);
     }
 
     /**
-     * @dev See {IPool-stakeOnBehalf}.
-     */
+    * @dev See {IPool-stakeOnBehalf}.
+    */
     function stakeOnBehalf(address recipient) external payable override {
         _stake(recipient, msg.value);
     }
 
     /**
-     * @dev See {IPool-receiveFees}.
-     */
+    * @dev See {IPool-receiveFees}.
+    */
     function receiveFees() external payable override {}
 
     /**
@@ -108,8 +105,8 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     }
 
     /**
-     * @dev See {IPool-stakeWithPartner}.
-     */
+    * @dev See {IPool-stakeWithPartner}.
+    */
     function stakeWithPartner(address partner) external payable override {
         // stake amount
         _stake(msg.sender, msg.value);
@@ -118,7 +115,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
     /**
      * @dev See {IPool-stakeWithPartnerOnBehalf}.
-     */
+    */
     function stakeWithPartnerOnBehalf(address partner, address recipient) external payable override {
         // stake amount
         _stake(recipient, msg.value);
@@ -127,7 +124,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
     /**
      * @dev See {IPool-stakeWithReferrer}.
-     */
+    */
     function stakeWithReferrer(address referrer) external payable override {
         // stake amount
         _stake(msg.sender, msg.value);
@@ -136,7 +133,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
     /**
      * @dev See {IPool-stakeWithReferrerOnBehalf}.
-     */
+    */
     function stakeWithReferrerOnBehalf(address referrer, address recipient) external payable override {
         // stake amount
         _stake(recipient, msg.value);
@@ -153,15 +150,15 @@ contract Pool is IPool, OwnablePausableUpgradeable {
             return;
         }
 
-        // mint tokens if current pending validators limit is not exceed
-        uint256 _pendingValidators = pendingValidators.add((address(this).balance).div(VALIDATOR_TOTAL_DEPOSIT));
+        // mint tokens if current pending validators limit is not exceeded
+        uint256 _pendingValidators = pendingValidators + (address(this).balance / VALIDATOR_TOTAL_DEPOSIT);
         uint256 _activatedValidators = activatedValidators; // gas savings
-        uint256 validatorIndex = _activatedValidators.add(_pendingValidators);
-        if (validatorIndex.mul(1e4) <= _activatedValidators.mul(pendingValidatorsLimit.add(1e4))) {
+        uint256 validatorIndex = _activatedValidators + _pendingValidators;
+        if (validatorIndex * 1e4 <= _activatedValidators * (pendingValidatorsLimit + 1e4)) {
             stakedEthToken.mint(recipient, value);
         } else {
             // lock deposit amount until validator activated
-            activations[recipient][validatorIndex] = activations[recipient][validatorIndex].add(value);
+            activations[recipient][validatorIndex] = activations[recipient][validatorIndex] + value;
             emit ActivationScheduled(recipient, validatorIndex, value);
         }
     }
@@ -170,31 +167,30 @@ contract Pool is IPool, OwnablePausableUpgradeable {
      * @dev See {IPool-canActivate}.
      */
     function canActivate(uint256 validatorIndex) external view override returns (bool) {
-        return validatorIndex.mul(1e4) <= activatedValidators.mul(pendingValidatorsLimit.add(1e4));
+        return validatorIndex * 1e4 <= activatedValidators * (pendingValidatorsLimit + 1e4);
     }
 
     /**
      * @dev See {IPool-activate}.
-     */
+    */
     function activate(address account, uint256 validatorIndex) external override whenNotPaused {
         uint256 activatedAmount = _activateAmount(
             account,
             validatorIndex,
-            activatedValidators.mul(pendingValidatorsLimit.add(1e4))
+            activatedValidators * (pendingValidatorsLimit + 1e4)
         );
-
         stakedEthToken.mint(account, activatedAmount);
     }
 
     /**
      * @dev See {IPool-activateMultiple}.
-     */
+    */
     function activateMultiple(address account, uint256[] calldata validatorIndexes) external override whenNotPaused {
         uint256 toMint;
-        uint256 maxValidatorIndex = activatedValidators.mul(pendingValidatorsLimit.add(1e4));
+        uint256 maxValidatorIndex = activatedValidators * (pendingValidatorsLimit + 1e4);
         for (uint256 i = 0; i < validatorIndexes.length; i++) {
             uint256 activatedAmount = _activateAmount(account, validatorIndexes[i], maxValidatorIndex);
-            toMint = toMint.add(activatedAmount);
+            toMint = toMint + activatedAmount;
         }
         stakedEthToken.mint(account, toMint);
     }
@@ -203,10 +199,9 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         address account,
         uint256 validatorIndex,
         uint256 maxValidatorIndex
-    )
-        internal returns (uint256 amount)
+    ) internal returns (uint256 amount)
     {
-        require(validatorIndex.mul(1e4) <= maxValidatorIndex, "Pool: validator is not active yet");
+        require(validatorIndex * 1e4 <= maxValidatorIndex, "Pool: validator is not active yet");
 
         amount = activations[account][validatorIndex];
         require(amount > 0, "Pool: invalid validator index");
@@ -223,7 +218,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         require(depositData.withdrawalCredentials == withdrawalCredentials, "Pool: invalid withdrawal credentials");
 
         // update number of pending validators
-        pendingValidators = pendingValidators.add(1);
+        pendingValidators = pendingValidators + 1;
         emit ValidatorRegistered(depositData.publicKey, depositData.operator);
 
         // register validator

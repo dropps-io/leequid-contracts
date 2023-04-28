@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IStakedEthToken.sol";
 import "../interfaces/IRewardEthToken.sol";
@@ -14,7 +13,6 @@ import "./ERC20PermitUpgradeable.sol";
  * @dev StakedEthToken contract stores pool staked tokens.
  */
 contract StakedEthToken is IStakedEthToken, OwnablePausableUpgradeable, ERC20PermitUpgradeable {
-    using SafeMathUpgradeable for uint256;
 
     // @dev Total amount of deposits.
     uint256 public override totalDeposits;
@@ -57,9 +55,9 @@ contract StakedEthToken is IStakedEthToken, OwnablePausableUpgradeable, ERC20Per
         // update distributor principal
         uint256 accountBalance = deposits[account];
         if (isDisabled) {
-            distributorPrincipal = distributorPrincipal.add(accountBalance);
+            distributorPrincipal = distributorPrincipal + accountBalance;
         } else {
-            distributorPrincipal = distributorPrincipal.sub(accountBalance);
+            distributorPrincipal = distributorPrincipal - accountBalance;
         }
     }
 
@@ -77,15 +75,15 @@ contract StakedEthToken is IStakedEthToken, OwnablePausableUpgradeable, ERC20Per
             // update merkle distributor principal if any of the addresses has disabled rewards
             uint256 _distributorPrincipal = distributorPrincipal; // gas savings
             if (senderRewardsDisabled) {
-                _distributorPrincipal = _distributorPrincipal.sub(amount);
+                _distributorPrincipal = _distributorPrincipal - amount;
             } else {
-                _distributorPrincipal = _distributorPrincipal.add(amount);
+                _distributorPrincipal = _distributorPrincipal + amount;
             }
             distributorPrincipal = _distributorPrincipal;
         }
 
-        deposits[sender] = deposits[sender].sub(amount);
-        deposits[recipient] = deposits[recipient].add(amount);
+        deposits[sender] = deposits[sender] - amount;
+        deposits[recipient] = deposits[recipient] + amount;
 
         emit Transfer(sender, recipient, amount);
     }
@@ -100,11 +98,11 @@ contract StakedEthToken is IStakedEthToken, OwnablePausableUpgradeable, ERC20Per
         bool rewardsDisabled = rewardEthToken.updateRewardCheckpoint(account);
         if (rewardsDisabled) {
             // update merkle distributor principal if account has disabled rewards
-            distributorPrincipal = distributorPrincipal.add(amount);
+            distributorPrincipal = distributorPrincipal + amount;
         }
 
-        totalDeposits = totalDeposits.add(amount);
-        deposits[account] = deposits[account].add(amount);
+        totalDeposits = totalDeposits + amount;
+        deposits[account] = deposits[account] + amount;
 
         emit Transfer(address(0), account, amount);
     }

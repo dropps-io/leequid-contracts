@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Adopted from https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/v3.4.0/contracts/token/ERC20/ERC20Upgradeable.sol
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 
 /**
@@ -33,8 +32,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
  * allowances. See {IERC20-approve}.
  */
 abstract contract ERC20Upgradeable is Initializable, IERC20Upgradeable {
-    using SafeMathUpgradeable for uint256;
-
     mapping (address => mapping (address => uint256)) private _allowances;
 
     string private _name;
@@ -143,8 +140,8 @@ abstract contract ERC20Upgradeable is Initializable, IERC20Upgradeable {
         _transfer(sender, recipient, amount);
 
         uint256 currentAllowance = _allowances[sender][msg.sender];
-        if (sender != msg.sender && currentAllowance != uint256(-1)) {
-            _approve(sender, msg.sender, currentAllowance.sub(amount));
+        if (sender != msg.sender && currentAllowance != type(uint256).max) {
+            _approve(sender, msg.sender, currentAllowance - amount);
         }
         return true;
     }
@@ -162,7 +159,7 @@ abstract contract ERC20Upgradeable is Initializable, IERC20Upgradeable {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
+        _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
         return true;
     }
 
@@ -181,7 +178,7 @@ abstract contract ERC20Upgradeable is Initializable, IERC20Upgradeable {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender].sub(subtractedValue));
+        _approve(msg.sender, spender, _allowances[msg.sender][spender] - subtractedValue);
         return true;
     }
 

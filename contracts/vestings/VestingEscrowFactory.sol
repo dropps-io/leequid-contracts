@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IVestingEscrowFactory.sol";
 import "../interfaces/IVestingEscrow.sol";
-
 
 /**
  * @title VestingEscrowFactory
@@ -28,7 +27,6 @@ contract VestingEscrowFactory is IVestingEscrowFactory, ReentrancyGuardUpgradeab
 
     // @dev Maps address of the beneficiary to its vesting escrows.
     mapping(address => address[]) private escrows;
-
     /**
      * @dev See {IVestingEscrowFactory-upgrade}.
      * The `initialize` must be called before upgrading in previous implementation contract:

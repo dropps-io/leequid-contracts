@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "../interfaces/IOwnablePausable.sol";
 
 /**
@@ -12,7 +12,7 @@ import "../interfaces/IOwnablePausable.sol";
  * @dev Bundles Access Control and Pausable contracts in one.
  *
  */
-abstract contract OwnablePausable is IOwnablePausable, Pausable, AccessControl {
+abstract contract OwnablePausable is IOwnablePausable, PausableUpgradeable, AccessControlUpgradeable {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /**
@@ -32,9 +32,12 @@ abstract contract OwnablePausable is IOwnablePausable, Pausable, AccessControl {
     }
 
     /**
-     * @dev Grants `DEFAULT_ADMIN_ROLE`, `PAUSER_ROLE` to the admin account.
+     * @dev Initializes the contract with `DEFAULT_ADMIN_ROLE`, `PAUSER_ROLE` granted to the admin account.
      */
-    constructor(address _admin) {
+    function __OwnablePausable_init(address _admin) internal initializer {
+        __AccessControl_init();
+        __Pausable_init();
+
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(PAUSER_ROLE, _admin);
     }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 
 /**
  * @dev Interface of the OwnablePausableUpgradeable and OwnablePausable contracts.

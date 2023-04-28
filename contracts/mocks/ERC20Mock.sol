@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "../tokens/ERC20PermitUpgradeable.sol";
 
 
 contract ERC20Mock is ERC20PermitUpgradeable {
-    using SafeMathUpgradeable for uint256;
-
     uint256 private _totalSupply;
 
     address private owner;
@@ -33,8 +30,8 @@ contract ERC20Mock is ERC20PermitUpgradeable {
         require(sender != address(0), "ERC20: invalid sender");
         require(recipient != address(0), "ERC20: invalid receiver");
 
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[sender] = _balances[sender] - amount;
+        _balances[recipient] = _balances[recipient] + amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -46,15 +43,15 @@ contract ERC20Mock is ERC20PermitUpgradeable {
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _totalSupply = _totalSupply + amount;
+        _balances[account] = _balances[account] + amount;
         emit Transfer(address(0), account, amount);
     }
 
     // We get the chain id from the contract because Ganache (used for coverage) does not return the same chain id
     // from within the EVM as from the JSON RPC interface.
     // See https://github.com/trufflesuite/ganache-core/issues/515
-    function getChainId() external pure returns (uint256 chainId) {
+    function getChainId() external view returns (uint256 chainId) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             chainId := chainid()

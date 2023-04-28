@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.7.5;
+pragma solidity ^0.8.4;
 
 // This interface is designed to be compatible with the Vyper version.
 /// @notice This is the Ethereum 2.0 deposit contract interface.
