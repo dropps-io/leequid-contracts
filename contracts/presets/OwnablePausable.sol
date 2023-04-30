@@ -32,12 +32,9 @@ abstract contract OwnablePausable is IOwnablePausable, PausableUpgradeable, Acce
     }
 
     /**
-     * @dev Initializes the contract with `DEFAULT_ADMIN_ROLE`, `PAUSER_ROLE` granted to the admin account.
+     * @dev Grants `DEFAULT_ADMIN_ROLE`, `PAUSER_ROLE` to the admin account.
      */
-    function __OwnablePausable_init(address _admin) internal initializer {
-        __AccessControl_init();
-        __Pausable_init();
-
+    constructor(address _admin) {
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(PAUSER_ROLE, _admin);
     }

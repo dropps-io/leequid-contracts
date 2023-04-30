@@ -2,10 +2,9 @@
 
 pragma solidity ^0.8.4;
 
-/**
- * @dev Interface of the StakedEthToken contract.
- */
-interface IStakedLyxToken {
+import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
+
+interface IStakedLyxToken is ILSP7DigitalAsset {
     /**
     * @dev Function for retrieving the total deposits amount.
     */

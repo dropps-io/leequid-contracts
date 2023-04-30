@@ -16,6 +16,7 @@
     "format": "prettier --write \"**/*.js\" \"*.json\"",
     "lint": "solhint --max-warnings 0 \"contracts/**/*.sol\" && eslint \"**/*.js\"",
     "lint:fix": "eslint --fix \"**/*.js\"",
+    "linter": "solhint 'contracts/**/*.sol'",
     "slither": "pip3 install --user slither-analyzer && slither .",
     "test": "hardhat test",
     "test:gas": "hardhat test --gas --optimizer",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@codechecks/client": "^0.1.12",
+    "@ethereum-waffle/chai": "^4.0.10",
     "@lukso/lsp-smart-contracts": "^0.8.2",
     "@nomiclabs/hardhat-ethers": "^2.0.3",
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
@@ -61,6 +63,7 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eth-sig-util": "^3.0.1",
+    "ethereum-waffle": "^4.0.10",
     "ethers": "^5.5.2",
     "hardhat": "^2.7.1",
     "hardhat-abi-exporter": "^2.3.1",
@@ -69,9 +72,11 @@
     "husky": "^7.0.4",
     "lint-staged": "12.1.2",
     "prettier": "^2.5.1",
-    "solhint": "^3.3.6",
+    "solhint": "^3.4.1",
     "solidity-coverage": "^0.7.18",
     "web3": "^1.6.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@erc725/smart-contracts": "^5.0.0"
+  }
 }

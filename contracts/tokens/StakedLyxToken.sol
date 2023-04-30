@@ -12,7 +12,6 @@ import {GasLib} from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
 // modules
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {ERC725Y} from "@erc725/smart-contracts/contracts/ERC725Y.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // errors
@@ -22,7 +21,7 @@ import "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 import {_INTERFACEID_LSP1} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
 import {_TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
-import {IRewardEthToken} from "../interfaces/IRewardEthToken.sol";
+import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
@@ -49,8 +48,8 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
     // @dev Address of the Pool contract.
     address private pool;
 
-    // @dev Address of the RewardEthToken contract.
-    IRewardEthToken private rewardEthToken;
+    // @dev Address of the RewardLyxToken contract.
+    IRewardLyxToken private rewardLyxToken;
 
     // @dev The principal amount of the distributor.
     uint256 public override distributorPrincipal;
@@ -91,7 +90,7 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
         require(tokenOwner != address(0), "StakedLyxToken: invalid tokenOwner");
 
         // toggle rewards
-        rewardEthToken.setRewardsDisabled(tokenOwner, isDisabled);
+        rewardLyxToken.setRewardsDisabled(tokenOwner, isDisabled);
 
         // update distributor principal
         uint256 tokenOwnerBalance = _deposits[tokenOwner];
@@ -233,16 +232,16 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
     }
 
     /**
-     * @dev See {IStakedEthToken-mint}.
+     * @dev See {IStakedLyxToken-mint}.
      */
     function mint(address to,
         uint256 amount,
         bool allowNonLSP1Recipient,
         bytes memory data) external override {
-        require(msg.sender == pool, "StakedEthToken: access denied");
+        require(msg.sender == pool, "StakedLyxToken: access denied");
 
         // start calculating account rewards with updated deposit amount
-        bool rewardsDisabled = rewardEthToken.updateRewardCheckpoint(to);
+        bool rewardsDisabled = rewardLyxToken.updateRewardCheckpoint(to);
         if (rewardsDisabled) {
             // update merkle distributor principal if account has disabled rewards
             distributorPrincipal = distributorPrincipal + amount;
@@ -351,7 +350,7 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
         bool allowNonLSP1Recipient,
         bytes memory data
     ) internal virtual {
-        require(block.number > rewardEthToken.lastUpdateBlockNumber(), "StakedEthToken: cannot transfer during rewards update");
+        require(block.number > rewardLyxToken.lastUpdateBlockNumber(), "StakedLyxToken: cannot transfer during rewards update");
         if (from == address(0) || to == address(0)) {
             revert LSP7CannotSendWithAddressZero();
         }
@@ -361,7 +360,7 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
             revert LSP7AmountExceedsBalance(balance, from, amount);
         }
 
-        (bool senderRewardsDisabled, bool recipientRewardsDisabled) = rewardEthToken.updateRewardCheckpoints(from, to);
+        (bool senderRewardsDisabled, bool recipientRewardsDisabled) = rewardLyxToken.updateRewardCheckpoints(from, to);
         if ((senderRewardsDisabled || recipientRewardsDisabled) && !(senderRewardsDisabled && recipientRewardsDisabled)) {
             // update merkle distributor principal if any of the addresses has disabled rewards
             uint256 _distributorPrincipal = distributorPrincipal; // gas savings
