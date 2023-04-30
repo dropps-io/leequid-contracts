@@ -11,24 +11,24 @@ import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165C
 import {GasLib} from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
 
 // modules
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // errors
 import "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
-import {_INTERFACEID_LSP1} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
-import {_TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
-import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
-import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
+import { _INTERFACEID_LSP1 } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
+import { _TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
+import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
+import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
-import {IFeesEscrow} from "../interfaces/IFeesEscrow.sol";
+import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
+import { IFeesEscrow } from "../interfaces/IFeesEscrow.sol";
 
-import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
+import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 
 
 /**
@@ -81,6 +81,29 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
 
     // Mapping a `tokenOwner` to an `operator` to `amount` of tokens.
     mapping(address => mapping(address => uint256)) internal _operatorAuthorizedAmount;
+
+    function initialize(
+        address stakedLyxToken_,
+        address oracles_,
+        address protocolFeeRecipient_,
+        uint256 protocolFee_,
+        address merkleDistributor_,
+        address feesEscrow_,
+        bool isNonDivisible_
+    ) external initializer {
+        require(stakedLyxToken_ != address(0), "RewardLyxToken: stakedLyxToken address cannot be zero");
+        require(oracles_ != address(0), "RewardLyxToken: oracles address cannot be zero");
+        require(merkleDistributor_ != address(0), "RewardLyxToken: merkleDistributor address cannot be zero");
+        require(feesEscrow_ != address(0), "RewardLyxToken: feesEscrow address cannot be zero");
+        stakedLyxToken = IStakedLyxToken(stakedLyxToken_);
+        oracles = oracles_;
+        protocolFeeRecipient = protocolFeeRecipient_;
+        protocolFee = protocolFee_;
+        merkleDistributor = merkleDistributor_;
+        feesEscrow = IFeesEscrow(feesEscrow_);
+        _isNonDivisible = isNonDivisible_;
+    }
+
 
     // --- Token queries
 
@@ -193,6 +216,12 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
         // can be address(0) to distribute fee through the Merkle Distributor
         protocolFeeRecipient = recipient;
         emit ProtocolFeeRecipientUpdated(recipient);
+    }
+
+    function setProtocolFee(uint256 _protocolFee) external override onlyAdmin {
+        require(_protocolFee < 1e4, "RewardEthToken: invalid protocol fee");
+        protocolFee = _protocolFee;
+        emit ProtocolFeeUpdated(_protocolFee);
     }
 
     // --- Operator functionality
