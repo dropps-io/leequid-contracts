@@ -5,5 +5,5 @@ pragma solidity ^0.8.4;
 import "../presets/OwnablePausable.sol";
 
 contract OwnablePausableMock is OwnablePausable {
-    constructor() OwnablePausable() { }
+    constructor(address _admin) OwnablePausable(_admin) { }
 }

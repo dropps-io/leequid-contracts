@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 pragma abicoder v2;
 
 import "../presets/OwnablePausableUpgradeable.sol";
-import "../interfaces/IStakedEthToken.sol";
+import "../interfaces/IStakedLyxToken.sol";
 import "../interfaces/IDepositContract.sol";
 import "../interfaces/IPoolValidators.sol";
 import "../interfaces/IPool.sol";
@@ -26,11 +26,11 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     // @dev Pool validator withdrawal credentials.
     bytes32 public override withdrawalCredentials;
 
-    // @dev Address of the ETH2 Deposit Contract (deployed by Ethereum).
+    // @dev Address of the ETH2 Deposit Contract (deployed by Lyxereum).
     IDepositContract public override validatorRegistration;
 
-    // @dev Address of the StakedEthToken contract.
-    IStakedEthToken private stakedEthToken;
+    // @dev Address of the StakedLyxToken contract.
+    IStakedLyxToken private stakedLyxToken;
 
     // @dev Address of the PoolValidators contract.
     IPoolValidators private validators;
@@ -49,6 +49,30 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
     // @dev Pending validators percent limit. If it's not exceeded tokens can be minted immediately.
     uint256 public override pendingValidatorsLimit;
+
+    function initialize(
+        address _admin,
+        address _stakedLyxToken,
+        address _validators,
+        address _oracles,
+        bytes32 _withdrawalCredentials,
+        address _validatorRegistration
+    ) public initializer {
+        require(_stakedLyxToken != address(0), "Pool: stakedLyxToken address cannot be zero");
+        require(_admin != address(0), "Pool: admin address cannot be zero");
+        require(_oracles != address(0), "Pool: oracles address cannot be zero");
+        require(_validatorRegistration != address(0), "Pool: validatorRegistration address cannot be zero");
+        require(_validators != address(0), "Pool: validators address cannot be zero");
+
+        __OwnablePausableUpgradeable_init(_admin);
+
+        stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
+        validators = IPoolValidators(_validators);
+        oracles = _oracles;
+        withdrawalCredentials = _withdrawalCredentials;
+        validatorRegistration = IDepositContract(_validatorRegistration);
+    }
+
 
     /**
     * @dev See {IPool-setMinActivatingDeposit}.
@@ -146,7 +170,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
         // mint tokens for small deposits immediately
         if (value <= minActivatingDeposit) {
-            stakedEthToken.mint(recipient, value);
+            stakedLyxToken.mint(recipient, value, true, "");
             return;
         }
 
@@ -155,7 +179,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         uint256 _activatedValidators = activatedValidators; // gas savings
         uint256 validatorIndex = _activatedValidators + _pendingValidators;
         if (validatorIndex * 1e4 <= _activatedValidators * (pendingValidatorsLimit + 1e4)) {
-            stakedEthToken.mint(recipient, value);
+            stakedLyxToken.mint(recipient, value, true, "");
         } else {
             // lock deposit amount until validator activated
             activations[recipient][validatorIndex] = activations[recipient][validatorIndex] + value;
@@ -179,7 +203,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
             validatorIndex,
             activatedValidators * (pendingValidatorsLimit + 1e4)
         );
-        stakedEthToken.mint(account, activatedAmount);
+        stakedLyxToken.mint(account, activatedAmount, true, "");
     }
 
     /**
@@ -192,7 +216,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
             uint256 activatedAmount = _activateAmount(account, validatorIndexes[i], maxValidatorIndex);
             toMint = toMint + activatedAmount;
         }
-        stakedEthToken.mint(account, toMint);
+        stakedLyxToken.mint(account, toMint, true, "");
     }
 
     function _activateAmount(

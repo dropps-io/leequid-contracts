@@ -55,13 +55,16 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
     uint256 public override distributorPrincipal;
 
     function initialize(
+        address _admin,
         address _pool,
         IRewardLyxToken _rewardLyxToken,
         bool isNonDivisible
     ) external initializer {
         require(_pool != address(0), "StakedLyxToken: pool address cannot be zero");
+        require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
         require(address(_rewardLyxToken) != address(0), "StakedLyxToken: rewardLyxToken address cannot be zero");
 
+        __OwnablePausableUpgradeable_init_unchained(_admin);
         pool = _pool;
         rewardLyxToken = _rewardLyxToken;
         _isNonDivisible = isNonDivisible;

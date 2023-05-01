@@ -505,6 +505,44 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "_admin",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_stakedLyxToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_validators",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_oracles",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_withdrawalCredentials",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "_validatorRegistration",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "_account",
         "type": "address"
       }

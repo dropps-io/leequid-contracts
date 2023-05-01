@@ -4,10 +4,10 @@ pragma solidity 0.8.4;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol"; // Updated import
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./presets/OwnablePausableUpgradeable.sol";
-import "./interfaces/IRewardEthToken.sol";
+import "./interfaces/IRewardLyxToken.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IOracles.sol";
 import "./interfaces/IMerkleDistributor.sol";
@@ -31,8 +31,8 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     // @dev Validators nonce is used to protect from submitting the same validator vote several times.
     CountersUpgradeable.Counter private validatorsNonce;
 
-    // @dev Address of the RewardEthToken contract.
-    IRewardEthToken private rewardEthToken;
+    // @dev Address of the RewardLyxToken contract.
+    IRewardLyxToken private rewardLyxToken;
 
     // @dev Address of the Pool contract.
     IPool private pool;
@@ -51,8 +51,9 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         _;
     }
 
-    constructor() {
+    function initialize(address admin) external initializer {
         oracleCount = 0;
+        __OwnablePausableUpgradeable_init_unchained(admin);
     }
 
     /**
@@ -99,7 +100,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      * @dev See {IOracles-isMerkleRootVoting}.
      */
     function isMerkleRootVoting() public override view returns (bool) {
-        uint256 lastRewardBlockNumber = rewardEthToken.lastUpdateBlockNumber();
+        uint256 lastRewardBlockNumber = rewardLyxToken.lastUpdateBlockNumber();
         return merkleDistributor.lastUpdateBlockNumber() < lastRewardBlockNumber && lastRewardBlockNumber != block.number;
     }
 
@@ -145,7 +146,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         rewardsNonce.increment();
 
         // update total rewards
-        rewardEthToken.updateTotalRewards(totalRewards);
+        rewardLyxToken.updateTotalRewards(totalRewards);
 
         // update activated validators
         if (activatedValidators != pool.activatedValidators()) {

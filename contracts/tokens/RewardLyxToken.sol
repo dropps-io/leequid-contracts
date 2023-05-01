@@ -83,25 +83,29 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
     mapping(address => mapping(address => uint256)) internal _operatorAuthorizedAmount;
 
     function initialize(
-        address stakedLyxToken_,
-        address oracles_,
-        address protocolFeeRecipient_,
-        uint256 protocolFee_,
-        address merkleDistributor_,
-        address feesEscrow_,
-        bool isNonDivisible_
+        address _admin,
+        address _stakedLyxToken,
+        address _oracles,
+        address _protocolFeeRecipient,
+        uint256 _protocolFee,
+        address _merkleDistributor,
+        address _feesEscrow,
+        bool _isNonDivisible
     ) external initializer {
-        require(stakedLyxToken_ != address(0), "RewardLyxToken: stakedLyxToken address cannot be zero");
-        require(oracles_ != address(0), "RewardLyxToken: oracles address cannot be zero");
-        require(merkleDistributor_ != address(0), "RewardLyxToken: merkleDistributor address cannot be zero");
-        require(feesEscrow_ != address(0), "RewardLyxToken: feesEscrow address cannot be zero");
-        stakedLyxToken = IStakedLyxToken(stakedLyxToken_);
-        oracles = oracles_;
-        protocolFeeRecipient = protocolFeeRecipient_;
-        protocolFee = protocolFee_;
-        merkleDistributor = merkleDistributor_;
-        feesEscrow = IFeesEscrow(feesEscrow_);
-        _isNonDivisible = isNonDivisible_;
+        require(_stakedLyxToken != address(0), "RewardLyxToken: stakedLyxToken address cannot be zero");
+        require(_admin != address(0), "RewardLyxToken: admin address cannot be zero");
+        require(_oracles != address(0), "RewardLyxToken: oracles address cannot be zero");
+        require(_merkleDistributor != address(0), "RewardLyxToken: merkleDistributor address cannot be zero");
+        require(_feesEscrow != address(0), "RewardLyxToken: feesEscrow address cannot be zero");
+
+        __OwnablePausableUpgradeable_init_unchained(_admin);
+        stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
+        oracles = _oracles;
+        protocolFeeRecipient = _protocolFeeRecipient;
+        protocolFee = _protocolFee;
+        merkleDistributor = _merkleDistributor;
+        feesEscrow = IFeesEscrow(_feesEscrow);
+        _isNonDivisible = _isNonDivisible;
     }
 
 
