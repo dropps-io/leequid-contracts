@@ -19,11 +19,13 @@ import "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
 import {_INTERFACEID_LSP1} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
+import {LSP4DigitalAssetMetadataInitAbstract} from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
 import {_TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
 import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
 
 /**
  * @title LSP7DigitalAsset contract
@@ -32,7 +34,7 @@ import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/ac
  *
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
-abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsset, IStakedLyxToken {
+contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken {
     // --- Storage
 
     bool internal _isNonDivisible;
@@ -64,6 +66,7 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
         require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
         require(address(_rewardLyxToken) != address(0), "StakedLyxToken: rewardLyxToken address cannot be zero");
 
+        LSP4DigitalAssetMetadataInitAbstract._initialize("StakedLyxToken", "sLYX", _admin);
         __OwnablePausableUpgradeable_init_unchained(_admin);
         pool = _pool;
         rewardLyxToken = _rewardLyxToken;
@@ -72,36 +75,28 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
 
     // --- Token queries
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable, IERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable, IERC165, ERC725YCore) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function decimals() public view override returns (uint8) {
         return _isNonDivisible ? 0 : 18;
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function totalSupply() public view override returns (uint256) {
+        return _totalDeposits;
+    }
+
+    function totalDeposits() public view override returns (uint256) {
         return _totalDeposits;
     }
 
     // --- Token owner queries
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function balanceOf(address tokenOwner) public view override returns (uint256) {
         return _deposits[tokenOwner];
     }
 
-    /**
-  * @dev See {IStakedLyxToken-toggleRewards}.
-     */
     function toggleRewards(address tokenOwner, bool isDisabled) external override onlyAdmin {
         require(tokenOwner != address(0), "StakedLyxToken: invalid tokenOwner");
 
@@ -119,33 +114,14 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
 
     // --- Operator functionality
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     *
-     * @dev To avoid front-running and Allowance Double-Spend Exploit when
-     * increasing or decreasing the authorized amount of an operator,
-     * it is advised to:
-     *     1. call {revokeOperator} first, and
-     *     2. then re-call {authorizeOperator} with the new amount
-     *
-     * for more information, see:
-     * https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM/
-     *
-     */
     function authorizeOperator(address operator, uint256 amount) public override {
         _updateOperator(msg.sender, operator, amount);
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function revokeOperator(address operator) public override {
         _updateOperator(msg.sender, operator, 0);
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function authorizedAmountFor(address operator, address tokenOwner)
     public
     view
@@ -161,9 +137,6 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
 
     // --- Transfer functionality
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function transfer(
         address from,
         address to,
@@ -186,9 +159,6 @@ abstract contract StakedLyxToken is OwnablePausableUpgradeable, ILSP7DigitalAsse
         _transfer(from, to, amount, allowNonLSP1Recipient, data);
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function transferBatch(
         address[] memory from,
         address[] memory to,

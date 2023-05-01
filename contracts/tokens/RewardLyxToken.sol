@@ -3,7 +3,6 @@ pragma solidity ^0.8.4;
 
 // interfaces
 import {ILSP1UniversalReceiver} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/ILSP1UniversalReceiver.sol";
-import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 // libraries
@@ -20,6 +19,7 @@ import "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
 import { _INTERFACEID_LSP1 } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
+import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
 import { _TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
 import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
@@ -29,6 +29,7 @@ import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
 import { IFeesEscrow } from "../interfaces/IFeesEscrow.sol";
 
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
+import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
 
 
 /**
@@ -38,7 +39,7 @@ import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeabl
  *
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
-abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnablePausableUpgradeable {
+contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract, OwnablePausableUpgradeable {
     using SafeCast for uint256;
 
     // @dev Address of the StakedLyxToken contract.
@@ -98,6 +99,7 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
         require(_merkleDistributor != address(0), "RewardLyxToken: merkleDistributor address cannot be zero");
         require(_feesEscrow != address(0), "RewardLyxToken: feesEscrow address cannot be zero");
 
+        LSP4DigitalAssetMetadataInitAbstract._initialize("RewardLyxToken", "rLYX", _admin);
         __OwnablePausableUpgradeable_init_unchained(_admin);
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
         oracles = _oracles;
@@ -111,25 +113,16 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
 
     // --- Token queries
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function decimals() public view virtual override returns (uint8) {
         return _isNonDivisible ? 0 : 18;
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function totalSupply() public view virtual override returns (uint256) {
         return totalRewards;
     }
 
     // --- Token owner queries
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function balanceOf(address account) public view virtual override returns (uint256) {
         return _balanceOf(account, rewardPerToken);
     }
@@ -153,9 +146,6 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
         return _calculateNewReward(cp.reward, stakedLyxAmount, _rewardPerToken - cp.rewardPerToken);
     }
 
-    /**
-     * @dev See {IRewardLyxToken-updateRewardCheckpoint}.
-     */
     function updateRewardCheckpoint(address account) public override returns (bool accRewardsDisabled) {
         accRewardsDisabled = rewardsDisabled[account];
         if (!accRewardsDisabled) _updateRewardCheckpoint(account, rewardPerToken);
@@ -196,9 +186,6 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
         return currentReward + stakedLyxAmount * periodRewardPerToken / 1e18;
     }
 
-    /**
-     * @dev See {IRewardLyxToken-setRewardsDisabled}.
-     */
     function setRewardsDisabled(address account, bool isDisabled) external override {
         require(msg.sender == address(stakedLyxToken), "RewardLyxToken: access denied");
         require(rewardsDisabled[account] != isDisabled, "RewardLyxToken: value did not change");
@@ -213,9 +200,6 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
         emit RewardsToggled(account, isDisabled);
     }
 
-    /**
-     * @dev See {IRewardLyxToken-setProtocolFeeRecipient}.
-     */
     function setProtocolFeeRecipient(address recipient) external override onlyAdmin {
         // can be address(0) to distribute fee through the Merkle Distributor
         protocolFeeRecipient = recipient;
@@ -230,33 +214,14 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
 
     // --- Operator functionality
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     *
-     * @dev To avoid front-running and Allowance Double-Spend Exploit when
-     * increasing or decreasing the authorized amount of an operator,
-     * it is advised to:
-     *     1. call {revokeOperator} first, and
-     *     2. then re-call {authorizeOperator} with the new amount
-     *
-     * for more information, see:
-     * https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM/
-     *
-     */
     function authorizeOperator(address operator, uint256 amount) public virtual override {
         _updateOperator(msg.sender, operator, amount);
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function revokeOperator(address operator) public virtual override {
         _updateOperator(msg.sender, operator, 0);
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function authorizedAmountFor(address operator, address tokenOwner)
     public
     view
@@ -364,9 +329,6 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
 
     // --- Transfer functionality
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function transfer(
         address from,
         address to,
@@ -389,9 +351,6 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
         _transfer(from, to, amount, allowNonLSP1Recipient, data);
     }
 
-    /**
-     * @inheritdoc ILSP7DigitalAsset
-     */
     function transferBatch(
         address[] memory from,
         address[] memory to,
@@ -551,7 +510,7 @@ abstract contract RewardLyxToken is ILSP7DigitalAsset, IRewardLyxToken, OwnableP
         }
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable, IERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable, IERC165, ERC725YCore) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 

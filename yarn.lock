@@ -5377,13 +5377,14 @@ hardhat-abi-exporter@^2.3.1:
   resolved "https://registry.npmjs.org/hardhat-abi-exporter/-/hardhat-abi-exporter-2.3.1.tgz"
   integrity sha512-p55zxuCI6JwKSOC2Yp7IRqib41lVczL/h7gwL6xYytG0GCwrT9TJ3Su/18oc6gI4kXbOMYPo/LcXEV/s3P5ONg==
 
-hardhat-contract-sizer@^2.1.1:
-  version "2.1.1"
-  resolved "https://registry.npmjs.org/hardhat-contract-sizer/-/hardhat-contract-sizer-2.1.1.tgz"
-  integrity sha512-QgfuwdUkKT7Ugn6Zja26Eie7h6OLcBfWBewaaQtYMCzyglNafQPgUIznN2C42/iFmGrlqFPbqv4B98Iev89KSQ==
+hardhat-contract-sizer@^2.8.0:
+  version "2.8.0"
+  resolved "https://registry.yarnpkg.com/hardhat-contract-sizer/-/hardhat-contract-sizer-2.8.0.tgz#730a9bf35ed200ba57b6865bd3f459a91c90f205"
+  integrity sha512-jXt2Si3uIDx5z99J+gvKa0yvIw156pE4dpH9X/PvTQv652BUd+qGj7WT93PXnHXGh5qhQLkjDYeZMYNOThfjFg==
   dependencies:
+    chalk "^4.0.0"
     cli-table3 "^0.6.0"
-    colors "^1.4.0"
+    strip-ansi "^6.0.0"
 
 hardhat-gas-reporter@^1.0.6:
   version "1.0.6"

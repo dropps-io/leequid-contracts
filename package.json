@@ -67,7 +67,7 @@
     "ethers": "^5.5.2",
     "hardhat": "^2.7.1",
     "hardhat-abi-exporter": "^2.3.1",
-    "hardhat-contract-sizer": "^2.1.1",
+    "hardhat-contract-sizer": "^2.8.0",
     "hardhat-gas-reporter": "^1.0.6",
     "husky": "^7.0.4",
     "lint-staged": "12.1.2",

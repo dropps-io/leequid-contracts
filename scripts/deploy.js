@@ -1,4 +1,4 @@
-const ethers = require('hardhat');
+const { ethers } = require('hardhat');
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -12,9 +12,11 @@ async function main() {
 
   const validatorRegistrationContract = '0x0000';
 
+  console.log('deploying RewardLyxToken...');
   const RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
   const rewardLyxToken = await RewardLyxToken.deploy();
   await rewardLyxToken.deployed();
+  console.log('RewardLyxToken deployed to:', rewardLyxToken.address);
 
   const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
   const stakedLyxToken = await StakedLyxToken.deploy();
@@ -57,7 +59,12 @@ async function main() {
     isNonDivisible
   );
 
-  await stakedLyxToken.initialize(admin, pool.address, rewardLyxToken.address, isNonDivisible);
+  await stakedLyxToken.initialize(
+    admin,
+    pool.address,
+    rewardLyxToken.address,
+    isNonDivisible
+  );
 
   await pool.initialize(
     admin,
@@ -68,11 +75,7 @@ async function main() {
     validatorRegistrationContract
   );
 
-  await poolValidators.initialize(
-    admin,
-    pool.address,
-    oracles.address,
-  );
+  await poolValidators.initialize(admin, pool.address, oracles.address);
 }
 
 main()

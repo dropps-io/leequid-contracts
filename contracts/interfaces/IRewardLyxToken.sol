@@ -3,11 +3,12 @@
 pragma solidity ^0.8.4;
 
 import "./IFeesEscrow.sol";
+import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 
 /**
  * @dev Interface of the RewardEthToken contract.
  */
-interface IRewardLyxToken {
+interface IRewardLyxToken is ILSP7DigitalAsset {
     /**
     * @dev Structure for storing information about user reward checkpoint.
     * @param rewardPerToken - user reward per token.
