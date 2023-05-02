@@ -118,6 +118,12 @@ module.exports = {
       chainId: 2828, // The chain ID of the custom network (replace with the correct value)
       // You can also set other network-specific configurations, such as gas and block gas limit
     },
+    sepolia: {
+      url: 'https://rpc2.sepolia.org/ ', // Replace this with the RPC URL for your custom network
+      accounts: [], // The private key of the deployer account
+      chainId: 11155111, // The chain ID of the custom network (replace with the correct value)
+      // You can also set other network-specific configurations, such as gas and block gas limit
+    },
   },
   throwOnTransactionFailures: true,
   gasReporter: {
