@@ -10,6 +10,8 @@ require('hardhat-contract-sizer');
 require('hardhat-abi-exporter');
 require('@nomiclabs/hardhat-etherscan');
 
+require('dotenv').config();
+
 const BLOCK_NUMBER = 15545080;
 const OPTIMIZER_RUNS = 5000000;
 const log = (...text) => console.log(gray(...['└─> [DEBUG]'].concat(text)));
@@ -102,7 +104,7 @@ module.exports = {
   networks: {
     hardhat: {
       forking: {
-        url: process.env.HARDHAT_FORK_API_URL,
+        url: 'process.env.HARDHAT_FORK_API_URL',
         blockNumber: BLOCK_NUMBER,
       },
       accounts: {
@@ -114,13 +116,25 @@ module.exports = {
     },
     l16: {
       url: `https://rpc.l16.lukso.network`, // Replace this with the RPC URL for your custom network
-      accounts: [], // The private key of the deployer account
+      accounts: [process.env.PRIVATE_KEY], // The private key of the deployer account
       chainId: 2828, // The chain ID of the custom network (replace with the correct value)
+      // You can also set other network-specific configurations, such as gas and block gas limit
+    },
+    luksoTestnet: {
+      url: `https://rpc.testnet.lukso.network`, // Replace this with the RPC URL for your custom network
+      accounts: [process.env.PRIVATE_KEY], // The private key of the deployer account
+      chainId: 4201, // The chain ID of the custom network (replace with the correct value)
+      // You can also set other network-specific configurations, such as gas and block gas limit
+    },
+    l3030: {
+      url: `https://rpc.execution.3030.devnet.lukso.dev`, // Replace this with the RPC URL for your custom network
+      accounts: [process.env.PRIVATE_KEY], // The private key of the deployer account
+      chainId: 3030, // The chain ID of the custom network (replace with the correct value)
       // You can also set other network-specific configurations, such as gas and block gas limit
     },
     sepolia: {
       url: 'https://rpc2.sepolia.org/ ', // Replace this with the RPC URL for your custom network
-      accounts: [], // The private key of the deployer account
+      accounts: [process.env.PRIVATE_KEY], // The private key of the deployer account
       chainId: 11155111, // The chain ID of the custom network (replace with the correct value)
       // You can also set other network-specific configurations, such as gas and block gas limit
     },

@@ -176,15 +176,15 @@ keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
 // check signatures and calculate number of submitted oracle votes
 address[] memory signedOracles = new address[](signatures.length);
 for (uint256 i = 0; i < signatures.length; i++) {
-bytes memory signature = signatures[i];
-address signer = ECDSAUpgradeable.recover(candidateId, signature);
-require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
+    bytes memory signature = signatures[i];
+    address signer = ECDSAUpgradeable.recover(candidateId, signature);
+    require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
 
-for (uint256 j = 0; j < i; j++) {
-require(signedOracles[j] != signer, "Oracles: repeated signature");
-}
-signedOracles[i] = signer;
-emit MerkleRootVoteSubmitted(msg.sender, signer, nonce, merkleRoot, merkleProofs);
+    for (uint256 j = 0; j < i; j++) {
+        require(signedOracles[j] != signer, "Oracles: repeated signature");
+    }
+    signedOracles[i] = signer;
+    emit MerkleRootVoteSubmitted(msg.sender, signer, nonce, merkleRoot, merkleProofs);
 }
 
 // increment nonce for future signatures

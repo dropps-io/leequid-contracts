@@ -26,7 +26,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     // @dev Pool validator withdrawal credentials.
     bytes32 public override withdrawalCredentials;
 
-    // @dev Address of the ETH2 Deposit Contract (deployed by Lyxereum).
+    // @dev Address of the ETH2 Deposit Contract (deployed by Lukso).
     IDepositContract public override validatorRegistration;
 
     // @dev Address of the StakedLyxToken contract.
