@@ -51,9 +51,18 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         _;
     }
 
-    function initialize(address admin) external initializer {
+    function initialize(
+        address _admin,
+        address _rewardLyxToken,
+        address _pool,
+        address _poolValidators,
+        address _merkleDistributor) external initializer {
         oracleCount = 0;
-        __OwnablePausableUpgradeable_init_unchained(admin);
+        __OwnablePausableUpgradeable_init_unchained(_admin);
+        rewardLyxToken = IRewardLyxToken(_rewardLyxToken);
+        pool = IPool(_pool);
+        poolValidators = IPoolValidators(_poolValidators);
+        merkleDistributor = IMerkleDistributor(_merkleDistributor);
     }
 
     /**
@@ -163,15 +172,15 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         bytes[] calldata signatures
     )
     external override onlyOracle whenNotPaused
-{
-require(isMerkleRootVoting(), "Oracles: too early");
-require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
+    {
+    require(isMerkleRootVoting(), "Oracles: too early");
+    require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
 
-// calculate candidate ID hash
-uint256 nonce = rewardsNonce.current();
-bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
-keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
-);
+    // calculate candidate ID hash
+    uint256 nonce = rewardsNonce.current();
+    bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
+    keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
+    );
 
 // check signatures and calculate number of submitted oracle votes
 address[] memory signedOracles = new address[](signatures.length);
