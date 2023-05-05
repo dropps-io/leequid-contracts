@@ -62,7 +62,14 @@ async function main() {
 
   // Initialize the Oracles contract
   console.log('Initializing Oracles...');
-  await oracles.initialize(admin, args);
+  await oracles.initialize(
+    admin,
+    rewardLyxToken.address,
+    pool.address,
+    poolValidators.address,
+    merkleDistributor.address,
+    args
+  );
   console.log('Oracles initialized');
 
   const withdrawalCredentials =

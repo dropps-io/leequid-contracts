@@ -12,7 +12,7 @@ require('@nomiclabs/hardhat-etherscan');
 
 require('dotenv').config();
 
-const BLOCK_NUMBER = 15545080;
+const BLOCK_NUMBER = 12514;
 const OPTIMIZER_RUNS = 5000000;
 const log = (...text) => console.log(gray(...['└─> [DEBUG]'].concat(text)));
 
@@ -52,38 +52,6 @@ task('compile')
     await runSuper(taskArguments);
   });
 
-task('test')
-  .addFlag('optimizer', 'Compile with the optimizer')
-  .addFlag('gas', 'Compile gas usage')
-  .addOptionalParam('grep', 'Filter tests to only those with given logic')
-  .setAction(async (taskArguments, hre, runSuper) => {
-    const { gas, grep } = taskArguments;
-
-    optimizeIfRequired({ hre, taskArguments });
-
-    if (grep) {
-      console.log(gray('Filtering tests to those containing'), yellow(grep));
-      hre.config.mocha.grep = grep;
-    }
-
-    log(
-      gray('Mainnet fork with block number', yellow(BLOCK_NUMBER.toString()))
-    );
-
-    if (gas) {
-      console.log(
-        gray(`Enabling ${yellow('gas')} reports, tests will run slower`)
-      );
-      hre.config.gasReporter.enabled = true;
-      hre.config.mocha.timeout = 180000;
-    }
-
-    // suppress logs for tests
-    hre.config.suppressLogs = true;
-
-    await runSuper(taskArguments);
-  });
-
 task('coverage').setAction(async (taskArguments, hre, runSuper) => {
   log(gray('Mainnet fork with block number', yellow(BLOCK_NUMBER.toString())));
 
@@ -101,12 +69,21 @@ module.exports = {
   solidity: {
     version: '0.8.4',
   },
+  etherscan: {
+    apiKey: 'no-api-key-needed',
+    customChains: [
+      {
+        network: 'luksoTestnet',
+        chainId: 4201,
+        urls: {
+          apiURL: 'https://explorer.execution.testnet.lukso.network/api',
+          browserURL: 'https://explorer.execution.testnet.lukso.network/',
+        },
+      },
+    ],
+  },
   networks: {
     hardhat: {
-      forking: {
-        url: 'process.env.HARDHAT_FORK_API_URL',
-        blockNumber: BLOCK_NUMBER,
-      },
       accounts: {
         accountsBalance: '1000000000000000000000000',
       },
@@ -169,9 +146,6 @@ module.exports = {
     ],
     clear: true,
     flat: true,
-  },
-  etherscan: {
-    apiKey: 'api key goes here',
   },
   mocha: {
     timeout: 1000000,

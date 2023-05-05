@@ -48,15 +48,13 @@ async function registerValidators(
     await web3.eth.sign(candidateId, web3.eth.defaultAccount),
   ];
 
-  console.log(depositData, merkleProofs, validatorsDepositRoot, signatures);
-
   // Submit the deposit data
   const tx = await contract.registerValidators(
     depositData,
     merkleProofs,
     validatorsDepositRoot,
     signatures,
-    { gasLimit: 500000 } // set gas limit to 500,000 wei
+    { gasLimit: 500000, gasPrice: '0x59682F00' } // set gas limit to 500,000 wei
   );
   await tx.wait();
   console.log('Transaction complete:', tx.hash);
