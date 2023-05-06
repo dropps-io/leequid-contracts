@@ -12,14 +12,14 @@ interface IOracles {
     /**
     * @dev Event for tracking oracle rewards votes.
     * @param sender - address of the transaction sender.
-    * @param oracle - address of the account which submitted vote.
+    * @param oracles - address of the account which submitted vote.
     * @param nonce - current nonce.
     * @param totalRewards - submitted value of total rewards.
     * @param activatedValidators - submitted amount of activated validators.
     */
     event RewardsVoteSubmitted(
         address indexed sender,
-        address indexed oracle,
+        address[] oracles,
         uint256 nonce,
         uint256 totalRewards,
         uint256 activatedValidators
@@ -28,14 +28,14 @@ interface IOracles {
     /**
     * @dev Event for tracking oracle merkle root votes.
     * @param sender - address of the transaction sender.
-    * @param oracle - address of the account which submitted vote.
+    * @param oracles - address of the account which submitted vote.
     * @param nonce - current nonce.
     * @param merkleRoot - new merkle root.
     * @param merkleProofs - link to the merkle proofs.
     */
     event MerkleRootVoteSubmitted(
         address indexed sender,
-        address indexed oracle,
+        address[] oracles,
         uint256 nonce,
         bytes32 indexed merkleRoot,
         string merkleProofs

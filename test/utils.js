@@ -8,6 +8,8 @@ const {
   balance,
 } = require('@openzeppelin/test-helpers');
 const { contracts } = require('../deployments/settings');
+const { ethers } = require('hardhat');
+const { generateDepositDataMerkle } = require('../utils/generate-merkle');
 
 const iDepositContract = artifacts.require('IDepositContract');
 
@@ -204,42 +206,46 @@ async function setMerkleRoot({
   });
 }
 
-async function registerValidators({
+async function registerValidators(
   depositData,
-  merkleProofs,
   oracles,
+  poolValidators,
+  beaconDepositMock,
   oracleAccounts,
-  validatorsDepositRoot,
-}) {
-  let nonce = await oracles.currentValidatorsNonce();
-  let encoded = defaultAbiCoder.encode(
-    [
-      'uint256',
-      'tuple(address operator,bytes32 withdrawalCredentials,bytes32 depositDataRoot,bytes publicKey,bytes signature)[]',
-      'bytes32',
-    ],
-    [nonce.toString(), depositData, validatorsDepositRoot]
-  );
-  let candidateId = hexlify(keccak256(encoded));
+  admin,
+  operator
+) {
+  const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+  const merkle = generateDepositDataMerkle(depositData);
 
-  // prepare signatures
-  let signatures = [];
-  for (let i = 0; i < oracleAccounts.length; i++) {
-    await impersonateAccount(oracleAccounts[i]);
-    let sig = await web3.eth.sign(candidateId, oracleAccounts[i]);
-    signatures.push(sig);
-  }
+  await poolValidators
+    .connect(admin)
+    .addOperator(
+      operator.address,
+      merkle.depositDataMerkleRoot,
+      merkle.depositDataMerkleProofsString
+    );
 
-  // register validator
-  return oracles.registerValidators(
+  await poolValidators.connect(operator).commitOperator();
+
+  // Calculate the nonce and the message to sign
+  const nonce = await oracles.currentValidatorsNonce();
+  const signatures = await generateSignaturesForRegisterValidators(
+    oracleAccounts,
+    nonce.toString(),
     depositData,
-    merkleProofs,
-    validatorsDepositRoot,
-    signatures,
-    {
-      from: oracleAccounts[0],
-    }
+    validatorsDepositRoot
   );
+
+  // Call registerValidators with the signatures
+  await oracles
+    .connect(oracleAccounts[1])
+    .registerValidators(
+      depositData,
+      merkle.depositDataMerkleProofNodes,
+      validatorsDepositRoot,
+      signatures
+    );
 }
 
 async function impersonateAccount(account) {
@@ -292,6 +298,79 @@ async function setupOracleAccounts({ admin, oracles, accounts }) {
   return oracleAccounts;
 }
 
+const generateSignaturesForRegisterValidators = async function (
+  signers,
+  nonce,
+  depositData,
+  validatorsDepositRoot
+) {
+  let encoded = defaultAbiCoder.encode(
+    [
+      'uint256',
+      'tuple(address operator,bytes32 withdrawalCredentials,bytes32 depositDataRoot,bytes publicKey,bytes signature)[]',
+      'bytes32',
+    ],
+    [nonce, depositData, validatorsDepositRoot]
+  );
+  let candidateId = hexlify(keccak256(encoded));
+
+  const signatures = [];
+  for (let i = 0; i < signers.length; i++) {
+    signatures.push(
+      await signers[i].signMessage(ethers.utils.arrayify(candidateId))
+    );
+  }
+  return signatures;
+};
+
+const generateSignaturesForSubmitRewards = async function (
+  signers,
+  nonce,
+  totalRewards,
+  activatedValidators
+) {
+  let encoded = defaultAbiCoder.encode(
+    ['uint256', 'uint256', 'uint256'],
+    [nonce, activatedValidators, totalRewards]
+  );
+  let candidateId = hexlify(keccak256(encoded));
+
+  const signatures = [];
+  for (let i = 0; i < signers.length; i++) {
+    signatures.push(
+      await signers[i].signMessage(ethers.utils.arrayify(candidateId))
+    );
+  }
+  return signatures;
+};
+
+const getTestDepositData = function (operatorAddress) {
+  return [
+    {
+      operator: operatorAddress,
+      publicKey:
+        '0xb793d99ecfa2d9161ba94297085f09beb9f3bbebea65a7d02bc3cc9777a7c3822947369cb441c90181657c2e37d10568',
+      withdrawalCredentials:
+        '0x010000000000000000000000d692ba892a902810a2ee3fa41c1d8dcd652d47ab',
+      signature:
+        '0x9719cd1253fefa8665a8d5ce19d010991c0799536029f0b6e51fc4c9c73f9c12c9c0f354e30f19d5639af65db053e0c50eead303fcf63f985e7eaaa8aeb524638ebfe407de4b331793086c4efe9f108ce6b6a138dca87ae146d7acce3b561c21',
+      depositDataRoot:
+        '0xe852d0f1aaa289f8b9334e2c4a69c84bf0ede128b2a536611c12f72667e1194b',
+    },
+    {
+      operator: operatorAddress,
+      publicKey:
+        '0x89c76fb58cf17cb012ec7ea3879707d5040e73fa9d16132ce075152f305406b9db80a833b742258c027816381d5b6f28',
+      withdrawalCredentials:
+        '0x010000000000000000000000d692ba892a902810a2ee3fa41c1d8dcd652d47ab',
+      signature:
+        '0xa8a6b651824d26a75aa0211bbf51a49d6d287e8b4a482726e9a7e28f7e746c457e336e743b469b70ecd8cfc7f48e7dfc0930d674205efb3bda1e08313c1e100f24cf00d6ec38e2666c8da2103aea815590dc2b8835dc5182e7ced2df9f73c72b',
+      depositDataRoot:
+        '0x99ae12c6380e6c65894b0e36cb42104bdf90c9fb7c307d47cb13a926e517247c',
+    },
+  ];
+};
+
 module.exports = {
   checkValidatorRegistered,
   getDepositAmount,
@@ -305,4 +384,7 @@ module.exports = {
   setMerkleRoot,
   setupOracleAccounts,
   registerValidators,
+  getTestDepositData,
+  generateSignaturesForRegisterValidators,
+  generateSignaturesForSubmitRewards,
 };

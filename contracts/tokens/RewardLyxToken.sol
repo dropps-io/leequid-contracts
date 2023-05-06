@@ -266,7 +266,7 @@ contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract
         // calculate protocol reward and new reward per token amount
         uint256 protocolReward = periodRewards * protocolFee / 1e4;
         uint256 prevRewardPerToken = rewardPerToken;
-        uint256 newRewardPerToken = prevRewardPerToken + (periodRewards - protocolReward * 1e18 / stakedLyxToken.totalDeposits());
+        uint256 newRewardPerToken = prevRewardPerToken + ((periodRewards - protocolReward) * 1e18) / stakedLyxToken.totalDeposits();
         uint128 newRewardPerToken128 = newRewardPerToken.toUint128();
 
         // store previous distributor rewards for period reward calculation

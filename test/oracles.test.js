@@ -1,14 +1,15 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { defaultAbiCoder, hexlify, keccak256 } = require('ethers/lib/utils');
 const { generateDepositDataMerkle } = require('../utils/generate-merkle');
-
-async function signMessage(signer, messageHash) {
-  return await signer.signMessage(ethers.utils.arrayify(messageHash));
-}
+const {
+  getTestDepositData,
+  generateSignaturesForRegisterValidators,
+  generateSignaturesForSubmitRewards,
+  registerValidators,
+} = require('./utils');
 
 describe('Oracles contract', function () {
-  const protocolFee = '1000';
+  const protocolFee = 0.1; // 10%
 
   let Oracles, oracles;
   let RewardLyxToken, rewardLyxToken;
@@ -18,9 +19,16 @@ describe('Oracles contract', function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin, oracle, operator;
-  let withdrawalCredentials =
-    '0x010000000000000000000000d692ba892a902810a2ee3fa41c1d8dcd652d47ab';
+  let admin,
+    oracle1,
+    oracle2,
+    oracle3,
+    oracle4,
+    operator,
+    user1,
+    user2,
+    user3,
+    user4;
 
   before(async function () {
     Oracles = await ethers.getContractFactory('Oracles');
@@ -31,7 +39,18 @@ describe('Oracles contract', function () {
     MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
     FeesEscrow = await ethers.getContractFactory('FeesEscrow');
     DepositContract = await ethers.getContractFactory('DepositContract');
-    [admin, oracle, operator] = await ethers.getSigners();
+    [
+      admin,
+      oracle1,
+      oracle2,
+      oracle3,
+      oracle4,
+      operator,
+      user1,
+      user2,
+      user3,
+      user4,
+    ] = await ethers.getSigners();
   });
 
   beforeEach(async function () {
@@ -64,7 +83,7 @@ describe('Oracles contract', function () {
       stakedLyxToken.address,
       oracles.address,
       admin.address,
-      protocolFee,
+      (protocolFee * 10000).toString(),
       merkleDistributor.address,
       feesEscrow.address,
       false
@@ -81,8 +100,10 @@ describe('Oracles contract', function () {
         stakedLyxToken.address,
         poolValidators.address,
         oracles.address,
-        withdrawalCredentials,
-        beaconDepositMock.address
+        getTestDepositData(operator.address)[0].withdrawalCredentials,
+        beaconDepositMock.address,
+        ethers.utils.parseEther('9999999999999999999999999999999'),
+        '500'
       );
 
     await poolValidators
@@ -90,82 +111,501 @@ describe('Oracles contract', function () {
       .initialize(admin.address, pool.address, oracles.address);
 
     // Add oracle1, oracle2, oracle3 as oracles
-    await oracles.connect(admin).addOracle(oracle.address);
+    await oracles.connect(admin).addOracle(oracle1.address);
+    await oracles.connect(admin).addOracle(oracle2.address);
+    await oracles.connect(admin).addOracle(oracle3.address);
+    await oracles.connect(admin).addOracle(oracle4.address);
+  });
 
-    await admin.sendTransaction({
-      to: pool.address,
-      value: ethers.utils.parseEther('100'),
+  describe('registerValidators', function () {
+    beforeEach(async function () {
+      await admin.sendTransaction({
+        to: pool.address,
+        value: ethers.utils.parseEther('100'),
+      });
+    });
+
+    it('Should register validators with enough signatures', async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = getTestDepositData(operator.address);
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentValidatorsNonce();
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      // Call registerValidators with the signatures
+      await oracles
+        .connect(oracle1)
+        .registerValidators(
+          depositData,
+          merkle.depositDataMerkleProofNodes,
+          validatorsDepositRoot,
+          signatures
+        );
+
+      const depositCount = await beaconDepositMock.get_deposit_count();
+
+      expect(depositCount).to.equal('0x0200000000000000');
+      // Check that the validatorsNonce has increased
+      expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
+    });
+
+    it('Should emit an log RegisterValidatorsVoteSubmitted', async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = getTestDepositData(operator.address);
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentValidatorsNonce();
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .registerValidators(
+            depositData,
+            merkle.depositDataMerkleProofNodes,
+            validatorsDepositRoot,
+            signatures
+          )
+      )
+        .to.emit(oracles, 'RegisterValidatorsVoteSubmitted')
+        .withArgs(
+          oracle1.address,
+          [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
+          0
+        );
+    });
+
+    it('Should revert when not enough signatures', async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = getTestDepositData(operator.address);
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentValidatorsNonce();
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      // Call registerValidators with the signatures
+      await expect(
+        oracles
+          .connect(oracle1)
+          .registerValidators(
+            depositData,
+            merkle.depositDataMerkleProofNodes,
+            validatorsDepositRoot,
+            signatures
+          )
+      ).to.be.revertedWith('Oracles: invalid number of signatures');
+
+      const depositCount = await beaconDepositMock.get_deposit_count();
+
+      expect(depositCount).to.equal('0x0000000000000000');
+      // Check that the validatorsNonce has increased
+      expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(0);
+    });
+
+    it('Should revert if wrong signature', async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = getTestDepositData(operator.address);
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentValidatorsNonce();
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, admin],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      // Call registerValidators with the signatures
+      await expect(
+        oracles
+          .connect(oracle1)
+          .registerValidators(
+            depositData,
+            merkle.depositDataMerkleProofNodes,
+            validatorsDepositRoot,
+            signatures
+          )
+      ).to.be.revertedWith('Oracles: invalid signer');
+
+      const depositCount = await beaconDepositMock.get_deposit_count();
+
+      expect(depositCount).to.equal('0x0000000000000000');
+      // Check that the validatorsNonce has increased
+      expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(0);
+    });
+
+    it('Should revert if repeated signature', async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = getTestDepositData(operator.address);
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentValidatorsNonce();
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, oracle3],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      // Call registerValidators with the signatures
+      await expect(
+        oracles
+          .connect(oracle1)
+          .registerValidators(
+            depositData,
+            merkle.depositDataMerkleProofNodes,
+            validatorsDepositRoot,
+            signatures
+          )
+      ).to.be.revertedWith('Oracles: repeated signature');
+
+      const depositCount = await beaconDepositMock.get_deposit_count();
+
+      expect(depositCount).to.equal('0x0000000000000000');
+      // Check that the validatorsNonce has increased
+      expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(0);
+    });
+
+    it('Should register validators multiple times', async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = [getTestDepositData(operator.address)[0]];
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      let nonce = await oracles.currentValidatorsNonce();
+
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      // Call registerValidators with the signatures
+      await oracles
+        .connect(oracle1)
+        .registerValidators(
+          depositData,
+          merkle.depositDataMerkleProofNodes,
+          validatorsDepositRoot,
+          signatures
+        );
+
+      const newValidatorsDepositRoot =
+        await beaconDepositMock.get_deposit_root();
+      const newDepositData = [getTestDepositData(operator.address)[1]];
+      const newMerkle = generateDepositDataMerkle(newDepositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          newMerkle.depositDataMerkleRoot,
+          newMerkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      nonce = await oracles.currentValidatorsNonce();
+
+      const newSignatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        newDepositData,
+        newValidatorsDepositRoot
+      );
+
+      // Call registerValidators with the signatures
+      await oracles
+        .connect(oracle1)
+        .registerValidators(
+          newDepositData,
+          newMerkle.depositDataMerkleProofNodes,
+          newValidatorsDepositRoot,
+          newSignatures
+        );
+
+      const depositCount = await beaconDepositMock.get_deposit_count();
+
+      expect(depositCount).to.equal('0x0200000000000000');
+      // Check that the validatorsNonce has increased
+      expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
     });
   });
 
-  it('Should register validators with enough signatures', async function () {
-    // Prepare depositData, merkleProofs, and validatorsDepositRoot
-    const depositData = [
-      {
-        operator: operator.address,
-        publicKey:
-          '0xb793d99ecfa2d9161ba94297085f09beb9f3bbebea65a7d02bc3cc9777a7c3822947369cb441c90181657c2e37d10568',
-        withdrawalCredentials,
-        signature:
-          '0x9719cd1253fefa8665a8d5ce19d010991c0799536029f0b6e51fc4c9c73f9c12c9c0f354e30f19d5639af65db053e0c50eead303fcf63f985e7eaaa8aeb524638ebfe407de4b331793086c4efe9f108ce6b6a138dca87ae146d7acce3b561c21',
-        depositDataRoot:
-          '0xe852d0f1aaa289f8b9334e2c4a69c84bf0ede128b2a536611c12f72667e1194b',
-      },
-      {
-        operator: operator.address,
-        publicKey:
-          '0x89c76fb58cf17cb012ec7ea3879707d5040e73fa9d16132ce075152f305406b9db80a833b742258c027816381d5b6f28',
-        withdrawalCredentials,
-        signature:
-          '0xa8a6b651824d26a75aa0211bbf51a49d6d287e8b4a482726e9a7e28f7e746c457e336e743b469b70ecd8cfc7f48e7dfc0930d674205efb3bda1e08313c1e100f24cf00d6ec38e2666c8da2103aea815590dc2b8835dc5182e7ced2df9f73c72b',
-        depositDataRoot:
-          '0x99ae12c6380e6c65894b0e36cb42104bdf90c9fb7c307d47cb13a926e517247c',
-      },
-    ];
+  describe('submitRewards', function () {
+    const stakedAmount = 100000; // eth
+    const totalRewards = 100; // eth
+    const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
+    const stakePerUser = ethers.utils.parseEther((stakedAmount / 4).toString());
+    const activatedValidators = 2;
 
-    const validatorsDepositRoot =
-      '0xd70a234731285c6804c2a4f56711ddb8c82c99740f207854891028af34e27e5e'; // Replace with actual validators deposit root
+    beforeEach(async function () {
+      await pool.connect(user1).stake({ value: stakePerUser });
+      await pool.connect(user2).stake({ value: stakePerUser });
+      await pool.connect(user3).stake({ value: stakePerUser });
+      await pool.connect(user4).stake({ value: stakePerUser });
 
-    const merkle = generateDepositDataMerkle(depositData);
+      await registerValidators(
+        getTestDepositData(operator.address),
+        oracles,
+        poolValidators,
+        beaconDepositMock,
+        [oracle1, oracle2, oracle3, oracle4],
+        admin,
+        operator
+      );
+    });
 
-    await poolValidators
-      .connect(admin)
-      .addOperator(
-        operator.address,
-        merkle.depositDataMerkleRoot,
-        merkle.depositDataMerkleProofsString
+    it('Should submit rewards with enough signatures', async function () {
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators
       );
 
-    await poolValidators.connect(operator).commitOperator();
+      // Call submitRewards with the signatures
+      await oracles
+        .connect(oracle1)
+        .submitRewards(totalRewardsWei, activatedValidators, signatures);
 
-    // Calculate the nonce and the message to sign
-    let nonce = await oracles.currentValidatorsNonce();
-    let encoded = defaultAbiCoder.encode(
-      [
-        'uint256',
-        'tuple(address operator,bytes32 withdrawalCredentials,bytes32 depositDataRoot,bytes publicKey,bytes signature)[]',
-        'bytes32',
-      ],
-      [nonce.toString(), depositData, validatorsDepositRoot]
-    );
-    let candidateId = hexlify(keccak256(encoded));
+      const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
+        admin.address
+      );
+      const userBalance = await rewardLyxToken.balanceOf(user1.address);
 
-    // Oracles sign the message
-    const sig1 = await signMessage(oracle, candidateId);
+      expect(protocolFeeRecipientBalance).to.equal(
+        ethers.utils.parseEther((totalRewards * protocolFee).toString())
+      );
+      expect(userBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards - totalRewards * protocolFee) / 4).toString()
+        )
+      );
+      // Check that the rewardsNonce has increased
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
+    });
 
-    // Call registerValidators with the signatures
-    await oracles
-      .connect(oracle)
-      .registerValidators(
-        depositData,
-        merkle.depositDataMerkleProofNodes,
-        validatorsDepositRoot,
-        [sig1]
+    it('Should emit a RewardsVoteSubmitted event', async function () {
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators
       );
 
-    // Check that the validatorsNonce has increased
-    expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(
-      nonce.add(1).toNumber()
-    );
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+      )
+        .to.emit(oracles, 'RewardsVoteSubmitted')
+        .withArgs(
+          oracle1.address,
+          [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
+          nonce,
+          totalRewardsWei,
+          activatedValidators
+        );
+    });
+
+    it('Should revert when not enough signatures', async function () {
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators
+      );
+
+      // Call submitRewards with the signatures
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+      ).to.be.revertedWith('Oracles: invalid number of signatures');
+    });
+
+    it('Should revert if wrong signature', async function () {
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, admin],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators
+      );
+
+      // Call submitRewards with the signatures
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+      ).to.be.revertedWith('Oracles: invalid signer');
+    });
+
+    it('Should revert if repeated signature', async function () {
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle3],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators
+      );
+
+      // Call submitRewards with the signatures
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+      ).to.be.revertedWith('Oracles: repeated signature');
+    });
+
+    it('Should be able to register rewards multiple times', async function () {
+      // Calculate the nonce and the message to sign
+      let nonce = await oracles.currentRewardsNonce();
+      let signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators
+      );
+
+      // Call submitRewards with the signatures
+      await oracles
+        .connect(oracle1)
+        .submitRewards(totalRewardsWei, activatedValidators, signatures);
+
+      nonce = await oracles.currentRewardsNonce();
+      signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        ethers.utils.parseEther('200'),
+        activatedValidators
+      );
+
+      await oracles
+        .connect(oracle1)
+        .submitRewards(
+          ethers.utils.parseEther('200'),
+          activatedValidators,
+          signatures
+        );
+
+      const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
+        admin.address
+      );
+      const userBalance = await rewardLyxToken.balanceOf(user1.address);
+
+      expect(protocolFeeRecipientBalance).to.equal(
+        ethers.utils.parseEther((totalRewards * 2 * protocolFee).toString())
+      );
+      expect(userBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards * 2 - totalRewards * 2 * protocolFee) / 4).toString()
+        )
+      );
+      // Check that the rewardsNonce has increased
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
+    });
   });
 });

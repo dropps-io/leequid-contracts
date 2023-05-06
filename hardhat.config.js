@@ -9,6 +9,7 @@ require('hardhat-gas-reporter');
 require('hardhat-contract-sizer');
 require('hardhat-abi-exporter');
 require('@nomiclabs/hardhat-etherscan');
+require('@nomicfoundation/hardhat-chai-matchers');
 
 require('dotenv').config();
 

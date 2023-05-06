@@ -56,7 +56,9 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         address _validators,
         address _oracles,
         bytes32 _withdrawalCredentials,
-        address _validatorRegistration
+        address _validatorRegistration,
+        uint256 _minActivatingDeposit,
+        uint256 _pendingValidatorsLimit
     ) public initializer {
         require(_stakedLyxToken != address(0), "Pool: stakedLyxToken address cannot be zero");
         require(_admin != address(0), "Pool: admin address cannot be zero");
@@ -66,11 +68,14 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
         __OwnablePausableUpgradeable_init(_admin);
 
+
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
         validators = IPoolValidators(_validators);
         oracles = _oracles;
         withdrawalCredentials = _withdrawalCredentials;
         validatorRegistration = IDepositContract(_validatorRegistration);
+        minActivatingDeposit = _minActivatingDeposit;
+        pendingValidatorsLimit = _pendingValidatorsLimit;
     }
 
 
