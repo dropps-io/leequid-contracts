@@ -6,6 +6,7 @@ const {
   generateSignaturesForRegisterValidators,
   generateSignaturesForSubmitRewards,
   registerValidators,
+  generateSignaturesForSubmitMerkleRoot,
 } = require('./utils');
 
 describe('Oracles contract', function () {
@@ -110,7 +111,10 @@ describe('Oracles contract', function () {
       .connect(admin)
       .initialize(admin.address, pool.address, oracles.address);
 
-    // Add oracle1, oracle2, oracle3 as oracles
+    await merkleDistributor
+      .connect(admin)
+      .initialize(admin.address, rewardLyxToken.address, oracles.address);
+
     await oracles.connect(admin).addOracle(oracle1.address);
     await oracles.connect(admin).addOracle(oracle2.address);
     await oracles.connect(admin).addOracle(oracle3.address);
@@ -605,6 +609,280 @@ describe('Oracles contract', function () {
       // Check that the rewardsNonce has increased
       expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
         nonce.add(1).toNumber()
+      );
+    });
+  });
+
+  describe('submitMerkleRoot', function () {
+    beforeEach(async function () {
+      await pool
+        .connect(user1)
+        .stake({ value: ethers.utils.parseEther('100') });
+
+      await registerValidators(
+        getTestDepositData(operator.address),
+        oracles,
+        poolValidators,
+        beaconDepositMock,
+        [oracle1, oracle2, oracle3, oracle4],
+        admin,
+        operator
+      );
+
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        ethers.utils.parseEther('100'),
+        getTestDepositData(operator.address).length
+      );
+
+      // Call submitRewards with the signatures
+      await oracles
+        .connect(oracle1)
+        .submitRewards(
+          ethers.utils.parseEther('100'),
+          getTestDepositData(operator.address).length,
+          signatures
+        );
+    });
+
+    it('Should submit merkle root with enough signatures', async function () {
+      const merkle = generateDepositDataMerkle(
+        getTestDepositData(operator.address)
+      );
+      const nonce = await oracles.currentRewardsNonce();
+
+      const signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await oracles
+        .connect(oracle1)
+        .submitMerkleRoot(
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString,
+          signatures
+        );
+
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
+      expect(await merkleDistributor.merkleRoot()).to.equal(
+        merkle.depositDataMerkleRoot
+      );
+    });
+
+    it('Should emit MerkleRootVoteSubmitted event', async function () {
+      const merkle = generateDepositDataMerkle(
+        getTestDepositData(operator.address)
+      );
+      const nonce = await oracles.currentRewardsNonce();
+
+      const signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitMerkleRoot(
+            merkle.depositDataMerkleRoot,
+            merkle.depositDataMerkleProofsString,
+            signatures
+          )
+      )
+        .to.emit(oracles, 'MerkleRootVoteSubmitted')
+        .withArgs(
+          oracle1.address,
+          [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
+          nonce,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+    });
+
+    it('Should revert when not enough signatures', async function () {
+      const merkle = generateDepositDataMerkle(
+        getTestDepositData(operator.address)
+      );
+      const nonce = await oracles.currentRewardsNonce();
+
+      const signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitMerkleRoot(
+            merkle.depositDataMerkleRoot,
+            merkle.depositDataMerkleProofsString,
+            signatures
+          )
+      ).to.be.revertedWith('Oracles: invalid number of signatures');
+    });
+
+    it('Should revert if wrong signature', async function () {
+      const merkle = generateDepositDataMerkle(
+        getTestDepositData(operator.address)
+      );
+      const nonce = await oracles.currentRewardsNonce();
+
+      const signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, admin],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitMerkleRoot(
+            merkle.depositDataMerkleRoot,
+            merkle.depositDataMerkleProofsString,
+            signatures
+          )
+      ).to.be.revertedWith('Oracles: invalid signer');
+    });
+
+    it('Should revert if wrong signature', async function () {
+      const merkle = generateDepositDataMerkle(
+        getTestDepositData(operator.address)
+      );
+      const nonce = await oracles.currentRewardsNonce();
+
+      const signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle3],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitMerkleRoot(
+            merkle.depositDataMerkleRoot,
+            merkle.depositDataMerkleProofsString,
+            signatures
+          )
+      ).to.be.revertedWith('Oracles: repeated signature');
+    });
+
+    it('Should not submit merkle root multiple times if not submitRewards before', async function () {
+      let merkle = generateDepositDataMerkle([
+        getTestDepositData(operator.address)[0],
+      ]);
+      let nonce = await oracles.currentRewardsNonce();
+
+      let signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await oracles
+        .connect(oracle1)
+        .submitMerkleRoot(
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString,
+          signatures
+        );
+
+      merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
+      nonce = await oracles.currentRewardsNonce();
+
+      signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitMerkleRoot(
+            merkle.depositDataMerkleRoot,
+            merkle.depositDataMerkleProofsString,
+            signatures
+          )
+      ).to.be.revertedWith('Oracles: too early');
+    });
+
+    it('Should submit merkle root multiple times', async function () {
+      let merkle = generateDepositDataMerkle([
+        getTestDepositData(operator.address)[0],
+      ]);
+      let nonce = await oracles.currentRewardsNonce();
+
+      let signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await oracles
+        .connect(oracle1)
+        .submitMerkleRoot(
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString,
+          signatures
+        );
+
+      nonce = await oracles.currentRewardsNonce();
+      signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        ethers.utils.parseEther('200'),
+        getTestDepositData(operator.address).length
+      );
+
+      // Call submitRewards with the signatures
+      await oracles
+        .connect(oracle1)
+        .submitRewards(
+          ethers.utils.parseEther('200'),
+          getTestDepositData(operator.address).length,
+          signatures
+        );
+
+      merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
+      nonce = await oracles.currentRewardsNonce();
+
+      signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await oracles
+        .connect(oracle1)
+        .submitMerkleRoot(
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString,
+          signatures
+        );
+
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
+      expect(await merkleDistributor.merkleRoot()).to.equal(
+        merkle.depositDataMerkleRoot
       );
     });
   });

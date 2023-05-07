@@ -344,6 +344,27 @@ const generateSignaturesForSubmitRewards = async function (
   return signatures;
 };
 
+const generateSignaturesForSubmitMerkleRoot = async function (
+  signers,
+  nonce,
+  merkleRoot,
+  merkleProofs
+) {
+  let encoded = defaultAbiCoder.encode(
+    ['uint256', 'string', 'bytes32'],
+    [nonce, merkleProofs, merkleRoot]
+  );
+  let candidateId = hexlify(keccak256(encoded));
+
+  const signatures = [];
+  for (let i = 0; i < signers.length; i++) {
+    signatures.push(
+      await signers[i].signMessage(ethers.utils.arrayify(candidateId))
+    );
+  }
+  return signatures;
+};
+
 const getTestDepositData = function (operatorAddress) {
   return [
     {
@@ -387,4 +408,5 @@ module.exports = {
   getTestDepositData,
   generateSignaturesForRegisterValidators,
   generateSignaturesForSubmitRewards,
+  generateSignaturesForSubmitMerkleRoot,
 };

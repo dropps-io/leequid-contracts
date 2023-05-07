@@ -71,9 +71,9 @@ interface IMerkleDistributor {
     function merkleRoot() external view returns (bytes32);
 
     /**
-    * @dev Function for getting the RewardEthToken contract address.
+    * @dev Function for getting the RewardLyxToken contract address.
     */
-    function rewardEthToken() external view returns (address);
+    function rewardLyxToken() external view returns (address);
 
     /**
     * @dev Function for getting the Oracles contract address.

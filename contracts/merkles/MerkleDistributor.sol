@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IMerkleDistributor.sol";
 import "../interfaces/IOracles.sol";
-import "../interfaces/IRewardEthToken.sol";
+import "../interfaces/IRewardLyxToken.sol";
 
 
 /**
@@ -22,8 +22,8 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
     // @dev Merkle Root for proving rewards ownership.
     bytes32 public override merkleRoot;
 
-    // @dev Address of the RewardEthToken contract.
-    address public override rewardEthToken;
+    // @dev Address of the rewardLyxToken contract.
+    address public override rewardLyxToken;
 
     // @dev Address of the Oracles contract.
     IOracles public override oracles;
@@ -33,6 +33,16 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
 
     // This is a packed array of booleans.
     mapping (bytes32 => mapping (uint256 => uint256)) private _claimedBitMap;
+
+    function initialize(
+        address _admin,
+        address _rewardLyxToken,
+        address _oracles
+    ) external initializer {
+        __OwnablePausableUpgradeable_init_unchained(_admin);
+        rewardLyxToken = _rewardLyxToken;
+        oracles = IOracles(_oracles);
+    }
 
     /**
      * @dev See {IMerkleDistributor-upgrade}.
@@ -136,9 +146,9 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
         external override whenNotPaused
     {
         require(account != address(0), "MerkleDistributor: invalid account");
-        address _rewardEthToken = rewardEthToken; // gas savings
+        address _rewardLyxToken = rewardLyxToken; // gas savings
         require(
-            IRewardEthToken(_rewardEthToken).lastUpdateBlockNumber() < lastUpdateBlockNumber,
+            IRewardLyxToken(_rewardLyxToken).lastUpdateBlockNumber() < lastUpdateBlockNumber,
             "MerkleDistributor: merkle root updating"
         );
 
@@ -155,8 +165,8 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
         for (uint256 i = 0; i < tokensCount; i++) {
             address token = tokens[i];
             uint256 amount = amounts[i];
-            if (token == _rewardEthToken) {
-                IRewardEthToken(_rewardEthToken).claim(account, amount);
+            if (token == _rewardLyxToken) {
+                IRewardLyxToken(_rewardLyxToken).claim(account, amount);
             } else {
                 _transferToken(address(this), account, token, amount);
             }
