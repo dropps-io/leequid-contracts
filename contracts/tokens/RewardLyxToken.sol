@@ -267,9 +267,4 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
             rewardPerToken: _rewardPerToken
         });
     }
-
-//    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable) returns (bool) {
-//        return super.supportsInterface(interfaceId);
-//    }
-
 }

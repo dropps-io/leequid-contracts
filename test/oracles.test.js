@@ -86,13 +86,12 @@ describe('Oracles contract', function () {
       admin.address,
       (protocolFee * 10000).toString(),
       merkleDistributor.address,
-      feesEscrow.address,
-      false
+      feesEscrow.address
     );
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(admin.address, pool.address, rewardLyxToken.address, false);
+      .initialize(admin.address, pool.address, rewardLyxToken.address);
 
     await pool
       .connect(admin)

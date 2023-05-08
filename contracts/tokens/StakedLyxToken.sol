@@ -35,10 +35,6 @@ import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
 contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken {
-    // --- Storage
-
-    bool internal _isNonDivisible;
-
     uint256 internal _totalDeposits;
 
     // Mapping from `tokenOwner` to an `amount` of tokens
@@ -59,8 +55,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     function initialize(
         address _admin,
         address _pool,
-        IRewardLyxToken _rewardLyxToken,
-        bool isNonDivisible
+        IRewardLyxToken _rewardLyxToken
     ) external initializer {
         require(_pool != address(0), "StakedLyxToken: pool address cannot be zero");
         require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
@@ -70,7 +65,6 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         __OwnablePausableUpgradeable_init_unchained(_admin);
         pool = _pool;
         rewardLyxToken = _rewardLyxToken;
-        _isNonDivisible = isNonDivisible;
     }
 
     // --- Token queries
@@ -80,7 +74,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     }
 
     function decimals() public view override returns (uint8) {
-        return _isNonDivisible ? 0 : 18;
+        return 18;
     }
 
     function totalSupply() public view override returns (uint256) {

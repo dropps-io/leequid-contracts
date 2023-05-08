@@ -60,13 +60,13 @@ describe('Oracles contract', function () {
       admin.address,
       admin.address,
       (protocolFee * 10000).toString(),
-      merkleDistributor.address,
+      admin.address,
       feesEscrow.address
     );
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(admin.address, pool.address, rewardLyxToken.address, false);
+      .initialize(admin.address, pool.address, rewardLyxToken.address);
 
     await pool
       .connect(admin)
@@ -124,6 +124,12 @@ describe('Oracles contract', function () {
           ((totalRewards - totalRewards * protocolFee) / 4).toString()
         )
       );
+    });
+
+    it('should revert if sender not oracle', async function () {
+      expect(
+        rewardLyxToken.connect(user1).updateTotalRewards(totalRewardsWei)
+      ).to.be.revertedWith('RewardLyxToken: access denied');
     });
 
     it('should update total rewards twice', async function () {
@@ -275,6 +281,159 @@ describe('Oracles contract', function () {
           ethers.utils.parseEther((totalRewards * protocolFee).toString()),
           ethers.utils.parseEther((totalRewards * protocolFee).toString())
         );
+    });
+  });
+
+  describe('updateRewardCheckpoint', function () {
+    const stakePerUser = ethers.utils.parseEther('25');
+
+    beforeEach(async function () {
+      await pool.connect(user1).stake({ value: stakePerUser });
+      await pool.connect(user2).stake({ value: stakePerUser });
+      await pool.connect(user3).stake({ value: stakePerUser });
+      await pool.connect(user4).stake({ value: stakePerUser });
+    });
+
+    it('should update reward checkpoint correctly for an account with rewards enabled', async function () {
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(ethers.utils.parseEther('100'));
+
+      await rewardLyxToken.updateRewardCheckpoint(user1.address);
+
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(ethers.utils.parseEther('200'));
+
+      const checkpoint = await rewardLyxToken.checkpoints(user1.address);
+      const balance = await rewardLyxToken.balanceOf(user1.address);
+
+      expect(checkpoint.rewardPerToken.toString()).to.equal(
+        ethers.utils.parseEther(((100 * (1 - protocolFee)) / 100).toString())
+      );
+      expect(checkpoint.reward.toString()).to.equal(
+        ethers.utils.parseEther(((100 * (1 - protocolFee)) / 4).toString())
+      );
+      expect(balance).to.equal(
+        ethers.utils.parseEther(((200 * (1 - protocolFee)) / 4).toString())
+      );
+    });
+
+    it('should not update reward checkpoint for an account with rewards disabled', async function () {
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+
+      const initialCheckpoint = await rewardLyxToken.checkpoints(user1.address);
+      const initialBalance = await rewardLyxToken.balanceOf(user1.address);
+
+      await rewardLyxToken.updateRewardCheckpoint(user1.address);
+
+      const updatedCheckpoint = await rewardLyxToken.checkpoints(user1.address);
+      const updatedBalance = await rewardLyxToken.balanceOf(user1.address);
+
+      expect(updatedCheckpoint.rewardPerToken).to.equal(
+        initialCheckpoint.rewardPerToken
+      );
+      expect(updatedBalance).to.equal(initialBalance);
+      expect(updatedCheckpoint.reward).to.equal(initialCheckpoint.reward);
+    });
+  });
+
+  describe('setRewardsDisabled', function () {
+    const stakePerUser = ethers.utils.parseEther('100');
+
+    beforeEach(async function () {
+      await pool.connect(user1).stake({ value: stakePerUser });
+    });
+
+    it('should set rewardsDisabled for an account', async function () {
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+      const isDisabled = await rewardLyxToken.rewardsDisabled(user1.address);
+      expect(isDisabled).to.equal(true);
+    });
+
+    it('should emit RewardsToggled event', async function () {
+      await expect(
+        stakedLyxToken.connect(admin).toggleRewards(user1.address, true)
+      )
+        .to.emit(rewardLyxToken, 'RewardsToggled')
+        .withArgs(user1.address, true);
+    });
+
+    it('should update reward checkpoint before setting rewardsDisabled', async function () {
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(ethers.utils.parseEther('100'));
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(ethers.utils.parseEther('200'));
+      const checkpoint = await rewardLyxToken.checkpoints(user1.address);
+      const rewardPerToken = await rewardLyxToken.rewardPerToken();
+      const balance = await rewardLyxToken.balanceOf(user1.address);
+
+      expect(checkpoint.reward).to.equal(ethers.utils.parseEther('90'));
+      expect(checkpoint.rewardPerToken).to.not.equal(rewardPerToken);
+      expect(balance).to.equal(ethers.utils.parseEther('90'));
+    });
+
+    it('should not update rewards for disabled account', async function () {
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+      const prevBalance = await rewardLyxToken.balanceOf(user1.address);
+
+      const totalRewards = 100; // eth
+      const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      const newBalance = await rewardLyxToken.balanceOf(user1.address);
+      expect(prevBalance).to.equal(newBalance);
+    });
+
+    it('should update rewards for enabled account', async function () {
+      const prevBalance = await rewardLyxToken.balanceOf(user1.address);
+
+      const totalRewards = 100; // eth
+      const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      const newBalance = await rewardLyxToken.balanceOf(user1.address);
+      expect(prevBalance).to.not.equal(newBalance);
+    });
+  });
+
+  describe('claim', function () {
+    const stakedAmount = 100000; // eth
+    const totalRewards = 100; // eth
+    const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
+    const stakePerUser = ethers.utils.parseEther((stakedAmount / 3).toString());
+
+    beforeEach(async function () {
+      await pool.connect(user1).stake({ value: stakePerUser });
+      await pool.connect(user2).stake({ value: stakePerUser });
+      await pool.connect(user3).stake({ value: stakePerUser });
+
+      await rewardLyxToken
+        .connect(admin)
+        .setProtocolFeeRecipient(ZERRO_ADDRESS);
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+    });
+
+    it('should successfully claim rewards for user1', async function () {
+      await rewardLyxToken
+        .connect(admin)
+        .claim(user4.address, ethers.utils.parseEther('1'));
+      const balance = await rewardLyxToken.balanceOf(user4.address);
+      const distributorBalance = await rewardLyxToken.balanceOf(ZERRO_ADDRESS);
+
+      expect(balance).to.equal(ethers.utils.parseEther('1'));
+      expect(distributorBalance).to.equal(ethers.utils.parseEther('9'));
+    });
+
+    it('should fail to claim rewards if not merkle distributor', async function () {
+      await expect(
+        rewardLyxToken
+          .connect(user1)
+          .claim(user4.address, ethers.utils.parseEther('1'))
+      ).to.be.revertedWith('RewardLyxToken: access denied');
     });
   });
 });
