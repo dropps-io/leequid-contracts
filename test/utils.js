@@ -239,7 +239,7 @@ async function registerValidators(
 
   // Call registerValidators with the signatures
   await oracles
-    .connect(oracleAccounts[1])
+    .connect(oracleAccounts[0])
     .registerValidators(
       depositData,
       merkle.depositDataMerkleProofNodes,

@@ -2,25 +2,15 @@
 pragma solidity ^0.8.4;
 
 // interfaces
-import {ILSP1UniversalReceiver} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/ILSP1UniversalReceiver.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 // libraries
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import {GasLib} from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
 
 // modules
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-
-// errors
-import "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
-
 // constants
-import { _INTERFACEID_LSP1 } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
-import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
-import { _TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
 import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
@@ -29,7 +19,6 @@ import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
 import { IFeesEscrow } from "../interfaces/IFeesEscrow.sol";
 
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
-import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
 
 
 /**
@@ -39,7 +28,7 @@ import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
  *
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
-contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract, OwnablePausableUpgradeable {
+contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
     using SafeCast for uint256;
 
     // @dev Address of the StakedLyxToken contract.
@@ -75,14 +64,6 @@ contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract
     // @dev Address of the FeesEscrow contract.
     IFeesEscrow private feesEscrow;
 
-    bool internal _isNonDivisible;
-
-    // Mapping from `tokenOwner` to an `amount` of tokens
-    mapping(address => uint256) internal _tokenOwnerBalances;
-
-    // Mapping a `tokenOwner` to an `operator` to `amount` of tokens.
-    mapping(address => mapping(address => uint256)) internal _operatorAuthorizedAmount;
-
     function initialize(
         address _admin,
         address _stakedLyxToken,
@@ -90,8 +71,7 @@ contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract
         address _protocolFeeRecipient,
         uint256 _protocolFee,
         address _merkleDistributor,
-        address _feesEscrow,
-        bool _isNonDivisible
+        address _feesEscrow
     ) external initializer {
         require(_stakedLyxToken != address(0), "RewardLyxToken: stakedLyxToken address cannot be zero");
         require(_admin != address(0), "RewardLyxToken: admin address cannot be zero");
@@ -99,7 +79,6 @@ contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract
         require(_merkleDistributor != address(0), "RewardLyxToken: merkleDistributor address cannot be zero");
         require(_feesEscrow != address(0), "RewardLyxToken: feesEscrow address cannot be zero");
 
-        LSP4DigitalAssetMetadataInitAbstract._initialize("RewardLyxToken", "rLYX", _admin);
         __OwnablePausableUpgradeable_init_unchained(_admin);
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
         oracles = _oracles;
@@ -107,18 +86,6 @@ contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract
         protocolFee = _protocolFee;
         merkleDistributor = _merkleDistributor;
         feesEscrow = IFeesEscrow(_feesEscrow);
-        _isNonDivisible = _isNonDivisible;
-    }
-
-
-    // --- Token queries
-
-    function decimals() public view virtual override returns (uint8) {
-        return _isNonDivisible ? 0 : 18;
-    }
-
-    function totalSupply() public view virtual override returns (uint256) {
-        return totalRewards;
     }
 
     // --- Token owner queries
@@ -212,30 +179,6 @@ contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract
         emit ProtocolFeeUpdated(_protocolFee);
     }
 
-    // --- Operator functionality
-
-    function authorizeOperator(address operator, uint256 amount) public virtual override {
-        _updateOperator(msg.sender, operator, amount);
-    }
-
-    function revokeOperator(address operator) public virtual override {
-        _updateOperator(msg.sender, operator, 0);
-    }
-
-    function authorizedAmountFor(address operator, address tokenOwner)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-    {
-        if (tokenOwner == operator) {
-            return _tokenOwnerBalances[tokenOwner];
-        } else {
-            return _operatorAuthorizedAmount[tokenOwner][operator];
-        }
-    }
-
     /**
      * @dev See {IRewardLyxToken-updateRewardCheckpoints}.
      */
@@ -323,195 +266,10 @@ contract RewardLyxToken is IRewardLyxToken, LSP4DigitalAssetMetadataInitAbstract
             reward: (_balanceOf(account, _rewardPerToken) + amount).toUint128(),
             rewardPerToken: _rewardPerToken
         });
-
-        emit Transfer(msg.sender, address(0), account, amount, true, "");
     }
 
-    // --- Transfer functionality
-
-    function transfer(
-        address from,
-        address to,
-        uint256 amount,
-        bool allowNonLSP1Recipient,
-        bytes memory data
-    ) public virtual override {
-        if (from == to) revert LSP7CannotSendToSelf();
-
-        address operator = msg.sender;
-        if (operator != from) {
-            uint256 operatorAmount = _operatorAuthorizedAmount[from][operator];
-            if (amount > operatorAmount) {
-                revert LSP7AmountExceedsAuthorizedAmount(from, operatorAmount, operator, amount);
-            }
-
-            _updateOperator(from, operator, operatorAmount - amount);
-        }
-
-        _transfer(from, to, amount, allowNonLSP1Recipient, data);
-    }
-
-    function transferBatch(
-        address[] memory from,
-        address[] memory to,
-        uint256[] memory amount,
-        bool[] memory allowNonLSP1Recipient,
-        bytes[] memory data
-    ) public virtual override {
-        uint256 fromLength = from.length;
-        if (
-            fromLength != to.length ||
-            fromLength != amount.length ||
-            fromLength != allowNonLSP1Recipient.length ||
-            fromLength != data.length
-        ) {
-            revert LSP7InvalidTransferBatch();
-        }
-
-        for (uint256 i = 0; i < fromLength; ) {
-            // using the public transfer function to handle updates to operator authorized amounts
-            transfer(from[i], to[i], amount[i], allowNonLSP1Recipient[i], data[i]);
-
-        unchecked {
-            ++i;
-        }
-        }
-    }
-
-    /**
-     * @dev Changes token `amount` the `operator` has access to from `tokenOwner` tokens. If the
-     * amount is zero then the operator is being revoked, otherwise the operator amount is being
-     * modified.
-     *
-     * See {authorizedAmountFor}.
-     *
-     * Emits either {AuthorizedOperator} or {RevokedOperator} event.
-     *
-     * Requirements
-     *
-     * - `operator` cannot be the zero address.
-     */
-    function _updateOperator(
-        address tokenOwner,
-        address operator,
-        uint256 amount
-    ) internal virtual {
-        if (operator == address(0)) {
-            revert LSP7CannotUseAddressZeroAsOperator();
-        }
-
-        if (operator == tokenOwner) {
-            revert LSP7TokenOwnerCannotBeOperator();
-        }
-
-        _operatorAuthorizedAmount[tokenOwner][operator] = amount;
-
-        if (amount != 0) {
-            emit AuthorizedOperator(operator, tokenOwner, amount);
-        } else {
-            emit RevokedOperator(operator, tokenOwner);
-        }
-    }
-
-    /**
-     * @dev Transfers `amount` tokens from `from` to `to`.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - `from` cannot be the zero address.
-     * - `from` must have at least `amount` tokens.
-     * - If the caller is not `from`, it must be an operator for `from` with access to at least
-     * `amount` tokens.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount,
-        bool allowNonLSP1Recipient,
-        bytes memory data
-    ) internal virtual {
-        require(block.number > lastUpdateBlockNumber, "RewardLyxToken: cannot transfer during rewards update");
-        if (from == address(0) || to == address(0)) {
-            revert LSP7CannotSendWithAddressZero();
-        }
-
-        address operator = msg.sender;
-
-        _beforeTokenTransfer(from, to, amount);
-
-        uint128 _rewardPerToken = rewardPerToken; // gas savings
-        checkpoints[from] = Checkpoint({
-            reward: (_balanceOf(from, _rewardPerToken) - amount).toUint128(),
-            rewardPerToken: _rewardPerToken
-        });
-        checkpoints[to] = Checkpoint({
-            reward: (_balanceOf(to, _rewardPerToken) + amount).toUint128(),
-            rewardPerToken: _rewardPerToken
-        });
-
-        emit Transfer(operator, from, to, amount, allowNonLSP1Recipient, data);
-
-        bytes memory lsp1Data = abi.encodePacked(from, to, amount, data);
-
-        _notifyTokenSender(from, lsp1Data);
-        _notifyTokenReceiver(to, allowNonLSP1Recipient, lsp1Data);
-    }
-
-    /**
-     * @dev Hook that is called before any token transfer. This includes minting
-     * and burning.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s `amount` tokens will be
-     * transferred to `to`.
-     * - When `from` is zero, `amount` tokens will be minted for `to`.
-     * - When `to` is zero, ``from``'s `amount` tokens will be burned.
-     * - `from` and `to` are never both zero.
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
-
-    /**
-     * @dev An attempt is made to notify the token sender about the `amount` tokens changing owners using
-     * LSP1 interface.
-     */
-    function _notifyTokenSender(address from, bytes memory lsp1Data) internal virtual {
-        if (ERC165Checker.supportsERC165InterfaceUnchecked(from, _INTERFACEID_LSP1)) {
-            ILSP1UniversalReceiver(from).universalReceiver(_TYPEID_LSP7_TOKENSSENDER, lsp1Data);
-        }
-    }
-
-    /**
-     * @dev An attempt is made to notify the token receiver about the `amount` tokens changing owners
-     * using LSP1 interface. When allowNonLSP1Recipient is FALSE the token receiver MUST support LSP1.
-     *
-     * The receiver may revert when the token being sent is not wanted.
-     */
-    function _notifyTokenReceiver(
-        address to,
-        bool allowNonLSP1Recipient,
-        bytes memory lsp1Data
-    ) internal virtual {
-        if (ERC165Checker.supportsERC165InterfaceUnchecked(to, _INTERFACEID_LSP1)) {
-            ILSP1UniversalReceiver(to).universalReceiver(_TYPEID_LSP7_TOKENSRECIPIENT, lsp1Data);
-        } else if (!allowNonLSP1Recipient) {
-            if (to.code.length > 0) {
-                revert LSP7NotifyTokenReceiverContractMissingLSP1Interface(to);
-            } else {
-                revert LSP7NotifyTokenReceiverIsEOA(to);
-            }
-        }
-    }
-
-    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable, IERC165, ERC725YCore) returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
+//    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable) returns (bool) {
+//        return super.supportsInterface(interfaceId);
+//    }
 
 }
