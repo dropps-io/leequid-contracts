@@ -238,7 +238,7 @@ async function registerValidators(
   );
 
   // Call registerValidators with the signatures
-  await oracles
+  return oracles
     .connect(oracleAccounts[0])
     .registerValidators(
       depositData,
@@ -388,6 +388,17 @@ const getTestDepositData = function (operatorAddress) {
         '0xa8a6b651824d26a75aa0211bbf51a49d6d287e8b4a482726e9a7e28f7e746c457e336e743b469b70ecd8cfc7f48e7dfc0930d674205efb3bda1e08313c1e100f24cf00d6ec38e2666c8da2103aea815590dc2b8835dc5182e7ced2df9f73c72b',
       depositDataRoot:
         '0x99ae12c6380e6c65894b0e36cb42104bdf90c9fb7c307d47cb13a926e517247c',
+    },
+    {
+      operator: operatorAddress,
+      publicKey:
+        '0xa171371afb5f93c8572064815414d227d7392fe31ca8b426e2cc50bbe36e76159590662e0b6fbc0af6d85cc60e45963d',
+      withdrawalCredentials:
+        '0x010000000000000000000000d692ba892a902810a2ee3fa41c1d8dcd652d47ab',
+      signature:
+        '0xa5556d309a4fdf673585ba1fa649003d266f9f75daa7a6caa975448a4ffbdda64da7f2ad5189e6afef9b49ba7b8cf031067a0f127707bb1706852084d6e919502094a6e43c214ce65b37637911b759ae0ff32559010dcfc8ef35eaae5462094c',
+      depositDataRoot:
+        '0x207952471f66fb731a31f70f2b923fd07802fde7914c56f65cb64ab046cf980d',
     },
   ];
 };

@@ -102,7 +102,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         require(msg.sender == oracles || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
 
         // subtract activated validators from pending validators
-        pendingValidators = pendingValidators - newActivatedValidators - activatedValidators;
+        pendingValidators = pendingValidators - (newActivatedValidators - activatedValidators);
         activatedValidators = newActivatedValidators;
         emit ActivatedValidatorsUpdated(newActivatedValidators, msg.sender);
     }

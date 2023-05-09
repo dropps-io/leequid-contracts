@@ -164,7 +164,7 @@ describe('Oracles contract', function () {
 
       const depositCount = await beaconDepositMock.get_deposit_count();
 
-      expect(depositCount).to.equal('0x0200000000000000');
+      expect(depositCount).to.equal('0x0300000000000000');
       // Check that the validatorsNonce has increased
       expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(
         nonce.add(1).toNumber()
