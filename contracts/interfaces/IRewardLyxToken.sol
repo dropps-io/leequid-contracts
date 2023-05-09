@@ -85,6 +85,10 @@ interface IRewardLyxToken {
     */
     function totalRewards() external view returns (uint128);
 
+    function totalCashedOutRewards() external view returns (uint128);
+
+    function totalAvailableRewards() external view returns (uint128);
+
     function balanceOf(address account) external view returns (uint256);
 
     /**
@@ -144,4 +148,6 @@ interface IRewardLyxToken {
     * @param amount - amount of tokens to assign to the account.
     */
     function claim(address account, uint256 amount) external;
+
+    function cashOutRewards(uint256 amount) external;
 }

@@ -49,6 +49,9 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
     // @dev Total amount of rewards.
     uint128 public override totalRewards;
 
+    // @dev Total amount of cashed out rewards.
+    uint128 public override totalCashedOutRewards;
+
     // @dev Reward per token for user reward calculation.
     uint128 public override rewardPerToken;
 
@@ -88,6 +91,8 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         feesEscrow = IFeesEscrow(_feesEscrow);
     }
 
+    receive() external payable {}
+
     // --- Token owner queries
 
     function balanceOf(address account) public view virtual override returns (uint256) {
@@ -111,6 +116,10 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
 
         // return checkpoint reward + current reward
         return _calculateNewReward(cp.reward, stakedLyxAmount, _rewardPerToken - cp.rewardPerToken);
+    }
+
+    function totalAvailableRewards() public view virtual override returns (uint128) {
+        return totalRewards - totalCashedOutRewards;
     }
 
     function updateRewardCheckpoint(address account) public override returns (bool accRewardsDisabled) {
@@ -266,5 +275,24 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
             reward: (_balanceOf(account, _rewardPerToken) + amount).toUint128(),
             rewardPerToken: _rewardPerToken
         });
+    }
+
+    function cashOutRewards(uint256 amount) external override {
+        address payable recipient = payable(msg.sender);
+        uint256 accountBalance = balanceOf(recipient);
+        require(accountBalance >= amount, "RewardLyxToken: insufficient reward balance");
+        require(address(this).balance >= amount, "RewardLyxToken: insufficient contract balance");
+
+        uint128 _rewardPerToken = rewardPerToken;
+        // Update the state before the transfer
+        checkpoints[recipient] = Checkpoint({
+            reward: (accountBalance - amount).toUint128(),
+            rewardPerToken: _rewardPerToken
+        });
+
+        totalCashedOutRewards = (totalCashedOutRewards + amount).toUint128();
+
+        // Transfer Ether after updating the state
+        recipient.transfer(amount);
     }
 }
