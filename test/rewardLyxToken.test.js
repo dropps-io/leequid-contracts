@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { getTestDepositData } = require('./utils');
 const { expect } = require('chai');
 
-describe('Oracles contract', function () {
+describe('RewardLyxToken contract', function () {
   const protocolFee = 0.1; // 10%
   const ZERRO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -61,7 +61,8 @@ describe('Oracles contract', function () {
       admin.address,
       (protocolFee * 10000).toString(),
       admin.address,
-      feesEscrow.address
+      feesEscrow.address,
+      pool.address
     );
 
     await stakedLyxToken
@@ -91,7 +92,7 @@ describe('Oracles contract', function () {
   });
 
   describe('updateTotalRewards', function () {
-    const stakedAmount = 100000; // eth
+    const stakedAmount = 10000; // eth
     const totalRewards = 100; // eth
     const newTotalRewards = totalRewards * 2; // eth
     const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
@@ -601,6 +602,94 @@ describe('Oracles contract', function () {
       ).to.be.gt(parseFloat(ethers.utils.formatEther(userEthBalanceBefore)));
     });
 
+    it('everybody should be able to cashout', async function () {
+      const transaction = {
+        to: rewardLyxToken.address,
+        value: totalRewardsWei,
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction);
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      const user1Balance = await rewardLyxToken.balanceOf(user1.address);
+      const user2Balance = await rewardLyxToken.balanceOf(user2.address);
+      const user3Balance = await rewardLyxToken.balanceOf(user3.address);
+      const user4Balance = await rewardLyxToken.balanceOf(user4.address);
+      const feeRecipientBalance = await rewardLyxToken.balanceOf(admin.address);
+
+      await rewardLyxToken.connect(user1).cashOutRewards(user1Balance);
+      await rewardLyxToken.connect(user2).cashOutRewards(user2Balance);
+      await rewardLyxToken.connect(user3).cashOutRewards(user3Balance);
+      await rewardLyxToken.connect(user4).cashOutRewards(user4Balance);
+      await rewardLyxToken.connect(admin).cashOutRewards(feeRecipientBalance);
+    });
+
+    it('everybody should be able to cashout even after lot of balances actions', async function () {
+      const transaction = {
+        to: rewardLyxToken.address,
+        value: totalRewardsWei,
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction);
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      await rewardLyxToken.connect(user1).updateRewardCheckpoint(user1.address);
+
+      await pool.connect(user4).stake({ value: stakePerUser });
+      await pool.connect(user4).stake({ value: stakePerUser });
+
+      const user1Balance1 = await rewardLyxToken.balanceOf(user1.address);
+      await rewardLyxToken.connect(user1).cashOutRewards(user1Balance1);
+
+      const transaction2 = {
+        to: rewardLyxToken.address,
+        value: totalRewardsWei,
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction2);
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(newTotalRewardsWei);
+
+      const user2Balance2 = await rewardLyxToken.balanceOf(user1.address);
+      await rewardLyxToken.connect(user2).cashOutRewards(user2Balance2);
+
+      await pool.connect(user2).stake({
+        value: ethers.utils.parseEther((stakedAmount * 6).toString()),
+      });
+
+      await rewardLyxToken.connect(user3).updateRewardCheckpoint(user3.address);
+
+      const transaction3 = {
+        to: rewardLyxToken.address,
+        value: ethers.utils.parseEther((totalRewards * 2).toString()),
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction3);
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(
+          ethers.utils.parseEther((totalRewards * 4).toString())
+        );
+
+      const user1Balance = await rewardLyxToken.balanceOf(user1.address);
+      const user2Balance = await rewardLyxToken.balanceOf(user2.address);
+      const user3Balance = await rewardLyxToken.balanceOf(user3.address);
+      const user4Balance = await rewardLyxToken.balanceOf(user4.address);
+      const feeRecipientBalance = await rewardLyxToken.balanceOf(admin.address);
+
+      await rewardLyxToken.connect(user1).cashOutRewards(user1Balance);
+      await rewardLyxToken.connect(user2).cashOutRewards(user2Balance);
+      await rewardLyxToken.connect(user3).cashOutRewards(user3Balance);
+      await rewardLyxToken.connect(user4).cashOutRewards(user4Balance);
+      await rewardLyxToken.connect(admin).cashOutRewards(feeRecipientBalance);
+
+      const rewardLyxTokenBalance = await ethers.provider.getBalance(
+        rewardLyxToken.address
+      );
+      expect(rewardLyxTokenBalance).to.equal(ethers.utils.parseEther('0'));
+    });
+
     it('should not be able to cashout if user not enough balance', async function () {
       const transaction = {
         to: rewardLyxToken.address,
@@ -628,6 +717,226 @@ describe('Oracles contract', function () {
         rewardLyxToken
           .connect(user1)
           .cashOutRewards(
+            ethers.utils.parseEther(
+              ((totalRewards * (1 - protocolFee)) / 4).toString()
+            )
+          )
+      ).to.revertedWith('RewardLyxToken: insufficient contract balance');
+    });
+  });
+
+  describe('compoundRewards', function () {
+    const stakedAmount = 100000; // eth
+    const totalRewards = 100; // eth
+    const newTotalRewards = totalRewards * 2; // eth
+    const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
+    const newTotalRewardsWei = ethers.utils.parseEther(
+      newTotalRewards.toString()
+    ); // eth
+    const stakePerUser = ethers.utils.parseEther((stakedAmount / 4).toString());
+
+    beforeEach(async function () {
+      await pool.connect(user1).stake({ value: stakePerUser });
+      await pool.connect(user2).stake({ value: stakePerUser });
+      await pool.connect(user3).stake({ value: stakePerUser });
+      await pool.connect(user4).stake({ value: stakePerUser });
+    });
+
+    it('should be able to compound', async function () {
+      const transaction = {
+        to: rewardLyxToken.address,
+        value: totalRewardsWei,
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction);
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      const poolEthBalanceBefore = await ethers.provider.getBalance(
+        pool.address
+      );
+
+      await rewardLyxToken
+        .connect(user1)
+        .compoundRewards(
+          ethers.utils.parseEther(
+            ((totalRewards * (1 - protocolFee)) / 4).toString()
+          )
+        );
+
+      const poolEthBalanceAfter = await ethers.provider.getBalance(
+        pool.address
+      );
+
+      const totalCashedOutRewards =
+        await rewardLyxToken.totalCashedOutRewards();
+
+      const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
+        admin.address
+      );
+      const userBalance = await rewardLyxToken.balanceOf(user2.address);
+      const user1Balance = await rewardLyxToken.balanceOf(user1.address);
+      const contractEthBalance = await ethers.provider.getBalance(
+        rewardLyxToken.address
+      );
+      const sLYXBalance = await stakedLyxToken.balanceOf(user1.address);
+
+      expect(sLYXBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          (
+            stakedAmount / 4 +
+            (totalRewards - totalRewards * protocolFee) / 4
+          ).toString()
+        )
+      );
+      expect(totalCashedOutRewards).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards - totalRewards * protocolFee) / 4).toString()
+        )
+      );
+      expect(protocolFeeRecipientBalance).to.equal(
+        ethers.utils.parseEther((totalRewards * protocolFee).toString())
+      );
+      expect(userBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards - totalRewards * protocolFee) / 4).toString()
+        )
+      );
+      expect(user1Balance).to.equal(ethers.utils.parseEther('0'));
+      expect(contractEthBalance).to.equal(
+        // eslint-disable-next-line no-mixed-operators
+        ethers.utils.parseEther(
+          (totalRewards - (totalRewards * (1 - protocolFee)) / 4).toString()
+        )
+      );
+      expect(
+        parseFloat(ethers.utils.formatEther(poolEthBalanceAfter))
+      ).to.be.gt(parseFloat(ethers.utils.formatEther(poolEthBalanceBefore)));
+    });
+
+    it('should be able have correct value after cashout, then updateRewards', async function () {
+      const transaction = {
+        to: rewardLyxToken.address,
+        value: totalRewardsWei,
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction);
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      const poolEthBalanceBefore = await ethers.provider.getBalance(
+        pool.address
+      );
+
+      await rewardLyxToken
+        .connect(user1)
+        .compoundRewards(
+          ethers.utils.parseEther(
+            ((totalRewards * (1 - protocolFee)) / 4).toString()
+          )
+        );
+
+      const transaction2 = {
+        to: rewardLyxToken.address,
+        value: totalRewardsWei,
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction2);
+
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(newTotalRewardsWei);
+
+      const poolEthBalanceAfter = await ethers.provider.getBalance(
+        pool.address
+      );
+
+      const totalCashedOutRewards =
+        await rewardLyxToken.totalCashedOutRewards();
+
+      const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
+        admin.address
+      );
+      const user1Balance = await rewardLyxToken.balanceOf(user1.address);
+      const user2Balance = await rewardLyxToken.balanceOf(user2.address);
+
+      const contractEthBalance = await ethers.provider.getBalance(
+        rewardLyxToken.address
+      );
+
+      const sLYXBalance = await stakedLyxToken.balanceOf(user1.address);
+
+      expect(sLYXBalance).to.equal(
+        ethers.utils.parseEther(
+          (
+            stakedAmount / 4 +
+            (totalRewards - totalRewards * protocolFee) / 4
+          ).toString()
+        )
+      );
+
+      expect(totalCashedOutRewards).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards - totalRewards * protocolFee) / 4).toString()
+        )
+      );
+
+      // User1 now stake more than the others, for the next update rewards, he then got more rewards
+      expect(
+        parseFloat(ethers.utils.formatEther(user1Balance))
+      ).to.be.greaterThan(
+        parseFloat(ethers.utils.formatEther(user2Balance)) -
+          // eslint-disable-next-line no-mixed-operators
+          (totalRewards - totalRewards * protocolFee) / 4
+      );
+
+      expect(protocolFeeRecipientBalance).to.equal(
+        ethers.utils.parseEther((newTotalRewards * protocolFee).toString())
+      );
+
+      expect(contractEthBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          (
+            newTotalRewards -
+            (totalRewards - totalRewards * protocolFee) / 4
+          ).toString()
+        )
+      );
+      expect(
+        parseFloat(ethers.utils.formatEther(poolEthBalanceAfter))
+      ).to.be.gt(parseFloat(ethers.utils.formatEther(poolEthBalanceBefore)));
+    });
+
+    it('should not be able to cashout if user not enough balance', async function () {
+      const transaction = {
+        to: rewardLyxToken.address,
+        value: totalRewardsWei,
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction);
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      await expect(
+        rewardLyxToken
+          .connect(user1)
+          .compoundRewards(
+            ethers.utils.parseEther(
+              ((totalRewards * (1 - protocolFee)) / 3).toString()
+            )
+          )
+      ).to.revertedWith('RewardLyxToken: insufficient reward balance');
+    });
+
+    it('should not be able to cashout if contract not enough balance', async function () {
+      await rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      await expect(
+        rewardLyxToken
+          .connect(user1)
+          .compoundRewards(
             ethers.utils.parseEther(
               ((totalRewards * (1 - protocolFee)) / 4).toString()
             )

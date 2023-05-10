@@ -19,7 +19,7 @@ import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
 import { IFeesEscrow } from "../interfaces/IFeesEscrow.sol";
 
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
-
+import { IPool } from "../interfaces/IPool.sol";
 
 /**
  * @title LSP7DigitalAsset contract
@@ -67,6 +67,8 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
     // @dev Address of the FeesEscrow contract.
     IFeesEscrow private feesEscrow;
 
+    IPool private pool;
+
     function initialize(
         address _admin,
         address _stakedLyxToken,
@@ -74,7 +76,8 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         address _protocolFeeRecipient,
         uint256 _protocolFee,
         address _merkleDistributor,
-        address _feesEscrow
+        address _feesEscrow,
+        address _pool
     ) external initializer {
         require(_stakedLyxToken != address(0), "RewardLyxToken: stakedLyxToken address cannot be zero");
         require(_admin != address(0), "RewardLyxToken: admin address cannot be zero");
@@ -89,6 +92,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         protocolFee = _protocolFee;
         merkleDistributor = _merkleDistributor;
         feesEscrow = IFeesEscrow(_feesEscrow);
+        pool = IPool(_pool);
     }
 
     receive() external payable {}
@@ -279,20 +283,34 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
 
     function cashOutRewards(uint256 amount) external override {
         address payable recipient = payable(msg.sender);
-        uint256 accountBalance = balanceOf(recipient);
+
+        _cashOutAccountRewards(recipient, amount);
+
+        // Transfer Ether after updating the state
+        recipient.transfer(amount);
+    }
+
+    function compoundRewards(uint256 amount) external override {
+        address recipient = msg.sender;
+
+        _cashOutAccountRewards(recipient, amount);
+
+        // Stake the rewards to the pool
+        pool.stakeOnBehalf{value : amount}(recipient);
+    }
+
+    function _cashOutAccountRewards(address account, uint256 amount) internal {
+        uint256 accountBalance = balanceOf(account);
         require(accountBalance >= amount, "RewardLyxToken: insufficient reward balance");
         require(address(this).balance >= amount, "RewardLyxToken: insufficient contract balance");
 
         uint128 _rewardPerToken = rewardPerToken;
         // Update the state before the transfer
-        checkpoints[recipient] = Checkpoint({
+        checkpoints[account] = Checkpoint({
             reward: (accountBalance - amount).toUint128(),
             rewardPerToken: _rewardPerToken
         });
 
         totalCashedOutRewards = (totalCashedOutRewards + amount).toUint128();
-
-        // Transfer Ether after updating the state
-        recipient.transfer(amount);
     }
 }

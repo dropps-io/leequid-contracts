@@ -65,7 +65,8 @@ describe('Pool contract', function () {
       admin.address,
       (protocolFee * 10000).toString(),
       merkleDistributor.address,
-      feesEscrow.address
+      feesEscrow.address,
+      pool.address
     );
 
     await stakedLyxToken

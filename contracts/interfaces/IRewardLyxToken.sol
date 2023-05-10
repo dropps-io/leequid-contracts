@@ -150,4 +150,6 @@ interface IRewardLyxToken {
     function claim(address account, uint256 amount) external;
 
     function cashOutRewards(uint256 amount) external;
+
+    function compoundRewards(uint256 amount) external;
 }
