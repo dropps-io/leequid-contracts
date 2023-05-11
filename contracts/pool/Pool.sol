@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IStakedLyxToken.sol";
+import "../interfaces/IRewardLyxToken.sol";
 import "../interfaces/IDepositContract.sol";
 import "../interfaces/IPoolValidators.sol";
 import "../interfaces/IPool.sol";
@@ -32,6 +33,8 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     // @dev Address of the StakedLyxToken contract.
     IStakedLyxToken private stakedLyxToken;
 
+    IRewardLyxToken private rewardLyxToken;
+
     // @dev Address of the PoolValidators contract.
     IPoolValidators private validators;
 
@@ -53,6 +56,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     function initialize(
         address _admin,
         address _stakedLyxToken,
+        address _rewardLyxToken,
         address _validators,
         address _oracles,
         bytes32 _withdrawalCredentials,
@@ -61,6 +65,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         uint256 _pendingValidatorsLimit
     ) public initializer {
         require(_stakedLyxToken != address(0), "Pool: stakedLyxToken address cannot be zero");
+        require(_rewardLyxToken != address(0), "Pool: rewardLyxToken address cannot be zero");
         require(_admin != address(0), "Pool: admin address cannot be zero");
         require(_oracles != address(0), "Pool: oracles address cannot be zero");
         require(_validatorRegistration != address(0), "Pool: validatorRegistration address cannot be zero");
@@ -68,8 +73,8 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
         __OwnablePausableUpgradeable_init(_admin);
 
-
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
+        rewardLyxToken = IRewardLyxToken(_rewardLyxToken);
         validators = IPoolValidators(_validators);
         oracles = _oracles;
         withdrawalCredentials = _withdrawalCredentials;
@@ -173,8 +178,20 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         require(recipient != address(0), "Pool: invalid recipient");
         require(value > 0, "Pool: invalid deposit amount");
 
+        uint256 unstakeMatchedAmount = 0;
+
+        if (stakedLyxToken.unstakeProcessing()) {
+            // try to match unstake request
+            unstakeMatchedAmount = stakedLyxToken.matchUnstake(value);
+        }
+        if (unstakeMatchedAmount > 0) {
+            address(rewardLyxToken).call{value: unstakeMatchedAmount}("");
+        }
+
+        uint256 _valueToDeposit = value - unstakeMatchedAmount;
+
         // mint tokens for small deposits immediately
-        if (value <= minActivatingDeposit) {
+        if (_valueToDeposit <= minActivatingDeposit) {
             stakedLyxToken.mint(recipient, value, true, "");
             return;
         }
@@ -187,8 +204,9 @@ contract Pool is IPool, OwnablePausableUpgradeable {
             stakedLyxToken.mint(recipient, value, true, "");
         } else {
             // lock deposit amount until validator activated
-            activations[recipient][validatorIndex] = activations[recipient][validatorIndex] + value;
-            emit ActivationScheduled(recipient, validatorIndex, value);
+        if (unstakeMatchedAmount > 0) stakedLyxToken.mint(recipient, unstakeMatchedAmount, true, "");
+        activations[recipient][validatorIndex] = activations[recipient][validatorIndex] + _valueToDeposit;
+            emit ActivationScheduled(recipient, validatorIndex, _valueToDeposit);
         }
     }
 

@@ -54,6 +54,12 @@ interface IRewardLyxToken {
         uint256 protocolReward
     );
 
+    event UnstakeClaimed (
+        address indexed account,
+        uint256 totalAmount,
+        uint256[] unstakeRequestsIndexes
+    );
+
     /**
     * @dev Function for getting the address of the merkle distributor.
     */
@@ -155,4 +161,6 @@ interface IRewardLyxToken {
     function cashOutRewards(uint256 amount) external;
 
     function compoundRewards(uint256 amount) external;
+
+    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external;
 }

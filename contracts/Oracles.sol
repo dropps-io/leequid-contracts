@@ -12,6 +12,7 @@ import "./interfaces/IPool.sol";
 import "./interfaces/IOracles.sol";
 import "./interfaces/IMerkleDistributor.sol";
 import "./interfaces/IPoolValidators.sol";
+import "./interfaces/IStakedLyxToken.sol";
 
 /**
  * @title Oracles
@@ -31,8 +32,12 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     // @dev Validators nonce is used to protect from submitting the same validator vote several times.
     CountersUpgradeable.Counter private validatorsNonce;
 
+    // @dev Unstake nonce is used to protect from requesting to start .
+    CountersUpgradeable.Counter private unstakeNonce;
+
     // @dev Address of the RewardLyxToken contract.
     IRewardLyxToken private rewardLyxToken;
+    IStakedLyxToken private stakedLyxToken;
 
     // @dev Address of the Pool contract.
     IPool private pool;
@@ -54,12 +59,14 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     function initialize(
         address _admin,
         address _rewardLyxToken,
+        address _stakedLyxToken,
         address _pool,
         address _poolValidators,
         address _merkleDistributor) external initializer {
         oracleCount = 0;
         __OwnablePausableUpgradeable_init_unchained(_admin);
         rewardLyxToken = IRewardLyxToken(_rewardLyxToken);
+        stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
         pool = IPool(_pool);
         poolValidators = IPoolValidators(_poolValidators);
         merkleDistributor = IMerkleDistributor(_merkleDistributor);
@@ -77,6 +84,13 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      */
     function currentValidatorsNonce() external override view returns (uint256) {
         return validatorsNonce.current();
+    }
+
+    /**
+     * @dev See {IOracles-currentValidatorsNonce}.
+     */
+    function currentUnstakeNonce() external override view returns (uint256) {
+        return unstakeNonce.current();
     }
 
     /**
@@ -252,5 +266,69 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
         // increment nonce for future registrations
         validatorsNonce.increment();
+    }
+
+
+    /**
+     * @dev See {IOracles-submitRewards}.
+    */
+    function setUnstakeProcessing(bytes[] calldata signatures) external override onlyOracle whenNotPaused {
+        require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
+
+        // calculate candidate ID hash
+        uint256 nonce = unstakeNonce.current();
+        bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
+            keccak256(abi.encode(nonce, "setUnstakeProcessing"))
+        );
+
+        // check signatures and calculate number of submitted oracle votes
+        address[] memory signedOracles = new address[](signatures.length);
+        for (uint256 i = 0; i < signatures.length; i++) {
+            bytes memory signature = signatures[i];
+            address signer = ECDSAUpgradeable.recover(candidateId, signature);
+            require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
+
+            for (uint256 j = 0; j < i; j++) {
+                require(signedOracles[j] != signer, "Oracles: repeated signature");
+            }
+            signedOracles[i] = signer;
+        }
+
+        emit UnstakeProcessingVoteSubmitted(msg.sender, signedOracles, nonce);
+
+        // update total rewards
+        bool processing = stakedLyxToken.setUnstakeProcessing(nonce);
+
+        if (!processing) unstakeNonce.increment();
+    }
+
+    function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external override onlyOracle whenNotPaused {
+        require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
+
+        // calculate candidate ID hash
+        uint256 nonce = unstakeNonce.current();
+        bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
+            keccak256(abi.encode(nonce, unstakeAmount, "submitUnstakeAmount"))
+        );
+
+        // check signatures and calculate number of submitted oracle votes
+        address[] memory signedOracles = new address[](signatures.length);
+        for (uint256 i = 0; i < signatures.length; i++) {
+            bytes memory signature = signatures[i];
+            address signer = ECDSAUpgradeable.recover(candidateId, signature);
+            require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
+
+            for (uint256 j = 0; j < i; j++) {
+                require(signedOracles[j] != signer, "Oracles: repeated signature");
+            }
+            signedOracles[i] = signer;
+        }
+
+        emit SubmitUnstakeAmountVoteSubmitted(msg.sender, signedOracles, nonce, unstakeAmount);
+
+        // update total rewards
+        stakedLyxToken.unstakeProcessed(nonce, unstakeAmount);
+
+        unstakeNonce.increment();
     }
 }

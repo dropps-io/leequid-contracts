@@ -286,6 +286,17 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         });
     }
 
+    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override {
+        require(unstakeRequestIndexes.length > 0, "RewardLyxToken: no unstake indexes provided");
+        address payable account = payable(msg.sender);
+
+        uint256 totalUnstakeAmount = stakedLyxToken.claimUnstake(account, unstakeRequestIndexes);
+
+        emit UnstakeClaimed(account, totalUnstakeAmount, unstakeRequestIndexes);
+
+        account.transfer(totalUnstakeAmount);
+    }
+
     function cashOutRewards(uint256 amount) external override {
         address payable recipient = payable(msg.sender);
 

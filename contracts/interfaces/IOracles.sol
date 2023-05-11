@@ -53,6 +53,19 @@ interface IOracles {
         uint256 nonce
     );
 
+    event UnstakeProcessingVoteSubmitted(
+        address indexed sender,
+        address[] oracles,
+        uint256 nonce
+    );
+
+    event SubmitUnstakeAmountVoteSubmitted(
+        address indexed sender,
+        address[] oracles,
+        uint256 nonce,
+        uint256 unstakeAmount
+    );
+
     /**
     * @dev Event for tracking new or updates oracles.
     * @param oracle - address of new or updated oracle.
@@ -85,6 +98,8 @@ interface IOracles {
     * @dev Function for retrieving current validators nonce.
     */
     function currentValidatorsNonce() external view returns (uint256);
+
+    function currentUnstakeNonce() external view returns (uint256);
 
     /**
     * @dev Function for adding an oracle role to the account.
@@ -140,4 +155,8 @@ interface IOracles {
         bytes32 validatorsDepositRoot,
         bytes[] calldata signatures
     ) external;
+
+    function setUnstakeProcessing(bytes[] calldata signatures) external;
+
+    function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external;
 }

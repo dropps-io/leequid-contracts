@@ -35,7 +35,20 @@ import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
 contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken {
+    // @dev Validator deposit amount.
+    uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
+
     uint256 internal _totalDeposits;
+
+    uint256 public totalUnstaked;
+    uint256 public totalPendingUnstake;
+
+    uint256 public unstakeRequestCount;
+    uint256 public unstakeRequestCurrentIndex;
+
+    bool public override unstakeProcessing;
+
+    mapping(uint256 => UnstakeRequest) internal _unstakeRequests;
 
     // Mapping from `tokenOwner` to an `amount` of tokens
     mapping(address => uint256) internal _deposits;
@@ -46,6 +59,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     // @dev Address of the Pool contract.
     address private pool;
 
+    // @dev Address of the Oracles contract.
+    address private oracles;
+
     // @dev Address of the RewardLyxToken contract.
     IRewardLyxToken private rewardLyxToken;
 
@@ -55,15 +71,18 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     function initialize(
         address _admin,
         address _pool,
+        address _oracles,
         IRewardLyxToken _rewardLyxToken
     ) external initializer {
         require(_pool != address(0), "StakedLyxToken: pool address cannot be zero");
+        require(_oracles != address(0), "StakedLyxToken: oracles address cannot be zero");
         require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
         require(address(_rewardLyxToken) != address(0), "StakedLyxToken: rewardLyxToken address cannot be zero");
 
         LSP4DigitalAssetMetadataInitAbstract._initialize("StakedLyxToken", "sLYX", _admin);
         __OwnablePausableUpgradeable_init_unchained(_admin);
         pool = _pool;
+        oracles = _oracles;
         rewardLyxToken = _rewardLyxToken;
     }
 
@@ -83,6 +102,14 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
     function totalDeposits() public view override returns (uint256) {
         return _totalDeposits;
+    }
+
+    function unstakeRequest(uint256 index) public view override returns (UnstakeRequest memory) {
+        UnstakeRequest memory _unstakeRequest = _unstakeRequests[index];
+        if (index < unstakeRequestCurrentIndex) {
+            _unstakeRequest.amountFilled = _unstakeRequest.amount;
+        }
+        return _unstakeRequest;
     }
 
     // --- Token owner queries
@@ -116,11 +143,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         _updateOperator(msg.sender, operator, 0);
     }
 
-    function authorizedAmountFor(address operator, address tokenOwner)
-    public
-    view
-    override
-    returns (uint256)
+    function authorizedAmountFor(address operator, address tokenOwner) public view override returns (uint256)
     {
         if (tokenOwner == operator) {
             return _deposits[tokenOwner];
@@ -209,6 +232,122 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         } else {
             emit RevokedOperator(operator, tokenOwner);
         }
+    }
+
+    function unstake(
+        uint256 amount
+    ) external override {
+        address account = msg.sender;
+        require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
+        require(amount > 0, "StakedLyxToken: amount must be greater than zero");
+        require(_deposits[account] >= amount, "StakedLyxToken: insufficient balance");
+
+        // start calculating account rewards with updated deposit amount
+        bool rewardsDisabled = rewardLyxToken.updateRewardCheckpoint(account);
+        if (rewardsDisabled) {
+            // update merkle distributor principal if account has disabled rewards
+            distributorPrincipal = distributorPrincipal - amount;
+        }
+
+        _deposits[account] -= amount;
+        _totalDeposits -= amount;
+        totalPendingUnstake = totalPendingUnstake + uint128(amount);
+
+        unstakeRequestCount += 1;
+        _unstakeRequests[unstakeRequestCount] = UnstakeRequest({
+            account: account,
+            amount: uint128(amount),
+            amountFilled: 0,
+            claimed: false
+        });
+
+        emit NewUnstakeRequest(unstakeRequestCount, account, amount, totalPendingUnstake);
+    }
+
+    function matchUnstake(uint256 amount) external override returns (uint256) {
+        require(msg.sender == pool, "StakedLyxToken: access denied");
+        require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
+        uint256 amountMatched = 0;
+
+        if (totalPendingUnstake == 0) {
+            return amountMatched;
+        }
+        else if (amount >= totalPendingUnstake) {
+            amountMatched = totalPendingUnstake;
+            totalPendingUnstake = 0;
+            unstakeRequestCurrentIndex = unstakeRequestCount;
+            _unstakeRequests[unstakeRequestCount].amountFilled = _unstakeRequests[unstakeRequestCount].amount;
+        } else {
+            amountMatched = amount;
+            totalPendingUnstake -= amountMatched;
+            uint256 amountToFill = amountMatched;
+
+            for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
+                UnstakeRequest storage request = _unstakeRequests[i];
+                if (amountToFill >= (request.amount - request.amountFilled)) {
+                    amountToFill -= (request.amount - request.amountFilled);
+                    continue;
+                } else {
+                    request.amountFilled += uint128(amountToFill);
+                    unstakeRequestCurrentIndex = i;
+                    break;
+                }
+            }
+        }
+
+        return amountMatched;
+    }
+
+    function setUnstakeProcessing(uint256 unstakeNonce) external override returns (bool) {
+        require(msg.sender == oracles, "StakedLyxToken: access denied");
+        require(!unstakeProcessing, "StakedLyxToken: unstaking already in progress");
+
+        if (totalPendingUnstake >= VALIDATOR_TOTAL_DEPOSIT) {
+            unstakeProcessing = true;
+            emit UnstakeReady(unstakeNonce);
+            return true;
+        } else {
+            emit UnstakeCancelled(unstakeNonce);
+            return false;
+        }
+    }
+
+    function unstakeProcessed(uint256 unstakeNonce, uint256 unstakeAmount) external override {
+        require(msg.sender == oracles, "StakedLyxToken: access denied");
+        require(unstakeProcessing, "StakedLyxToken: unstaking not in process");
+
+        totalPendingUnstake -= unstakeAmount;
+        uint256 amountToFill = unstakeAmount;
+
+        for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
+            UnstakeRequest storage request = _unstakeRequests[i];
+            if (amountToFill >= (request.amount - request.amountFilled)) {
+                amountToFill -= (request.amount - request.amountFilled);
+                continue;
+            } else {
+                request.amountFilled += uint128(amountToFill);
+                unstakeRequestCurrentIndex = i;
+                break;
+            }
+        }
+
+        emit UnstakeProcessed(unstakeNonce, unstakeAmount, totalPendingUnstake);
+    }
+
+    function claimUnstake(address account, uint256[] calldata unstakeRequestIndexes) external override returns (uint256) {
+        require(msg.sender == address(rewardLyxToken), "StakedLyxToken: access denied");
+        uint256 totalClaimedAmount = 0;
+        for (uint256 i = 0; i < unstakeRequestIndexes.length; i++) {
+            uint256 unstakeRequestIndex = unstakeRequestIndexes[i];
+            require(unstakeRequestIndex < unstakeRequestCount, "StakedLyxToken: unstake request not processed yet");
+            UnstakeRequest storage request = _unstakeRequests[unstakeRequestIndex];
+            require(request.account == account, "StakedLyxToken: unstake request not from this account");
+            require(!request.claimed, "StakedLyxToken: unstake already claimed");
+
+            totalClaimedAmount += request.amount;
+            request.claimed = true;
+        }
+        return totalPendingUnstake;
     }
 
     /**

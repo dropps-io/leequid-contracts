@@ -74,6 +74,7 @@ describe('Oracles contract', function () {
     await oracles.initialize(
       admin.address,
       rewardLyxToken.address,
+      stakedLyxToken.address,
       pool.address,
       poolValidators.address,
       merkleDistributor.address
@@ -92,13 +93,19 @@ describe('Oracles contract', function () {
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(admin.address, pool.address, rewardLyxToken.address);
+      .initialize(
+        admin.address,
+        pool.address,
+        oracles.address,
+        rewardLyxToken.address
+      );
 
     await pool
       .connect(admin)
       .initialize(
         admin.address,
         stakedLyxToken.address,
+        rewardLyxToken.address,
         poolValidators.address,
         oracles.address,
         getTestDepositData(operator.address)[0].withdrawalCredentials,
