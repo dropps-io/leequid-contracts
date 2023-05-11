@@ -48,6 +48,7 @@ interface IRewardLyxToken {
     event RewardsUpdated(
         uint256 periodRewards,
         uint256 totalRewards,
+        uint256 feesCollected,
         uint256 rewardPerToken,
         uint256 distributorReward,
         uint256 protocolReward
@@ -85,7 +86,9 @@ interface IRewardLyxToken {
     */
     function totalRewards() external view returns (uint128);
 
-    function totalCashedOutRewards() external view returns (uint128);
+    function totalFeesCollected() external view returns (uint128);
+
+    function totalCashedOut() external view returns (uint128);
 
     function totalAvailableRewards() external view returns (uint128);
 

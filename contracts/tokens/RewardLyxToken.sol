@@ -49,8 +49,11 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
     // @dev Total amount of rewards.
     uint128 public override totalRewards;
 
+    // @dev Total amount of rewards.
+    uint128 public override totalFeesCollected;
+
     // @dev Total amount of cashed out rewards.
-    uint128 public override totalCashedOutRewards;
+    uint128 public override totalCashedOut;
 
     // @dev Reward per token for user reward calculation.
     uint128 public override rewardPerToken;
@@ -123,7 +126,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
     }
 
     function totalAvailableRewards() public view virtual override returns (uint128) {
-        return totalRewards - totalCashedOutRewards;
+        return totalRewards + totalFeesCollected - totalCashedOut;
     }
 
     function updateRewardCheckpoint(address account) public override returns (bool accRewardsDisabled) {
@@ -211,11 +214,11 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
     function updateTotalRewards(uint256 newTotalRewards) external override {
         require(msg.sender == oracles, "RewardLyxToken: access denied");
 
-        newTotalRewards = newTotalRewards + feesEscrow.transferToPool();
-        uint256 periodRewards = newTotalRewards - totalRewards;
+        uint256 feesCollected = feesEscrow.transferToPool();
+        uint256 periodRewards = newTotalRewards + feesCollected.toUint128() - totalRewards;
         if (periodRewards == 0) {
             lastUpdateBlockNumber = block.number;
-            emit RewardsUpdated(0, newTotalRewards, rewardPerToken, 0, 0);
+            emit RewardsUpdated(0, newTotalRewards, feesCollected, rewardPerToken, 0, 0);
             return;
         }
 
@@ -230,6 +233,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
 
         // update total rewards and new reward per token
         (totalRewards, rewardPerToken) = (newTotalRewards.toUint128(), newRewardPerToken128);
+        totalFeesCollected = totalFeesCollected + feesCollected.toUint128();
 
         uint256 newDistributorBalance = _balanceOf(address(0), newRewardPerToken);
         address _protocolFeeRecipient = protocolFeeRecipient;
@@ -256,6 +260,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         emit RewardsUpdated(
             periodRewards,
             newTotalRewards,
+            feesCollected,
             newRewardPerToken,
             newDistributorBalance - prevDistributorBalance,
             _protocolFeeRecipient == address(0) ? protocolReward: 0
@@ -311,6 +316,6 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
             rewardPerToken: _rewardPerToken
         });
 
-        totalCashedOutRewards = (totalCashedOutRewards + amount).toUint128();
+        totalCashedOut = (totalCashedOut + amount).toUint128();
     }
 }

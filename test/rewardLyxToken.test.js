@@ -127,6 +127,51 @@ describe('RewardLyxToken contract', function () {
       );
     });
 
+    it('should collect fees', async function () {
+      const transaction = {
+        to: feesEscrow.address,
+        value: ethers.utils.parseEther('1'),
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction);
+      await expect(
+        rewardLyxToken.connect(admin).updateTotalRewards(totalRewardsWei)
+      )
+        .to.emit(rewardLyxToken, 'RewardsUpdated')
+        .withArgs(
+          ethers.utils.parseEther((totalRewards + 1).toString()),
+          totalRewardsWei,
+          ethers.utils.parseEther('1'),
+          ethers.utils.parseEther(
+            (((totalRewards + 1) * (1 - protocolFee)) / stakedAmount).toString()
+          ),
+          0,
+          0
+        );
+
+      const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
+        admin.address
+      );
+      const userBalance = await rewardLyxToken.balanceOf(user1.address);
+      const contractTotalRewards = await rewardLyxToken.totalRewards();
+      const totalFeesCollected = await rewardLyxToken.totalFeesCollected();
+
+      expect(totalFeesCollected).to.equal(ethers.utils.parseEther('1'));
+      expect(contractTotalRewards).to.equal(totalRewardsWei);
+
+      expect(protocolFeeRecipientBalance).to.equal(
+        ethers.utils.parseEther(
+          ((totalRewards + 1) * protocolFee).toFixed(3).toString()
+        )
+      );
+      expect(userBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards + 1 - (totalRewards + 1) * protocolFee) / 4).toString()
+        )
+      );
+    });
+
     it('should revert if sender not oracle', async function () {
       expect(
         rewardLyxToken.connect(user1).updateTotalRewards(totalRewardsWei)
@@ -199,6 +244,7 @@ describe('RewardLyxToken contract', function () {
         .withArgs(
           ethers.utils.parseEther((newTotalRewards - totalRewards).toString()),
           newTotalRewardsWei,
+          ethers.utils.parseEther('0'),
           ethers.utils.parseEther(
             ((newTotalRewards * (1 - protocolFee)) / stakedAmount).toString()
           ),
@@ -215,6 +261,7 @@ describe('RewardLyxToken contract', function () {
         .withArgs(
           totalRewardsWei,
           totalRewardsWei,
+          ethers.utils.parseEther('0'),
           ethers.utils.parseEther(
             ((totalRewards * (1 - protocolFee)) / stakedAmount).toString()
           ),
@@ -256,6 +303,7 @@ describe('RewardLyxToken contract', function () {
         .withArgs(
           totalRewardsWei,
           totalRewardsWei,
+          ethers.utils.parseEther('0'),
           ethers.utils.parseEther(
             ((totalRewards * (1 - protocolFee)) / stakedAmount).toString()
           ),
@@ -276,6 +324,7 @@ describe('RewardLyxToken contract', function () {
         .withArgs(
           ethers.utils.parseEther((newTotalRewards - totalRewards).toString()),
           newTotalRewardsWei,
+          ethers.utils.parseEther('0'),
           ethers.utils.parseEther(
             ((newTotalRewards * (1 - protocolFee)) / stakedAmount).toString()
           ),
@@ -480,8 +529,7 @@ describe('RewardLyxToken contract', function () {
         user1.address
       );
 
-      const totalCashedOutRewards =
-        await rewardLyxToken.totalCashedOutRewards();
+      const totalCashedOutRewards = await rewardLyxToken.totalCashedOut();
 
       const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
         admin.address
@@ -555,8 +603,7 @@ describe('RewardLyxToken contract', function () {
         user1.address
       );
 
-      const totalCashedOutRewards =
-        await rewardLyxToken.totalCashedOutRewards();
+      const totalCashedOutRewards = await rewardLyxToken.totalCashedOut();
 
       const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
         admin.address
@@ -767,8 +814,7 @@ describe('RewardLyxToken contract', function () {
         pool.address
       );
 
-      const totalCashedOutRewards =
-        await rewardLyxToken.totalCashedOutRewards();
+      const totalCashedOutRewards = await rewardLyxToken.totalCashedOut();
 
       const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
         admin.address
@@ -852,8 +898,7 @@ describe('RewardLyxToken contract', function () {
         pool.address
       );
 
-      const totalCashedOutRewards =
-        await rewardLyxToken.totalCashedOutRewards();
+      const totalCashedOutRewards = await rewardLyxToken.totalCashedOut();
 
       const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
         admin.address
