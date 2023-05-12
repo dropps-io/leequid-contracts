@@ -105,11 +105,23 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     }
 
     function unstakeRequest(uint256 index) public view override returns (UnstakeRequest memory) {
+        require(index <= unstakeRequestCount, "StakedLyxToken: invalid index");
         UnstakeRequest memory _unstakeRequest = _unstakeRequests[index];
         if (index < unstakeRequestCurrentIndex) {
             _unstakeRequest.amountFilled = _unstakeRequest.amount;
         }
         return _unstakeRequest;
+    }
+
+    function isUnstakeRequestClaimable(uint256 index) public view override returns (bool) {
+        if (index > unstakeRequestCurrentIndex) return false;
+
+        UnstakeRequest memory _request = _unstakeRequests[index];
+
+        if (_request.claimed) return false;
+        if (index == unstakeRequestCurrentIndex && _request.amount != _request.amountFilled) return false;
+
+        return true;
     }
 
     // --- Token owner queries
@@ -351,15 +363,15 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 totalClaimedAmount = 0;
         for (uint256 i = 0; i < unstakeRequestIndexes.length; i++) {
             uint256 unstakeRequestIndex = unstakeRequestIndexes[i];
-            require(unstakeRequestIndex < unstakeRequestCount, "StakedLyxToken: unstake request not processed yet");
+            require(isUnstakeRequestClaimable(unstakeRequestIndex), "StakedLyxToken: unstake request not claimable");
+
             UnstakeRequest storage request = _unstakeRequests[unstakeRequestIndex];
             require(request.account == account, "StakedLyxToken: unstake request not from this account");
-            require(!request.claimed, "StakedLyxToken: unstake already claimed");
 
             totalClaimedAmount += request.amount;
             request.claimed = true;
         }
-        return totalPendingUnstake;
+        return totalClaimedAmount;
     }
 
     /**

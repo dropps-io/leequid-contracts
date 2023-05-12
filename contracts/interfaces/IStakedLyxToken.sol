@@ -54,6 +54,8 @@ interface IStakedLyxToken is ILSP7DigitalAsset {
 
     function unstakeRequest(uint256 index) external view returns (UnstakeRequest memory);
 
+    function isUnstakeRequestClaimable(uint256 index) external view returns (bool);
+
     /**
     * @dev Function for retrieving the principal amount of the distributor.
     */

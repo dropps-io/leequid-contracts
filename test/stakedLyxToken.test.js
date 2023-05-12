@@ -13,7 +13,7 @@ describe('StakedLyxToken contract', function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin, operator, user1, user2;
+  let admin, operator, user1, user2, chain;
 
   before(async function () {
     Oracles = await ethers.getContractFactory('Oracles');
@@ -24,7 +24,7 @@ describe('StakedLyxToken contract', function () {
     MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
     FeesEscrow = await ethers.getContractFactory('FeesEscrow');
     DepositContract = await ethers.getContractFactory('DepositContract');
-    [admin, operator, user1, user2] = await ethers.getSigners();
+    [admin, operator, user1, user2, chain] = await ethers.getSigners();
   });
 
   beforeEach(async function () {
@@ -554,6 +554,130 @@ describe('StakedLyxToken contract', function () {
         ethers.utils.parseEther('3')
       );
       expect(totalPendingUnstake).to.equal(ethers.utils.parseEther('0'));
+    });
+  });
+
+  describe('claimUnstake', function () {
+    beforeEach(async function () {
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('64'), true, '0x');
+      const transaction = {
+        to: rewardLyxToken.address,
+        value: ethers.utils.parseEther('9999'),
+        gasLimit: '30000000',
+      };
+      await chain.sendTransaction(transaction);
+    });
+
+    it('should revert if sender not rewardLyxToken', async function () {
+      await expect(
+        stakedLyxToken.connect(user1).claimUnstake(user1.address, [1])
+      ).to.be.revertedWith('StakedLyxToken: access denied');
+    });
+
+    it('should revert if no unstake request exists for this index', async function () {
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([1])
+      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+    });
+
+    it('should revert if sender not the account associated with the unstake', async function () {
+      const unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      await expect(
+        rewardLyxToken.connect(user2).claimUnstake([1])
+      ).to.be.revertedWith(
+        'StakedLyxToken: unstake request not from this account'
+      );
+    });
+
+    it('should revert if unstake request has already been claimed', async function () {
+      const unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      await rewardLyxToken.connect(user1).claimUnstake([1]);
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([1])
+      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+    });
+
+    it('should revert if unstake request has not been processed yet', async function () {
+      const unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([1])
+      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([2])
+      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+    });
+
+    it('should revert if unstake request has been processed partially', async function () {
+      const unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken
+        .connect(admin)
+        .matchUnstake(ethers.utils.parseEther('8'));
+
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([1])
+      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([2])
+      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+    });
+
+    it('should claim successful when conditions fulfilled', async function () {
+      let unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      await rewardLyxToken.connect(user1).claimUnstake([1]);
+
+      let unstakeRequest = await stakedLyxToken.unstakeRequest(1);
+
+      expect(unstakeRequest.claimed).to.equal(true);
+
+      unstakeAmount = ethers.utils.parseEther('22');
+
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      await rewardLyxToken.connect(user1).claimUnstake([2]);
+
+      unstakeRequest = await stakedLyxToken.unstakeRequest(2);
+
+      expect(unstakeRequest.claimed).to.equal(true);
+    });
+
+    it('should claim successful multiple when conditions fulfilled', async function () {
+      let unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken
+        .connect(admin)
+        .matchUnstake(ethers.utils.parseEther('45'));
+
+      await await rewardLyxToken.connect(user1).claimUnstake([1, 2]);
+
+      const unstakeRequest = await stakedLyxToken.unstakeRequest(1);
+      const unstakeRequest2 = await stakedLyxToken.unstakeRequest(2);
+
+      expect(unstakeRequest.claimed).to.equal(true);
+      expect(unstakeRequest2.claimed).to.equal(true);
     });
   });
 });
