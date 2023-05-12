@@ -317,6 +317,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(unstakeProcessing, "StakedLyxToken: unstaking not in process");
 
         totalPendingUnstake -= unstakeAmount;
+        totalUnstaked += unstakeAmount;
         uint256 amountToFill = unstakeAmount;
 
         for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {

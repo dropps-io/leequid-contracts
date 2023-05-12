@@ -286,10 +286,118 @@ describe('StakedLyxToken contract', function () {
       const unstakeAmount = ethers.utils.parseEther('16');
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
       const amountToMatch = ethers.utils.parseEther('24');
+      // Call Static to get the amount that will be matched
       const amountMatched = await stakedLyxToken
         .connect(admin)
         .callStatic.matchUnstake(amountToMatch);
+      // Then normal call to update state
+      await stakedLyxToken.connect(admin).matchUnstake(amountToMatch);
+      const pendingUnstake = await stakedLyxToken.totalPendingUnstake();
+      const unstakeRequestCurrentIndex =
+        await stakedLyxToken.unstakeRequestCurrentIndex();
+
+      expect(pendingUnstake).to.equal(unstakeAmount.sub(amountMatched));
       expect(amountMatched).to.equal(unstakeAmount);
+      expect(unstakeRequestCurrentIndex).to.equal(1);
+    });
+
+    it('should remain latest index if all unstakes matched', async function () {
+      const unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user2).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      const unstakeRequestCurrentIndex =
+        await stakedLyxToken.unstakeRequestCurrentIndex();
+
+      expect(unstakeRequestCurrentIndex).to.equal(1);
+    });
+
+    it('should go to next current index if possible and exact match on unstake value', async function () {
+      const unstakeAmount = ethers.utils.parseEther('16');
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      await stakedLyxToken.connect(user2).unstake(unstakeAmount);
+      await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
+
+      const unstakeRequestCurrentIndex =
+        await stakedLyxToken.unstakeRequestCurrentIndex();
+
+      expect(unstakeRequestCurrentIndex).to.equal(2);
+    });
+
+    it('should have correct input for complex case', async function () {
+      await stakedLyxToken
+        .connect(user2)
+        .unstake(ethers.utils.parseEther('14'));
+      await stakedLyxToken
+        .connect(user2)
+        .unstake(ethers.utils.parseEther('14'));
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('3'));
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('21'));
+
+      // First call static to get the matched amount
+      let matchedAmount = await stakedLyxToken
+        .connect(admin)
+        .callStatic.matchUnstake(ethers.utils.parseEther('3'));
+      // Then call normal to update state
+      await stakedLyxToken
+        .connect(admin)
+        .matchUnstake(ethers.utils.parseEther('3'));
+
+      let unstakeRequestCurrentIndex =
+        await stakedLyxToken.unstakeRequestCurrentIndex();
+      let totalPendingUnstake = await stakedLyxToken.totalPendingUnstake();
+      let unstakeRequest = await stakedLyxToken.unstakeRequest(1);
+
+      expect(unstakeRequestCurrentIndex).to.equal(1);
+      expect(unstakeRequest.amountFilled).to.equal(
+        ethers.utils.parseEther('3')
+      );
+      expect(matchedAmount).to.equal(ethers.utils.parseEther('3'));
+      expect(totalPendingUnstake).to.equal(ethers.utils.parseEther('49'));
+
+      // First call static to get the matched amount
+      matchedAmount = await stakedLyxToken
+        .connect(admin)
+        .callStatic.matchUnstake(ethers.utils.parseEther('27'));
+      // Then call normal to update state
+      await stakedLyxToken
+        .connect(admin)
+        .matchUnstake(ethers.utils.parseEther('27'));
+
+      unstakeRequestCurrentIndex =
+        await stakedLyxToken.unstakeRequestCurrentIndex();
+      totalPendingUnstake = await stakedLyxToken.totalPendingUnstake();
+      unstakeRequest = await stakedLyxToken.unstakeRequest(3);
+
+      expect(unstakeRequestCurrentIndex).to.equal(3);
+      expect(unstakeRequest.amountFilled).to.equal(
+        ethers.utils.parseEther('2')
+      );
+      expect(matchedAmount).to.equal(ethers.utils.parseEther('27'));
+      expect(totalPendingUnstake).to.equal(ethers.utils.parseEther('22'));
+
+      // First call static to get the matched amount
+      matchedAmount = await stakedLyxToken
+        .connect(admin)
+        .callStatic.matchUnstake(ethers.utils.parseEther('102'));
+      // Then call normal to update state
+      await stakedLyxToken
+        .connect(admin)
+        .matchUnstake(ethers.utils.parseEther('102'));
+
+      unstakeRequestCurrentIndex =
+        await stakedLyxToken.unstakeRequestCurrentIndex();
+      totalPendingUnstake = await stakedLyxToken.totalPendingUnstake();
+      unstakeRequest = await stakedLyxToken.unstakeRequest(4);
+
+      expect(unstakeRequestCurrentIndex).to.equal(4);
+      expect(unstakeRequest.amountFilled).to.equal(
+        ethers.utils.parseEther('21')
+      );
+      expect(matchedAmount).to.equal(ethers.utils.parseEther('22'));
+      expect(totalPendingUnstake).to.equal(ethers.utils.parseEther('0'));
     });
 
     it('should update totalPendingUnstake and unstakeRequestCurrentIndex properly', async function () {
@@ -321,8 +429,6 @@ describe('StakedLyxToken contract', function () {
       expect(totalPendingUnstakeAfter).to.equal(unstakeAmount);
       expect(unstakeRequestCurrentIndexAfter).to.equal(3);
     });
-
-    //TODO Rewiew the index logic and add plenty of tests
 
     it('should update the amountFilled of unstake requests properly', async function () {
       const unstakeAmount = ethers.utils.parseEther('16');
