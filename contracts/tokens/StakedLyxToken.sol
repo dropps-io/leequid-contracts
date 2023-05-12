@@ -284,12 +284,17 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
             for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
                 UnstakeRequest storage request = _unstakeRequests[i];
-                if (amountToFill >= (request.amount - request.amountFilled)) {
+
+                if (amountToFill > (request.amount - request.amountFilled)) {
                     amountToFill -= (request.amount - request.amountFilled);
                     continue;
                 } else {
-                    request.amountFilled += uint128(amountToFill);
-                    unstakeRequestCurrentIndex = i;
+                    if (amountToFill == (request.amount - request.amountFilled) && i < unstakeRequestCount) {
+                        unstakeRequestCurrentIndex = i + 1;
+                    } else {
+                        request.amountFilled += uint128(amountToFill);
+                        unstakeRequestCurrentIndex = i;
+                    }
                     break;
                 }
             }
@@ -322,15 +327,21 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
             UnstakeRequest storage request = _unstakeRequests[i];
-            if (amountToFill >= (request.amount - request.amountFilled)) {
+            if (amountToFill > (request.amount - request.amountFilled)) {
                 amountToFill -= (request.amount - request.amountFilled);
                 continue;
             } else {
-                request.amountFilled += uint128(amountToFill);
-                unstakeRequestCurrentIndex = i;
+                if (amountToFill == (request.amount - request.amountFilled) && i < unstakeRequestCount) {
+                    unstakeRequestCurrentIndex = i + 1;
+                } else {
+                    request.amountFilled += uint128(amountToFill);
+                    unstakeRequestCurrentIndex = i;
+                }
                 break;
             }
         }
+
+        unstakeProcessing = false;
 
         emit UnstakeProcessed(unstakeNonce, unstakeAmount, totalPendingUnstake);
     }
