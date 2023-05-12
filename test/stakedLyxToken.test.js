@@ -96,159 +96,159 @@ describe('StakedLyxToken contract', function () {
       .initialize(admin.address, rewardLyxToken.address, oracles.address);
   });
 
-  // describe('toggleRewards', function () {
-  //   it('should revert if not called by admin', async function () {
-  //     await expect(
-  //       stakedLyxToken.connect(user1).toggleRewards(user2.address, true)
-  //     ).to.be.revertedWith('OwnablePausable: access denied');
-  //   });
-  //
-  //   it('should revert if called with a zero address as tokenOwner', async function () {
-  //     await expect(
-  //       stakedLyxToken
-  //         .connect(admin)
-  //         .toggleRewards(ethers.constants.AddressZero, true)
-  //     ).to.be.revertedWith('StakedLyxToken: invalid tokenOwner');
-  //   });
-  //
-  //   it('should disable rewards for a user', async function () {
-  //     await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
-  //     const isDisabled = await rewardLyxToken.rewardsDisabled(user1.address);
-  //     expect(isDisabled).to.be.true;
-  //   });
-  //
-  //   it('should enable rewards for a user', async function () {
-  //     await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
-  //     await stakedLyxToken.connect(admin).toggleRewards(user1.address, false);
-  //     const isDisabled = await rewardLyxToken.rewardsDisabled(user1.address);
-  //     expect(isDisabled).to.be.false;
-  //   });
-  //
-  //   it('should update distributor principal after toggling rewards', async function () {
-  //     // Deposit some tokens for user1
-  //     await stakedLyxToken
-  //       .connect(admin)
-  //       .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
-  //
-  //     const distributorPrincipalBefore =
-  //       await stakedLyxToken.distributorPrincipal();
-  //     // Disable rewards for user1
-  //     await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
-  //     const distributorPrincipalAfter =
-  //       await stakedLyxToken.distributorPrincipal();
-  //     expect(distributorPrincipalAfter).to.equal(
-  //       distributorPrincipalBefore.add(ethers.utils.parseEther('32'))
-  //     );
-  //
-  //     // Enable rewards for user1
-  //     await stakedLyxToken.connect(admin).toggleRewards(user1.address, false);
-  //
-  //     const distributorPrincipalAfterAfter =
-  //       await stakedLyxToken.distributorPrincipal();
-  //
-  //     expect(distributorPrincipalAfterAfter).to.equal(
-  //       distributorPrincipalBefore
-  //     );
-  //   });
-  // });
-  //
-  // describe('unstake', function () {
-  //   it('should revert if unstaking is in progress', async function () {
-  //     await stakedLyxToken
-  //       .connect(admin)
-  //       .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
-  //     await stakedLyxToken
-  //       .connect(user1)
-  //       .unstake(ethers.utils.parseEther('32'));
-  //     await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
-  //     await expect(
-  //       stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('1'))
-  //     ).to.be.revertedWith('StakedLyxToken: unstaking in progress');
-  //   });
-  //
-  //   it('should revert if amount is zero', async function () {
-  //     await expect(stakedLyxToken.connect(user1).unstake(0)).to.be.revertedWith(
-  //       'StakedLyxToken: amount must be greater than zero'
-  //     );
-  //   });
-  //
-  //   it('should revert if user has insufficient balance', async function () {
-  //     await expect(
-  //       stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('1'))
-  //     ).to.be.revertedWith('StakedLyxToken: insufficient balance');
-  //   });
-  //
-  //   it('should create a new unstake request and update user balance', async function () {
-  //     await stakedLyxToken
-  //       .connect(admin)
-  //       .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
-  //     const userBalanceBefore = await stakedLyxToken.balanceOf(user1.address);
-  //     const unstakeAmount = ethers.utils.parseEther('16');
-  //
-  //     const tx = await stakedLyxToken.connect(user1).unstake(unstakeAmount);
-  //     const userBalanceAfter = await stakedLyxToken.balanceOf(user1.address);
-  //
-  //     expect(userBalanceAfter).to.equal(userBalanceBefore.sub(unstakeAmount));
-  //
-  //     await expect(tx)
-  //       .to.emit(stakedLyxToken, 'NewUnstakeRequest')
-  //       .withArgs(1, user1.address, unstakeAmount, unstakeAmount);
-  //   });
-  //
-  //   it('should update total pending unstake and total deposits', async function () {
-  //     await stakedLyxToken
-  //       .connect(admin)
-  //       .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
-  //     const totalDepositsBefore = await stakedLyxToken.totalDeposits();
-  //     const unstakeAmount = ethers.utils.parseEther('16');
-  //
-  //     await stakedLyxToken.connect(user1).unstake(unstakeAmount);
-  //     const totalPendingUnstakeAfter =
-  //       await stakedLyxToken.totalPendingUnstake();
-  //     const totalDepositsAfter = await stakedLyxToken.totalDeposits();
-  //
-  //     expect(totalPendingUnstakeAfter).to.equal(unstakeAmount);
-  //     expect(totalDepositsAfter).to.equal(
-  //       totalDepositsBefore.sub(unstakeAmount)
-  //     );
-  //   });
-  //
-  //   it('should update distributor principal if rewards are disabled for user', async function () {
-  //     await stakedLyxToken
-  //       .connect(admin)
-  //       .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
-  //     const unstakeAmount = ethers.utils.parseEther('16');
-  //
-  //     await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
-  //
-  //     const distributorPrincipalBefore =
-  //       await stakedLyxToken.distributorPrincipal();
-  //
-  //     await stakedLyxToken.connect(user1).unstake(unstakeAmount);
-  //
-  //     const distributorPrincipalAfter =
-  //       await stakedLyxToken.distributorPrincipal();
-  //
-  //     expect(distributorPrincipalAfter).to.equal(
-  //       distributorPrincipalBefore.sub(unstakeAmount)
-  //     );
-  //   });
-  //
-  //   it('should not update distributor principal if rewards are enabled for user', async function () {
-  //     await stakedLyxToken
-  //       .connect(admin)
-  //       .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
-  //     const distributorPrincipalBefore =
-  //       await stakedLyxToken.distributorPrincipal();
-  //     const unstakeAmount = ethers.utils.parseEther('16');
-  //
-  //     await stakedLyxToken.connect(user1).unstake(unstakeAmount);
-  //     const distributorPrincipalAfter =
-  //       await stakedLyxToken.distributorPrincipal();
-  //
-  //     expect(distributorPrincipalAfter).to.equal(distributorPrincipalBefore);
-  //   });
-  // });
+  describe('toggleRewards', function () {
+    it('should revert if not called by admin', async function () {
+      await expect(
+        stakedLyxToken.connect(user1).toggleRewards(user2.address, true)
+      ).to.be.revertedWith('OwnablePausable: access denied');
+    });
+
+    it('should revert if called with a zero address as tokenOwner', async function () {
+      await expect(
+        stakedLyxToken
+          .connect(admin)
+          .toggleRewards(ethers.constants.AddressZero, true)
+      ).to.be.revertedWith('StakedLyxToken: invalid tokenOwner');
+    });
+
+    it('should disable rewards for a user', async function () {
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+      const isDisabled = await rewardLyxToken.rewardsDisabled(user1.address);
+      expect(isDisabled).to.be.true;
+    });
+
+    it('should enable rewards for a user', async function () {
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, false);
+      const isDisabled = await rewardLyxToken.rewardsDisabled(user1.address);
+      expect(isDisabled).to.be.false;
+    });
+
+    it('should update distributor principal after toggling rewards', async function () {
+      // Deposit some tokens for user1
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
+
+      const distributorPrincipalBefore =
+        await stakedLyxToken.distributorPrincipal();
+      // Disable rewards for user1
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+      const distributorPrincipalAfter =
+        await stakedLyxToken.distributorPrincipal();
+      expect(distributorPrincipalAfter).to.equal(
+        distributorPrincipalBefore.add(ethers.utils.parseEther('32'))
+      );
+
+      // Enable rewards for user1
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, false);
+
+      const distributorPrincipalAfterAfter =
+        await stakedLyxToken.distributorPrincipal();
+
+      expect(distributorPrincipalAfterAfter).to.equal(
+        distributorPrincipalBefore
+      );
+    });
+  });
+
+  describe('unstake', function () {
+    it('should revert if unstaking is in progress', async function () {
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
+      await expect(
+        stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('1'))
+      ).to.be.revertedWith('StakedLyxToken: unstaking in progress');
+    });
+
+    it('should revert if amount is zero', async function () {
+      await expect(stakedLyxToken.connect(user1).unstake(0)).to.be.revertedWith(
+        'StakedLyxToken: amount must be greater than zero'
+      );
+    });
+
+    it('should revert if user has insufficient balance', async function () {
+      await expect(
+        stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('1'))
+      ).to.be.revertedWith('StakedLyxToken: insufficient balance');
+    });
+
+    it('should create a new unstake request and update user balance', async function () {
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
+      const userBalanceBefore = await stakedLyxToken.balanceOf(user1.address);
+      const unstakeAmount = ethers.utils.parseEther('16');
+
+      const tx = await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      const userBalanceAfter = await stakedLyxToken.balanceOf(user1.address);
+
+      expect(userBalanceAfter).to.equal(userBalanceBefore.sub(unstakeAmount));
+
+      await expect(tx)
+        .to.emit(stakedLyxToken, 'NewUnstakeRequest')
+        .withArgs(1, user1.address, unstakeAmount, unstakeAmount);
+    });
+
+    it('should update total pending unstake and total deposits', async function () {
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
+      const totalDepositsBefore = await stakedLyxToken.totalDeposits();
+      const unstakeAmount = ethers.utils.parseEther('16');
+
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      const totalPendingUnstakeAfter =
+        await stakedLyxToken.totalPendingUnstake();
+      const totalDepositsAfter = await stakedLyxToken.totalDeposits();
+
+      expect(totalPendingUnstakeAfter).to.equal(unstakeAmount);
+      expect(totalDepositsAfter).to.equal(
+        totalDepositsBefore.sub(unstakeAmount)
+      );
+    });
+
+    it('should update distributor principal if rewards are disabled for user', async function () {
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
+      const unstakeAmount = ethers.utils.parseEther('16');
+
+      await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
+
+      const distributorPrincipalBefore =
+        await stakedLyxToken.distributorPrincipal();
+
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+
+      const distributorPrincipalAfter =
+        await stakedLyxToken.distributorPrincipal();
+
+      expect(distributorPrincipalAfter).to.equal(
+        distributorPrincipalBefore.sub(unstakeAmount)
+      );
+    });
+
+    it('should not update distributor principal if rewards are enabled for user', async function () {
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
+      const distributorPrincipalBefore =
+        await stakedLyxToken.distributorPrincipal();
+      const unstakeAmount = ethers.utils.parseEther('16');
+
+      await stakedLyxToken.connect(user1).unstake(unstakeAmount);
+      const distributorPrincipalAfter =
+        await stakedLyxToken.distributorPrincipal();
+
+      expect(distributorPrincipalAfter).to.equal(distributorPrincipalBefore);
+    });
+  });
 
   describe('matchUnstake', function () {
     beforeEach(async function () {
