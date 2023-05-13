@@ -99,8 +99,8 @@ describe('RewardLyxToken contract', function () {
   });
 
   describe('updateTotalRewards', function () {
-    const stakedAmount = 10000; // eth
-    const totalRewards = 100; // eth
+    const stakedAmount = 1000; // eth
+    const totalRewards = 10; // eth
     const newTotalRewards = totalRewards * 2; // eth
     const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
     const newTotalRewardsWei = ethers.utils.parseEther(
@@ -495,8 +495,8 @@ describe('RewardLyxToken contract', function () {
   });
 
   describe('cashOutRewards', function () {
-    const stakedAmount = 100000; // eth
-    const totalRewards = 100; // eth
+    const stakedAmount = 1000; // eth
+    const totalRewards = 10; // eth
     const newTotalRewards = totalRewards * 2; // eth
     const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
     const newTotalRewardsWei = ethers.utils.parseEther(
@@ -994,6 +994,96 @@ describe('RewardLyxToken contract', function () {
             )
           )
       ).to.revertedWith('RewardLyxToken: insufficient contract balance');
+    });
+  });
+
+  describe('claimUnstake', function () {
+    const stakedAmount = 100000; // eth
+    const stakePerUser = ethers.utils.parseEther((stakedAmount / 4).toString());
+
+    beforeEach(async function () {
+      await pool.connect(user1).stake({ value: stakePerUser });
+      await pool.connect(user1).stake({ value: stakePerUser });
+      await pool.connect(user2).stake({ value: stakePerUser });
+
+      await stakedLyxToken.connect(user1).unstake(stakePerUser);
+      await stakedLyxToken.connect(user2).unstake(stakePerUser);
+
+      await pool.connect(user3).stake({ value: stakePerUser });
+      await pool.connect(user4).stake({ value: stakePerUser });
+    });
+
+    it('should revert if empty indexes array', async function () {
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([])
+      ).to.revertedWith('RewardLyxToken: no unstake indexes provided');
+    });
+
+    it('should revert if claiming unstake of an other account', async function () {
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([2])
+      ).to.revertedWith(
+        'StakedLyxToken: unstake request not from this account'
+      );
+    });
+
+    it('should work well when amount claimable', async function () {
+      let balanceBefore = await ethers.provider.getBalance(user1.address);
+      await expect(rewardLyxToken.connect(user1).claimUnstake([1]))
+        .to.emit(rewardLyxToken, 'UnstakeClaimed')
+        .withArgs(user1.address, stakePerUser, [1]);
+      let balanceAfter = await ethers.provider.getBalance(user1.address);
+
+      expect(parseInt(ethers.utils.formatEther(balanceAfter))).to.greaterThan(
+        parseInt(ethers.utils.formatEther(balanceBefore))
+      );
+
+      balanceBefore = await ethers.provider.getBalance(user2.address);
+      await expect(rewardLyxToken.connect(user2).claimUnstake([2]))
+        .to.emit(rewardLyxToken, 'UnstakeClaimed')
+        .withArgs(user2.address, stakePerUser, [2]);
+      balanceAfter = await ethers.provider.getBalance(user2.address);
+
+      expect(parseInt(ethers.utils.formatEther(balanceAfter))).to.greaterThan(
+        parseInt(ethers.utils.formatEther(balanceBefore))
+      );
+    });
+
+    it('should not be able to claim twice the same unstake', async function () {
+      await rewardLyxToken.connect(user1).claimUnstake([1]);
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([1])
+      ).to.revertedWith('StakedLyxToken: unstake request not claimable');
+    });
+
+    it('should not be able to claim multiple unstake requests if one is not owned', async function () {
+      await expect(
+        rewardLyxToken.connect(user1).claimUnstake([1, 2])
+      ).to.revertedWith(
+        'StakedLyxToken: unstake request not from this account'
+      );
+    });
+
+    it('should be able to claim multiple unstake requests', async function () {
+      await stakedLyxToken.connect(user1).unstake(stakePerUser);
+
+      await pool.connect(user3).stake({ value: stakePerUser });
+
+      let balanceBefore = await ethers.provider.getBalance(user1.address);
+
+      await expect(rewardLyxToken.connect(user1).claimUnstake([1, 3]))
+        .to.emit(rewardLyxToken, 'UnstakeClaimed')
+        .withArgs(
+          user1.address,
+          ethers.utils.parseEther((stakedAmount / 2).toString()),
+          [1, 3]
+        );
+
+      let balanceAfter = await ethers.provider.getBalance(user1.address);
+
+      expect(parseInt(ethers.utils.formatEther(balanceAfter))).to.greaterThan(
+        parseInt(ethers.utils.formatEther(balanceBefore))
+      );
     });
   });
 });

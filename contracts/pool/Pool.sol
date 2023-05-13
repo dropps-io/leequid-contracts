@@ -180,7 +180,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
 
         uint256 unstakeMatchedAmount = 0;
 
-        if (stakedLyxToken.unstakeProcessing()) {
+        if (!stakedLyxToken.unstakeProcessing()) {
             // try to match unstake request
             unstakeMatchedAmount = stakedLyxToken.matchUnstake(value);
         }
