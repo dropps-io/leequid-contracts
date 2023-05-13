@@ -426,7 +426,7 @@ describe('StakedLyxToken contract', function () {
         .unstake(ethers.utils.parseEther('32'));
       await expect(stakedLyxToken.connect(admin).setUnstakeProcessing(1))
         .to.emit(stakedLyxToken, 'UnstakeReady')
-        .withArgs(1);
+        .withArgs(1, ethers.utils.parseEther('32'));
 
       const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
       expect(unstakeProcessing).to.equal(true);

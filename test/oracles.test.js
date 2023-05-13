@@ -7,6 +7,8 @@ const {
   generateSignaturesForSubmitRewards,
   registerValidators,
   generateSignaturesForSubmitMerkleRoot,
+  generateSignaturesForSetUnstakeProcessing,
+  generateSignaturesForSubmitUnstakeAmount,
 } = require('./utils');
 
 describe('Oracles contract', function () {
@@ -891,6 +893,251 @@ describe('Oracles contract', function () {
       expect(await merkleDistributor.merkleRoot()).to.equal(
         merkle.depositDataMerkleRoot
       );
+    });
+  });
+
+  describe('setUnstakeProcessing', function () {
+    beforeEach(async function () {
+      await pool
+        .connect(user1)
+        .stake({ value: ethers.utils.parseEther('100') });
+      await pool
+        .connect(user2)
+        .stake({ value: ethers.utils.parseEther('100') });
+    });
+
+    it('Should increase nonce and emit UnstakeCancelled event if nothing to unstake', async function () {
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString()
+      );
+
+      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures))
+        .to.emit(stakedLyxToken, 'UnstakeCancelled')
+        .withArgs(nonce.toString());
+
+      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
+
+      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
+      expect(unstakeProcessing).to.equal(false);
+    });
+
+    it('Should not increase nonce and emit UnstakeReady event if 32LYX or more to unstake', async function () {
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('32'));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString()
+      );
+
+      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures))
+        .to.emit(stakedLyxToken, 'UnstakeReady')
+        .withArgs(nonce.toString(), ethers.utils.parseEther('32'));
+
+      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
+
+      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
+        nonce.toNumber()
+      );
+      expect(unstakeProcessing).to.equal(true);
+    });
+
+    it('Should revert if contract already processing unstake', async function () {
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('32'));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString()
+      );
+
+      await oracles.connect(oracle1).setUnstakeProcessing(signatures);
+      await expect(
+        oracles.connect(oracle1).setUnstakeProcessing(signatures)
+      ).to.revertedWith('StakedLyxToken: unstaking already in progress');
+    });
+
+    it('Should revert when not enough signatures', async function () {
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('32'));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2],
+        nonce.toString()
+      );
+
+      await expect(
+        oracles.connect(oracle1).setUnstakeProcessing(signatures)
+      ).to.revertedWith('Oracles: invalid number of signatures');
+    });
+
+    it('Should revert if wrong signature', async function () {
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('32'));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, admin],
+        nonce.toString()
+      );
+
+      await expect(
+        oracles.connect(oracle1).setUnstakeProcessing(signatures)
+      ).to.revertedWith('Oracles: invalid signer');
+    });
+
+    it('Should revert if repeated signature', async function () {
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('32'));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle3],
+        nonce.toString()
+      );
+
+      await expect(
+        oracles.connect(oracle1).setUnstakeProcessing(signatures)
+      ).to.revertedWith('Oracles: repeated signature');
+    });
+  });
+
+  describe('submitUnstakeAmount', function () {
+    let processingSignatures;
+
+    beforeEach(async function () {
+      await pool
+        .connect(user1)
+        .stake({ value: ethers.utils.parseEther('100') });
+      await pool
+        .connect(user2)
+        .stake({ value: ethers.utils.parseEther('100') });
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('32'));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      processingSignatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString()
+      );
+    });
+
+    it('Should revert when not enough signatures', async function () {
+      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSubmitUnstakeAmount(
+        [oracle1, oracle2],
+        nonce.toString(),
+        ethers.utils.parseEther('32')
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
+      ).to.revertedWith('Oracles: invalid number of signatures');
+    });
+
+    it('Should revert if wrong signature', async function () {
+      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSubmitUnstakeAmount(
+        [oracle1, oracle2, oracle3, admin],
+        nonce.toString(),
+        ethers.utils.parseEther('32')
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
+      ).to.revertedWith('Oracles: invalid signer');
+    });
+
+    it('Should revert if repeated signature', async function () {
+      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSubmitUnstakeAmount(
+        [oracle1, oracle2, oracle3, oracle3],
+        nonce.toString(),
+        ethers.utils.parseEther('32')
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
+      ).to.revertedWith('Oracles: repeated signature');
+    });
+
+    it('Should revert if unstake not processing', async function () {
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSubmitUnstakeAmount(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        ethers.utils.parseEther('32')
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
+      ).to.revertedWith('StakedLyxToken: unstaking not in process');
+    });
+
+    it('Should process unstake if all right information', async function () {
+      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSubmitUnstakeAmount(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        ethers.utils.parseEther('32')
+      );
+
+      await expect(
+        oracles
+          .connect(oracle1)
+          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
+      )
+        .to.emit(oracles, 'SubmitUnstakeAmountVoteSubmitted')
+        .withArgs(
+          oracle1.address,
+          [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
+          nonce.toString(),
+          ethers.utils.parseEther('32')
+        );
+
+      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
+
+      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
+        nonce.add(1).toNumber()
+      );
+      expect(unstakeProcessing).to.equal(false);
     });
   });
 });

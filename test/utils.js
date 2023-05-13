@@ -344,6 +344,45 @@ const generateSignaturesForSubmitRewards = async function (
   return signatures;
 };
 
+const generateSignaturesForSetUnstakeProcessing = async function (
+  signers,
+  nonce
+) {
+  let encoded = defaultAbiCoder.encode(
+    ['uint256', 'string'],
+    [nonce, 'setUnstakeProcessing']
+  );
+  let candidateId = hexlify(keccak256(encoded));
+
+  const signatures = [];
+  for (let i = 0; i < signers.length; i++) {
+    signatures.push(
+      await signers[i].signMessage(ethers.utils.arrayify(candidateId))
+    );
+  }
+  return signatures;
+};
+
+const generateSignaturesForSubmitUnstakeAmount = async function (
+  signers,
+  nonce,
+  unstakeAmount
+) {
+  let encoded = defaultAbiCoder.encode(
+    ['uint256', 'uint256', 'string'],
+    [nonce, unstakeAmount, 'submitUnstakeAmount']
+  );
+  let candidateId = hexlify(keccak256(encoded));
+
+  const signatures = [];
+  for (let i = 0; i < signers.length; i++) {
+    signatures.push(
+      await signers[i].signMessage(ethers.utils.arrayify(candidateId))
+    );
+  }
+  return signatures;
+};
+
 const generateSignaturesForSubmitMerkleRoot = async function (
   signers,
   nonce,
@@ -419,5 +458,7 @@ module.exports = {
   getTestDepositData,
   generateSignaturesForRegisterValidators,
   generateSignaturesForSubmitRewards,
+  generateSignaturesForSubmitUnstakeAmount,
+  generateSignaturesForSetUnstakeProcessing,
   generateSignaturesForSubmitMerkleRoot,
 };

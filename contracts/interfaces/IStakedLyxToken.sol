@@ -26,7 +26,8 @@ interface IStakedLyxToken is ILSP7DigitalAsset {
     );
 
     event UnstakeReady(
-        uint256 unstakeNonce
+        uint256 unstakeNonce,
+        uint256 totalPendingUnstake
     );
 
     event UnstakeCancelled(

@@ -321,7 +321,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         if (totalPendingUnstake >= VALIDATOR_TOTAL_DEPOSIT) {
             unstakeProcessing = true;
-            emit UnstakeReady(unstakeNonce);
+            emit UnstakeReady(unstakeNonce, totalPendingUnstake);
             return true;
         } else {
             emit UnstakeCancelled(unstakeNonce);
