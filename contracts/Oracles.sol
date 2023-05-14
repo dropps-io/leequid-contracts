@@ -22,6 +22,9 @@ import "./interfaces/IStakedLyxToken.sol";
 contract Oracles is IOracles, OwnablePausableUpgradeable {
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
+    // @dev Validator deposit amount.
+    uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
+
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
     uint256 public oracleCount;
 
@@ -269,6 +272,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
     function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external override onlyOracle whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
+        require(unstakeAmount > 0 &&  (unstakeAmount % VALIDATOR_TOTAL_DEPOSIT) == 0, "Oracles: unstake amount must be non null and a multiple of VALIDATOR_TOTAL_DEPOSIT LYX");
 
         // calculate candidate ID hash
         uint256 nonce = unstakeNonce.current();
@@ -281,6 +285,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
         // update total rewards
         stakedLyxToken.unstakeProcessed(nonce, unstakeAmount);
+        pool.addRemovedValidators(unstakeAmount / VALIDATOR_TOTAL_DEPOSIT);
 
         unstakeNonce.increment();
 

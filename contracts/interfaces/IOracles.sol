@@ -79,6 +79,12 @@ interface IOracles {
     event OracleRemoved(address indexed oracle);
 
     /**
+    * @dev Function for getting the total validator deposit.
+    */
+    // solhint-disable-next-line func-name-mixedcase
+    function VALIDATOR_TOTAL_DEPOSIT() external view returns (uint256);
+
+    /**
     * @dev Function for checking whether an account has an oracle role.
     * @param account - account to check.
     */

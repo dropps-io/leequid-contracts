@@ -41,8 +41,10 @@ interface IPool {
     */
     event ActivatedValidatorsUpdated(uint256 activatedValidators, address sender);
 
-    /**
-    * @dev Event for tracking updates to the minimal deposit amount considered for the activation period.
+    event RemovedValidatorsUpdated(uint256 removedValidators, address sender);
+
+/**
+* @dev Event for tracking updates to the minimal deposit amount considered for the activation period.
     * @param minActivatingDeposit - new minimal deposit amount considered for the activation.
     * @param sender - address of the transaction sender.
     */
@@ -86,6 +88,9 @@ interface IPool {
     */
     function activatedValidators() external view returns (uint256);
 
+
+    function removedValidators() external view returns (uint256);
+
     /**
     * @dev Function for retrieving the withdrawal credentials used to
     * initiate pool validators withdrawal from the beacon chain.
@@ -121,6 +126,8 @@ interface IPool {
     * @param newActivatedValidators - new total amount of activated validators.
     */
     function setActivatedValidators(uint256 newActivatedValidators) external;
+
+    function addRemovedValidators(uint256 newRemovedValidators) external;
 
     /**
     * @dev Function for changing pending validators limit.
