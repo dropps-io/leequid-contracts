@@ -68,7 +68,7 @@ task('verify')
 
 module.exports = {
   solidity: {
-    version: '0.8.4',
+    version: '0.8.20',
   },
   etherscan: {
     apiKey: 'no-api-key-needed',
@@ -123,6 +123,7 @@ module.exports = {
     showTimeSpent: true,
     currency: 'USD',
     maxMethodDiff: 25, // CI will fail if gas usage is > than this %
+    gasPrice: 75,
     excludeContracts: ['mocks/'],
   },
   abiExporter: {

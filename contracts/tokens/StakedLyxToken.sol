@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CC0-1.0
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 // interfaces
 import {ILSP1UniversalReceiver} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/ILSP1UniversalReceiver.sol";
@@ -26,6 +26,7 @@ import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**
  * @title LSP7DigitalAsset contract
@@ -34,7 +35,7 @@ import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
  *
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
-contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken {
+contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken, ReentrancyGuardUpgradeable {
     // @dev Validator deposit amount.
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
 
@@ -248,7 +249,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
     function unstake(
         uint256 amount
-    ) external override {
+    ) external override nonReentrant {
         address account = msg.sender;
         require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
         require(amount > 0, "StakedLyxToken: amount must be greater than zero");

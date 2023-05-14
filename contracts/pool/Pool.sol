@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 pragma abicoder v2;
 
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../presets/OwnablePausableUpgradeable.sol";
 import "../interfaces/IStakedLyxToken.sol";
 import "../interfaces/IRewardLyxToken.sol";
@@ -17,7 +18,7 @@ import "../interfaces/IPoolValidators.sol";
 
 @dev Pool contract accumulates deposits from the users, mints tokens and registers validators.
 */
-contract Pool is IPool, OwnablePausableUpgradeable {
+contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     // @dev Validator deposit amount.
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
 
@@ -70,6 +71,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
         require(_oracles != address(0), "Pool: oracles address cannot be zero");
         require(_validatorRegistration != address(0), "Pool: validatorRegistration address cannot be zero");
         require(_validators != address(0), "Pool: validators address cannot be zero");
+        require(_withdrawalCredentials != bytes32(0), "Pool: withdrawalCredentials cannot be zero");
 
         __OwnablePausableUpgradeable_init(_admin);
 
@@ -115,14 +117,14 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     /**
     * @dev See {IPool-stake}.
     */
-    function stake() external payable override {
+    function stake() external payable override nonReentrant {
         _stake(msg.sender, msg.value);
     }
 
     /**
     * @dev See {IPool-stakeOnBehalf}.
     */
-    function stakeOnBehalf(address recipient) external payable override {
+    function stakeOnBehalf(address recipient) external payable override nonReentrant {
         _stake(recipient, msg.value);
     }
 
@@ -141,7 +143,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     /**
     * @dev See {IPool-stakeWithPartner}.
     */
-    function stakeWithPartner(address partner) external payable override {
+    function stakeWithPartner(address partner) external payable override nonReentrant {
         // stake amount
         _stake(msg.sender, msg.value);
         emit StakedWithPartner(partner, msg.value);
@@ -150,7 +152,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     /**
      * @dev See {IPool-stakeWithPartnerOnBehalf}.
     */
-    function stakeWithPartnerOnBehalf(address partner, address recipient) external payable override {
+    function stakeWithPartnerOnBehalf(address partner, address recipient) external payable override nonReentrant {
         // stake amount
         _stake(recipient, msg.value);
         emit StakedWithPartner(partner, msg.value);
@@ -159,7 +161,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     /**
      * @dev See {IPool-stakeWithReferrer}.
     */
-    function stakeWithReferrer(address referrer) external payable override {
+    function stakeWithReferrer(address referrer) external payable override nonReentrant {
         // stake amount
         _stake(msg.sender, msg.value);
         emit StakedWithReferrer(referrer, msg.value);
@@ -168,7 +170,7 @@ contract Pool is IPool, OwnablePausableUpgradeable {
     /**
      * @dev See {IPool-stakeWithReferrerOnBehalf}.
     */
-    function stakeWithReferrerOnBehalf(address referrer, address recipient) external payable override {
+    function stakeWithReferrerOnBehalf(address referrer, address recipient) external payable override nonReentrant {
         // stake amount
         _stake(recipient, msg.value);
         emit StakedWithReferrer(referrer, msg.value);

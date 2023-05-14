@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity 0.8.4;
+pragma solidity 0.8.20;
 pragma abicoder v2;
 
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./presets/OwnablePausableUpgradeable.sol";
 import "./interfaces/IRewardLyxToken.sol";
 import "./interfaces/IPool.sol";
@@ -62,7 +61,14 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         address _stakedLyxToken,
         address _pool,
         address _poolValidators,
-        address _merkleDistributor) external initializer {
+        address _merkleDistributor
+    ) external initializer {
+        require(_rewardLyxToken != address(0), "Oracles: invalid rewardLyxToken address");
+        require(_stakedLyxToken != address(0), "Oracles: invalid stakedLyxToken address");
+        require(_pool != address(0), "Oracles: invalid pool address");
+        require(_poolValidators != address(0), "Oracles: invalid poolValidators address");
+        require(_merkleDistributor != address(0), "Oracles: invalid merkleDistributor address");
+
         oracleCount = 0;
         __OwnablePausableUpgradeable_init_unchained(_admin);
         rewardLyxToken = IRewardLyxToken(_rewardLyxToken);
@@ -152,22 +158,12 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         );
 
         // check signatures and calculate number of submitted oracle votes
-        address[] memory signedOracles = new address[](signatures.length);
-        for (uint256 i = 0; i < signatures.length; i++) {
-            bytes memory signature = signatures[i];
-            address signer = ECDSAUpgradeable.recover(candidateId, signature);
-            require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
-
-            for (uint256 j = 0; j < i; j++) {
-                require(signedOracles[j] != signer, "Oracles: repeated signature");
-            }
-            signedOracles[i] = signer;
-        }
-
-        emit RewardsVoteSubmitted(msg.sender, signedOracles, nonce, totalRewards, activatedValidators);
+        address[] memory signedOracles = _verifySignatures(candidateId, signatures);
 
         // increment nonce for future signatures
         rewardsNonce.increment();
+
+        emit RewardsVoteSubmitted(msg.sender, signedOracles, nonce, totalRewards, activatedValidators);
 
         // update total rewards
         rewardLyxToken.updateTotalRewards(totalRewards);
@@ -180,7 +176,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
     /**
      * @dev See {IOracles-submitMerkleRoot}.
- */
+    */
     function submitMerkleRoot(
         bytes32 merkleRoot,
         string calldata merkleProofs,
@@ -196,22 +192,12 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         );
 
         // check signatures and calculate number of submitted oracle votes
-        address[] memory signedOracles = new address[](signatures.length);
-        for (uint256 i = 0; i < signatures.length; i++) {
-            bytes memory signature = signatures[i];
-            address signer = ECDSAUpgradeable.recover(candidateId, signature);
-            require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
-
-            for (uint256 j = 0; j < i; j++) {
-                require(signedOracles[j] != signer, "Oracles: repeated signature");
-            }
-            signedOracles[i] = signer;
-        }
-
-        emit MerkleRootVoteSubmitted(msg.sender, signedOracles, nonce, merkleRoot, merkleProofs);
+        address[] memory signedOracles = _verifySignatures(candidateId, signatures);
 
             // increment nonce for future signatures
         rewardsNonce.increment();
+
+        emit MerkleRootVoteSubmitted(msg.sender, signedOracles, nonce, merkleRoot, merkleProofs);
 
         // update merkle root
         merkleDistributor.setMerkleRoot(merkleRoot, merkleProofs);
@@ -240,18 +226,8 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
             keccak256(abi.encode(nonce, depositData, validatorsDepositRoot))
         );
 
-        // check signatures are correct
-        address[] memory signedOracles = new address[](signatures.length);
-        for (uint256 i = 0; i < signatures.length; i++) {
-            bytes memory signature = signatures[i];
-            address signer = ECDSAUpgradeable.recover(candidateId, signature);
-            require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
-
-            for (uint256 j = 0; j < i; j++) {
-                require(signedOracles[j] != signer, "Oracles: repeated signature");
-            }
-            signedOracles[i] = signer;
-        }
+        // check signatures and calculate number of submitted oracle votes
+        address[] memory signedOracles = _verifySignatures(candidateId, signatures);
 
         uint256 depositDataLength = depositData.length;
         require(merkleProofs.length == depositDataLength, "Oracles: invalid merkle proofs length");
@@ -261,11 +237,10 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
             // register validator
             poolValidators.registerValidator(depositData[i], merkleProofs[i]);
         }
-
-        emit RegisterValidatorsVoteSubmitted(msg.sender, signedOracles, nonce);
-
         // increment nonce for future registrations
         validatorsNonce.increment();
+
+        emit RegisterValidatorsVoteSubmitted(msg.sender, signedOracles, nonce);
     }
 
 
@@ -282,24 +257,14 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         );
 
         // check signatures and calculate number of submitted oracle votes
-        address[] memory signedOracles = new address[](signatures.length);
-        for (uint256 i = 0; i < signatures.length; i++) {
-            bytes memory signature = signatures[i];
-            address signer = ECDSAUpgradeable.recover(candidateId, signature);
-            require(hasRole(ORACLE_ROLE, signer), "Oracles: invalid signer");
-
-            for (uint256 j = 0; j < i; j++) {
-                require(signedOracles[j] != signer, "Oracles: repeated signature");
-            }
-            signedOracles[i] = signer;
-        }
-
-        emit UnstakeProcessingVoteSubmitted(msg.sender, signedOracles, nonce);
+        address[] memory signedOracles = _verifySignatures(candidateId, signatures);
 
         // update total rewards
         bool processing = stakedLyxToken.setUnstakeProcessing(nonce);
 
         if (!processing) unstakeNonce.increment();
+
+        emit UnstakeProcessingVoteSubmitted(msg.sender, signedOracles, nonce);
     }
 
     function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external override onlyOracle whenNotPaused {
@@ -312,6 +277,17 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         );
 
         // check signatures and calculate number of submitted oracle votes
+        address[] memory signedOracles = _verifySignatures(candidateId, signatures);
+
+        // update total rewards
+        stakedLyxToken.unstakeProcessed(nonce, unstakeAmount);
+
+        unstakeNonce.increment();
+
+        emit SubmitUnstakeAmountVoteSubmitted(msg.sender, signedOracles, nonce, unstakeAmount);
+    }
+
+    function _verifySignatures(bytes32 candidateId, bytes[] calldata signatures) internal returns (address[] memory) {
         address[] memory signedOracles = new address[](signatures.length);
         for (uint256 i = 0; i < signatures.length; i++) {
             bytes memory signature = signatures[i];
@@ -323,12 +299,6 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
             }
             signedOracles[i] = signer;
         }
-
-        emit SubmitUnstakeAmountVoteSubmitted(msg.sender, signedOracles, nonce, unstakeAmount);
-
-        // update total rewards
-        stakedLyxToken.unstakeProcessed(nonce, unstakeAmount);
-
-        unstakeNonce.increment();
+        return signedOracles;
     }
 }

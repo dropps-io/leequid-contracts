@@ -1,24 +1,18 @@
 // SPDX-License-Identifier: CC0-1.0
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 // interfaces
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 // libraries
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
-// modules
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 // constants
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
-import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
 import { IFeesEscrow } from "../interfaces/IFeesEscrow.sol";
 
-import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { IPool } from "../interfaces/IPool.sol";
 
 /**
@@ -28,7 +22,7 @@ import { IPool } from "../interfaces/IPool.sol";
  *
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
-contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
+contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeCast for uint256;
 
     // @dev Address of the StakedLyxToken contract.
@@ -87,6 +81,8 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         require(_oracles != address(0), "RewardLyxToken: oracles address cannot be zero");
         require(_merkleDistributor != address(0), "RewardLyxToken: merkleDistributor address cannot be zero");
         require(_feesEscrow != address(0), "RewardLyxToken: feesEscrow address cannot be zero");
+        require(_protocolFee < 1e4, "RewardEthToken: invalid protocol fee");
+        require(_pool != address(0), "RewardLyxToken: pool address cannot be zero");
 
         __OwnablePausableUpgradeable_init_unchained(_admin);
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
@@ -286,7 +282,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         });
     }
 
-    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override {
+    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant {
         require(unstakeRequestIndexes.length > 0, "RewardLyxToken: no unstake indexes provided");
         address payable account = payable(msg.sender);
 
@@ -297,7 +293,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         account.transfer(totalUnstakeAmount);
     }
 
-    function cashOutRewards(uint256 amount) external override {
+    function cashOutRewards(uint256 amount) external override nonReentrant {
         address payable recipient = payable(msg.sender);
 
         _cashOutAccountRewards(recipient, amount);
@@ -306,7 +302,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         recipient.transfer(amount);
     }
 
-    function compoundRewards(uint256 amount) external override {
+    function compoundRewards(uint256 amount) external override nonReentrant {
         address recipient = msg.sender;
 
         _cashOutAccountRewards(recipient, amount);
@@ -328,5 +324,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable {
         });
 
         totalCashedOut = (totalCashedOut + amount).toUint128();
+
+        emit RewardsCashedOut(account, amount);
     }
 }

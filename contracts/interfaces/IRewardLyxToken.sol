@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.20;
 
 import "./IFeesEscrow.sol";
 
@@ -59,6 +59,8 @@ interface IRewardLyxToken {
         uint256 totalAmount,
         uint256[] unstakeRequestsIndexes
     );
+
+    event RewardsCashedOut(address indexed account, uint256 amount);
 
     /**
     * @dev Function for getting the address of the merkle distributor.
