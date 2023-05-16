@@ -69,14 +69,51 @@ interface IStakedLyxToken is ILSP7DigitalAsset {
     */
     function toggleRewards(address account, bool isDisabled) external;
 
+    /**
+     * @dev Request to unstake the specified amount of tokens from the user's account.
+     * Requires the unstaking not to be in progress, and the amount to be greater than zero.
+     * The amount to unstake is deducted from the user's balance, he won't receive rewards from it anymore.
+     *
+     * Emits a {NewUnstakeRequest} event.
+     * @param amount The amount of tokens to unstake.
+     */
     function unstake(uint256 amount) external;
 
+    /**
+     * @dev Fill unstake requests by matching stake requests to unstake requests, and return the amount matched.
+     * Only callable by the pool. Requires unstaking not to be in progress.
+     * @param amount The amount to match.
+     * @return amountMatched The amount matched.
+     */
     function matchUnstake(uint256 amount) external returns (uint256);
 
+    /**
+     * @dev Set unstake processing status to true. Block any new unstake request and stakes/unstakes matching.
+     * The ensure the pending unstake value doesn't change while being processed.
+     * Only callable by the oracles contract. Requires unstaking not to be in progress.
+     * Emits either an {UnstakeReady} or {UnstakeCancelled} event.
+     * @param unstakeNonce - the unstake nonce for the processing.
+     * @return bool - whether the unstake processing has been set.
+     */
     function setUnstakeProcessing(uint256 unstakeNonce) external returns (bool);
 
+    /**
+     * @dev Submit the unstake amount so users can claim their unstakes.
+     * Only callable by the oracles contract. Requires unstaking to be in progress.
+     * Requires the unstake amount to be a multiple of VALIDATOR_TOTAL_DEPOSIT LYX.
+     * Emits an {UnstakeProcessed} event.
+     * @param unstakeNonce - The unstake nonce for the processing.
+     * @param unstakeAmount - The amount of tokens unstaked.
+     */
     function unstakeProcessed(uint256 unstakeNonce, uint256 unstakeAmount) external;
 
+    /**
+     * @dev Claim unstake for the specified account and unstake request indexes.
+     * Only callable by the rewardLyxToken contract that will transfer the claimed amount.
+     * @param account - The account to claim unstake for.
+     * @param unstakeRequestIndexes - Array of indexes corresponding to the unstake requests to be claimed.
+     * @return totalClaimedAmount - The total amount claimed.
+     */
     function claimUnstake(address account, uint256[] calldata unstakeRequestIndexes) external returns (uint256);
 
     /**

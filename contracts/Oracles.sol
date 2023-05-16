@@ -26,6 +26,8 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
 
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+
+    // @dev Oracle count - used to verify number of signatures.
     uint256 public oracleCount;
 
     // @dev Rewards nonce is used to protect from submitting the same rewards vote several times.
@@ -248,7 +250,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
 
     /**
-     * @dev See {IOracles-submitRewards}.
+     * @dev See {IOracles-setUnstakeProcessing}.
     */
     function setUnstakeProcessing(bytes[] calldata signatures) external override onlyOracle whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
@@ -270,6 +272,9 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         emit UnstakeProcessingVoteSubmitted(msg.sender, signedOracles, nonce);
     }
 
+    /**
+     * @dev See {IOracles-submitUnstakeAmount}.
+    */
     function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external override onlyOracle whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
         require(unstakeAmount > 0 &&  (unstakeAmount % VALIDATOR_TOTAL_DEPOSIT) == 0, "Oracles: unstake amount must be non null and a multiple of VALIDATOR_TOTAL_DEPOSIT LYX");
@@ -292,6 +297,16 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         emit SubmitUnstakeAmountVoteSubmitted(msg.sender, signedOracles, nonce, unstakeAmount);
     }
 
+    /**
+     * @dev verifySignatures
+     *
+     * @param candidateId - The hashed value signed by the oracles
+     * @param signatures - The array of signatures
+     * @return An array of addresses representing the signed oracles
+     *
+     * @dev Verifies the signatures provided by the oracles and returns an array of addresses
+     * that represent the oracles who signed the candidateId.
+    */
     function _verifySignatures(bytes32 candidateId, bytes[] calldata signatures) internal returns (address[] memory) {
         address[] memory signedOracles = new address[](signatures.length);
         for (uint256 i = 0; i < signatures.length; i++) {

@@ -162,7 +162,21 @@ interface IOracles {
         bytes[] calldata signatures
     ) external;
 
+    /**
+     * @dev Set the protocol as unstake processing so the unstake requests are frozen (no more request or stake/unstake matching).
+     * Only callable by an oracle and when contract is not paused.
+     * @param signatures - Array of bytes containing signatures from oracles.
+     * Emits an {UnstakeProcessingVoteSubmitted} event.
+     */
     function setUnstakeProcessing(bytes[] calldata signatures) external;
 
+    /**
+     * @dev Submit the unstake amount so users can claim their unstakes.
+     * Only callable by an Oracle and when contract is not paused and when the unstake processing status is true.
+     * Requires the unstake amount to be a multiple of VALIDATOR_TOTAL_DEPOSIT LYX.
+     * @param unstakeAmount - The unstake amount to be submitted.
+     * @param signatures -  Array of bytes containing signatures from oracles.
+     * Emits a {SubmitUnstakeAmountVoteSubmitted} event.
+     */
     function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external;
 }

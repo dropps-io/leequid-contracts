@@ -39,16 +39,26 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     // @dev Validator deposit amount.
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
 
+    // @dev Total deposits - total amount of tokens deposited (the amount of tokens unstaked is not deducted from this amount).
     uint256 internal _totalDeposits;
 
+    // @dev Total Unstaked - total amount of tokens that were unstaked from the staking node and submitted for claiming.
     uint256 public totalUnstaked;
+
+    // @dev Total Pending Unstake - total amount of tokens pending to be unstaked. When unstaked, the amount unstaked is deducted
     uint256 public totalPendingUnstake;
 
+    // @dev Unstake Request Count - Used as an index to keep track of unstake requests.
     uint256 public unstakeRequestCount;
+
+    // @dev Unstake Request Current Index - Used as an index to keep track of the current unstake request being processed. The previous indexes were all processed.
     uint256 public unstakeRequestCurrentIndex;
 
+    // @dev Unstake Processing - Boolean used to pause unstake requests. When true, no unstake requests can be made, and no unstake requests can be matched.
+    // This is used to ensure the amount to unstake doesn t change while the unstake is processing
     bool public override unstakeProcessing;
 
+    // @dev Unstake Request - Mapping containing all the unstake request requests in chronological order, the uint256 key being used as an index.
     mapping(uint256 => UnstakeRequest) internal _unstakeRequests;
 
     // Mapping from `tokenOwner` to an `amount` of tokens
@@ -101,10 +111,16 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         return _totalDeposits;
     }
 
+    /**
+     * @dev See {IStakedLyxToken-totalDeposits}.
+     */
     function totalDeposits() public view override returns (uint256) {
         return _totalDeposits;
     }
 
+    /**
+     * @dev See {IStakedLyxToken-unstakeRequest}.
+     */
     function unstakeRequest(uint256 index) public view override returns (UnstakeRequest memory) {
         require(index <= unstakeRequestCount, "StakedLyxToken: invalid index");
         UnstakeRequest memory _unstakeRequest = _unstakeRequests[index];
@@ -114,6 +130,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         return _unstakeRequest;
     }
 
+    /**
+     * @dev See {IStakedLyxToken-isUnstakeRequestClaimable}.
+     */
     function isUnstakeRequestClaimable(uint256 index) public view override returns (bool) {
         if (index > unstakeRequestCurrentIndex) return false;
 
@@ -131,6 +150,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         return _deposits[tokenOwner];
     }
 
+    /**
+     * @dev See {IStakedLyxToken-toggleRewards}.
+     */
     function toggleRewards(address tokenOwner, bool isDisabled) external override onlyAdmin {
         require(tokenOwner != address(0), "StakedLyxToken: invalid tokenOwner");
 
@@ -247,6 +269,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         }
     }
 
+    /**
+     * @dev See {IStakedLyxToken-unstake}.
+     */
     function unstake(
         uint256 amount
     ) external override nonReentrant {
@@ -277,6 +302,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         emit NewUnstakeRequest(unstakeRequestCount, account, amount, totalPendingUnstake);
     }
 
+    /**
+     * @dev See {IStakedLyxToken-matchUnstake}.
+     */
     function matchUnstake(uint256 amount) external override returns (uint256) {
         require(msg.sender == pool, "StakedLyxToken: access denied");
         require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
@@ -316,6 +344,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         return amountMatched;
     }
 
+    /**
+     * @dev See {IStakedLyxToken-setUnstakeProcessing}.
+     */
     function setUnstakeProcessing(uint256 unstakeNonce) external override returns (bool) {
         require(msg.sender == oracles, "StakedLyxToken: access denied");
         require(!unstakeProcessing, "StakedLyxToken: unstaking already in progress");
@@ -330,6 +361,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         }
     }
 
+    /**
+     * @dev See {IStakedLyxToken-unstakeProcessed}.
+     */
     function unstakeProcessed(uint256 unstakeNonce, uint256 unstakeAmount) external override {
         require(msg.sender == oracles, "StakedLyxToken: access denied");
         require(unstakeProcessing, "StakedLyxToken: unstaking not in process");
@@ -359,6 +393,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         emit UnstakeProcessed(unstakeNonce, unstakeAmount, totalPendingUnstake);
     }
 
+    /**
+     * @dev See {IStakedLyxToken-claimUnstake}.
+     */
     function claimUnstake(address account, uint256[] calldata unstakeRequestIndexes) external override returns (uint256) {
         require(msg.sender == address(rewardLyxToken), "StakedLyxToken: access denied");
         uint256 totalClaimedAmount = 0;

@@ -90,16 +90,29 @@ interface IRewardLyxToken {
     function setProtocolFee(uint256 _protocolFee) external;
 
     /**
-    * @dev Function for retrieving the total rewards amount.
+    * @dev Function for retrieving the total amount of rewards rewards collected by the staking node
+    * Cashed out and compound rewards are not deducted.
     */
     function totalRewards() external view returns (uint128);
 
+    /**
+    * @dev Function for retrieving the total collected fees amount (lyx sent to the FeesEscrow contract).
+    */
     function totalFeesCollected() external view returns (uint128);
 
+    /**
+    * @dev Function for retrieving the total cashed out amount (including compound).
+    */
     function totalCashedOut() external view returns (uint128);
 
+    /**
+    * @dev Function for retrieving the total available rewards amount (totalRewards - totalCashedOut).
+    */
     function totalAvailableRewards() external view returns (uint128);
 
+    /**
+    * @dev Function for retrieving the total available rewards amount of an address
+    */
     function balanceOf(address account) external view returns (uint256);
 
     /**
@@ -160,9 +173,26 @@ interface IRewardLyxToken {
     */
     function claim(address account, uint256 amount) external;
 
+    /**
+     * @dev Cash out accumulated rewards for the specified amount.
+     * Requires account balance and contract balance to be sufficient. Transfers Lyx to the user.
+     * Emits a {RewardsCashedOut} event.
+     * @param amount The amount of rewards to cash out.
+     */
     function cashOutRewards(uint256 amount) external;
 
+
+    /**
+     * @dev Compound accumulated rewards for the specified amount: transfer them to the pool as a stake on the behalf of the msg.sender.
+     * Requires account balance and contract balance to be sufficient. Stakes the rewards to the pool.
+     * @param amount - The amount of rewards to compound.
+     */
     function compoundRewards(uint256 amount) external;
 
+    /**
+     * @dev Claim unstake for the specified request indexes.
+     * Emits an {UnstakeClaimed} event. Transfers the total unstake amount to the user.
+     * @param unstakeRequestIndexes - Array of indexes corresponding to the unstake requests to be claimed.
+     */
     function claimUnstake(uint256[] calldata unstakeRequestIndexes) external;
 }

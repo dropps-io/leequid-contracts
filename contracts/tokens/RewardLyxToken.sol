@@ -64,6 +64,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     // @dev Address of the FeesEscrow contract.
     IFeesEscrow private feesEscrow;
 
+    // @dev Address of the Pool contract.
     IPool private pool;
 
     function initialize(
@@ -98,6 +99,9 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
 
     // --- Token owner queries
 
+    /**
+     * @dev See {IRewardLyxToken-balanceOf}.
+     */
     function balanceOf(address account) public view virtual override returns (uint256) {
         return _balanceOf(account, rewardPerToken);
     }
@@ -121,10 +125,16 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         return _calculateNewReward(cp.reward, stakedLyxAmount, _rewardPerToken - cp.rewardPerToken);
     }
 
+    /**
+    * @dev See {IRewardLyxToken-totalAvailableRewards}.
+     */
     function totalAvailableRewards() public view virtual override returns (uint128) {
         return totalRewards + totalFeesCollected - totalCashedOut;
     }
 
+    /**
+    * @dev See {IRewardLyxToken-updateRewardCheckpoint}.
+     */
     function updateRewardCheckpoint(address account) public override returns (bool accRewardsDisabled) {
         accRewardsDisabled = rewardsDisabled[account];
         if (!accRewardsDisabled) _updateRewardCheckpoint(account, rewardPerToken);
@@ -165,6 +175,9 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         return currentReward + stakedLyxAmount * periodRewardPerToken / 1e18;
     }
 
+    /**
+    * @dev See {IRewardLyxToken-setRewardsDisabled}.
+    */
     function setRewardsDisabled(address account, bool isDisabled) external override {
         require(msg.sender == address(stakedLyxToken), "RewardLyxToken: access denied");
         require(rewardsDisabled[account] != isDisabled, "RewardLyxToken: value did not change");
@@ -179,12 +192,18 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         emit RewardsToggled(account, isDisabled);
     }
 
+    /**
+    * @dev See {IRewardLyxToken-setProtocolFeeRecipient}.
+    */
     function setProtocolFeeRecipient(address recipient) external override onlyAdmin {
         // can be address(0) to distribute fee through the Merkle Distributor
         protocolFeeRecipient = recipient;
         emit ProtocolFeeRecipientUpdated(recipient);
     }
 
+    /**
+    * @dev See {IRewardLyxToken-setProtocolFee}.
+    */
     function setProtocolFee(uint256 _protocolFee) external override onlyAdmin {
         require(_protocolFee < 1e4, "RewardEthToken: invalid protocol fee");
         protocolFee = _protocolFee;
@@ -282,6 +301,9 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         });
     }
 
+    /**
+     * @dev See {IRewardLyxToken-claimUnstake}.
+     */
     function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant {
         require(unstakeRequestIndexes.length > 0, "RewardLyxToken: no unstake indexes provided");
         address payable account = payable(msg.sender);
@@ -293,6 +315,9 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         account.transfer(totalUnstakeAmount);
     }
 
+    /**
+     * @dev See {IRewardLyxToken-cashOutRewards}.
+     */
     function cashOutRewards(uint256 amount) external override nonReentrant {
         address payable recipient = payable(msg.sender);
 
@@ -302,6 +327,9 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         recipient.transfer(amount);
     }
 
+    /**
+     * @dev See {IRewardLyxToken-compoundRewards}.
+     */
     function compoundRewards(uint256 amount) external override nonReentrant {
         address recipient = msg.sender;
 
@@ -311,6 +339,15 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         pool.stakeOnBehalf{value : amount}(recipient);
     }
 
+
+    /**
+     * @dev Internal function to cash out account rewards for the specified amount.
+     * This method updates the state before the transfer and emits a {RewardsCashedOut} event.
+     * Requires account balance and contract balance to be sufficient. Updates the state before
+     * the transfer and emits a {RewardsCashedOut} event.
+     * @param account - The account to cash out rewards for.
+     * @param amount - The amount of rewards to cash out.
+     */
     function _cashOutAccountRewards(address account, uint256 amount) internal {
         uint256 accountBalance = balanceOf(account);
         require(accountBalance >= amount, "RewardLyxToken: insufficient reward balance");

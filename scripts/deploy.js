@@ -5,10 +5,9 @@ async function main() {
     gasPrice: '0x59682F00', // 1.5 Gwei
   };
 
-  const isNonDivisible = false;
   const admin = '0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab';
   const protocolFeeRecipient = '0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab';
-  const protocolFee = '1000';
+  const protocolFee = 0.1;
 
   const beaconDepositContract = '0x5Cc0ca9b4fe325Fa4c443475AE6C6d5f00d1631D'; // Lukso testnet
 
@@ -65,6 +64,7 @@ async function main() {
   await oracles.initialize(
     admin,
     rewardLyxToken.address,
+    stakedLyxToken.address,
     pool.address,
     poolValidators.address,
     merkleDistributor.address,
@@ -73,7 +73,7 @@ async function main() {
   console.log('Oracles initialized');
 
   const withdrawalCredentials =
-    '0x010000000000000000000000' + feesEscrow.address.slice(2);
+    '0x010000000000000000000000' + rewardLyxToken.address.slice(2);
 
   // Initialize RewardLyxToken
 
@@ -83,10 +83,10 @@ async function main() {
     stakedLyxToken.address,
     oracles.address,
     protocolFeeRecipient,
-    protocolFee,
+    (protocolFee * 10000).toString(),
     merkleDistributor.address,
     feesEscrow.address,
-    isNonDivisible,
+    pool.address,
     args
   );
   console.log('RewardLyxToken initialized');
@@ -96,8 +96,8 @@ async function main() {
   await stakedLyxToken.initialize(
     admin,
     pool.address,
+    oracles.address,
     rewardLyxToken.address,
-    isNonDivisible,
     args
   );
   console.log('StakedLyxToken initialized');
@@ -107,10 +107,13 @@ async function main() {
   await pool.initialize(
     admin,
     stakedLyxToken.address,
+    rewardLyxToken.address,
     poolValidators.address,
     oracles.address,
     withdrawalCredentials,
     beaconDepositContract,
+    ethers.utils.parseEther('9999999999999999999999999999999'),
+    '500',
     args
   );
   console.log('Pool initialized');
@@ -119,6 +122,14 @@ async function main() {
   console.log('Initializing PoolValidators...');
   await poolValidators.initialize(admin, pool.address, oracles.address, args);
   console.log('PoolValidators initialized');
+
+  console.log('Initializing MerkleDistributor...');
+  await merkleDistributor.initialize(
+    admin,
+    rewardLyxToken.address,
+    oracles.address
+  );
+  console.log('MerkleDistributor initialized');
 }
 
 main()
