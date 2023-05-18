@@ -1,0 +1,229 @@
+const { ethers } = require('hardhat');
+
+async function main() {
+  const args = {
+    gasPrice: '0x59682F00', // 1.5 Gwei
+  };
+
+  const admin = '0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab';
+  const protocolFeeRecipient = '0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab';
+  const protocolFee = 0.1;
+
+  const beaconDepositContract = '0x5Cc0ca9b4fe325Fa4c443475AE6C6d5f00d1631D'; // Lukso testnet
+
+  const AdminUpgradeabilityProxy = await ethers.getContractFactory(
+    'AdminUpgradeabilityProxy'
+  );
+
+  console.log('deploying RewardLyxToken...');
+  const RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
+  const rewardLyxToken = await RewardLyxToken.deploy(args);
+  await rewardLyxToken.deployed();
+  const rewardLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
+    rewardLyxToken.address,
+    admin,
+    '0x',
+    args
+  );
+  console.log('RewardLyxToken deployed to:', rewardLyxTokenProxy.address);
+  console.log(
+    'RewardLyxToken implementation deployed to:',
+    rewardLyxToken.address
+  );
+
+  // Create an interface of your contract
+  const rewardLyxTokenProxyContract = RewardLyxToken.attach(
+    rewardLyxTokenProxy.address
+  );
+
+  console.log('deploying StakedLyxToken...');
+  const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
+  const stakedLyxToken = await StakedLyxToken.deploy(args);
+  await stakedLyxToken.deployed();
+  const stakedLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
+    stakedLyxToken.address,
+    admin,
+    '0x',
+    args
+  );
+  console.log('StakedLyxToken deployed to:', stakedLyxTokenProxy.address);
+  console.log(
+    'StakedLyxToken implementation deployed to:',
+    stakedLyxToken.address
+  );
+
+  // Create an interface of your contract
+  const stakedLyxTokenProxyContract = StakedLyxToken.attach(
+    stakedLyxTokenProxy.address
+  );
+
+  console.log('deploying Pool...');
+  const Pool = await ethers.getContractFactory('Pool');
+  const pool = await Pool.deploy(args);
+  await pool.deployed();
+  const poolProxy = await AdminUpgradeabilityProxy.deploy(
+    pool.address,
+    admin,
+    '0x',
+    args
+  );
+  console.log('Pool deployed to:', poolProxy.address);
+  console.log('Pool implementation deployed to:', pool.address);
+
+  // Create an interface of your contract
+  const poolProxyContract = Pool.attach(poolProxy.address);
+
+  console.log('deploying PoolValidators...');
+  const PoolValidators = await ethers.getContractFactory('PoolValidators');
+  const poolValidators = await PoolValidators.deploy(args);
+  await poolValidators.deployed();
+  const poolValidatorsProxy = await AdminUpgradeabilityProxy.deploy(
+    poolValidators.address,
+    admin,
+    '0x',
+    args
+  );
+  console.log('PoolValidators deployed to:', poolValidatorsProxy.address);
+  console.log(
+    'PoolValidators implementation deployed to:',
+    poolValidators.address
+  );
+
+  // Create an interface of your contract
+  const poolValidatorsProxyContract = PoolValidators.attach(
+    poolValidatorsProxy.address
+  );
+
+  console.log('deploying MerkleDistributor...');
+  const MerkleDistributor = await ethers.getContractFactory(
+    'MerkleDistributor'
+  );
+  const merkleDistributor = await MerkleDistributor.deploy(args);
+  await merkleDistributor.deployed();
+  const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
+    merkleDistributor.address,
+    admin,
+    '0x',
+    args
+  );
+  console.log('MerkleDistributor deployed to:', merkleDistributorProxy.address);
+  console.log(
+    'MerkleDistributor implementation deployed to:',
+    merkleDistributor.address
+  );
+
+  // Create an interface of your contract
+  const merkleDistributorProxyContract = MerkleDistributor.attach(
+    merkleDistributorProxy.address
+  );
+
+  console.log('deploying FeesEscrow...');
+  const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
+  const feesEscrow = await FeesEscrow.deploy(
+    pool.address,
+    rewardLyxToken.address,
+    args
+  );
+  await feesEscrow.deployed();
+  console.log('FeesEscrow deployed to:', feesEscrow.address);
+
+  console.log('deploying Oracles...');
+  const Oracles = await ethers.getContractFactory('Oracles');
+  const oracles = await Oracles.deploy(args);
+  await oracles.deployed();
+  const oraclesProxy = await AdminUpgradeabilityProxy.deploy(
+    oracles.address,
+    admin,
+    '0x',
+    args
+  );
+  console.log('Oracles deployed to:', oraclesProxy.address);
+  console.log('Oracles implementation deployed to:', oracles.address);
+
+  // Create an interface of your contract
+  const oraclesProxyContract = Oracles.attach(oraclesProxy.address);
+
+  // Initialize the Oracles contract
+  console.log('Initializing Oracles...');
+  await oraclesProxyContract.initialize(
+    admin,
+    rewardLyxTokenProxy.address,
+    stakedLyxTokenProxy.address,
+    poolProxy.address,
+    poolValidatorsProxy.address,
+    merkleDistributorProxy.address,
+    args
+  );
+  console.log('Oracles initialized');
+
+  const withdrawalCredentials =
+    '0x010000000000000000000000' + rewardLyxTokenProxy.address.slice(2);
+
+  // Initialize RewardLyxToken
+  console.log('Initializing RewardLyxToken...');
+  await rewardLyxTokenProxyContract.initialize(
+    admin,
+    stakedLyxTokenProxy.address,
+    oraclesProxy.address,
+    protocolFeeRecipient,
+    (protocolFee * 10000).toString(),
+    merkleDistributorProxy.address,
+    feesEscrow.address,
+    poolProxy.address,
+    args
+  );
+  console.log('RewardLyxToken initialized');
+
+  // Initialize StakedLyxToken
+  console.log('Initializing StakedLyxToken...');
+  await stakedLyxTokenProxyContract.initialize(
+    admin,
+    poolProxy.address,
+    oraclesProxy.address,
+    rewardLyxTokenProxy.address,
+    args
+  );
+  console.log('StakedLyxToken initialized');
+
+  // Initialize Pool
+  console.log('Initializing Pool...');
+  await poolProxyContract.initialize(
+    admin,
+    stakedLyxTokenProxy.address,
+    rewardLyxTokenProxy.address,
+    poolValidatorsProxy.address,
+    oraclesProxy.address,
+    withdrawalCredentials,
+    beaconDepositContract,
+    ethers.utils.parseEther('9999999999999999999999999999999'),
+    '500',
+    args
+  );
+  console.log('Pool initialized');
+
+  // Initialize PoolValidators
+  console.log('Initializing PoolValidators...');
+  await poolValidatorsProxyContract.initialize(
+    admin,
+    poolProxy.address,
+    oraclesProxy.address,
+    args
+  );
+  console.log('PoolValidators initialized');
+
+  console.log('Initializing MerkleDistributor...');
+  await merkleDistributorProxyContract.initialize(
+    admin,
+    rewardLyxTokenProxy.address,
+    oraclesProxy.address,
+    args
+  );
+  console.log('MerkleDistributor initialized');
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
