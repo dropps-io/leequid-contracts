@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 
 async function main() {
   const args = {
-    gasPrice: '0x59682F00', // 1.5 Gwei
+    gasPrice: '0xB2D05E00', // 3 Gwei
   };
 
   const admin = '0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab';

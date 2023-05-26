@@ -2,14 +2,15 @@ const { ethers } = require('hardhat');
 
 async function main() {
   const args = {
-    gasPrice: '0x59682F00', // 1.5 Gwei
+    gasPrice: '0x1DCD65000', // 8 Gwei
   };
 
   const admin = '0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab';
+  const proxyAdmin = '0x0C92EC41A0Aba4F33B69dA6a931A7F74C309d143';
   const protocolFeeRecipient = '0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab';
   const protocolFee = 0.1;
 
-  const beaconDepositContract = '0x5Cc0ca9b4fe325Fa4c443475AE6C6d5f00d1631D'; // Lukso testnet
+  const beaconDepositContract = '0xCAfe00000000000000000000000000000000CAfe'; // Lukso testnet
 
   const AdminUpgradeabilityProxy = await ethers.getContractFactory(
     'AdminUpgradeabilityProxy'
@@ -21,7 +22,7 @@ async function main() {
   await rewardLyxToken.deployed();
   const rewardLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
     rewardLyxToken.address,
-    admin,
+    proxyAdmin,
     '0x',
     args
   );
@@ -42,7 +43,7 @@ async function main() {
   await stakedLyxToken.deployed();
   const stakedLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
     stakedLyxToken.address,
-    admin,
+    proxyAdmin,
     '0x',
     args
   );
@@ -63,7 +64,7 @@ async function main() {
   await pool.deployed();
   const poolProxy = await AdminUpgradeabilityProxy.deploy(
     pool.address,
-    admin,
+    proxyAdmin,
     '0x',
     args
   );
@@ -79,7 +80,7 @@ async function main() {
   await poolValidators.deployed();
   const poolValidatorsProxy = await AdminUpgradeabilityProxy.deploy(
     poolValidators.address,
-    admin,
+    proxyAdmin,
     '0x',
     args
   );
@@ -102,7 +103,7 @@ async function main() {
   await merkleDistributor.deployed();
   const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
     merkleDistributor.address,
-    admin,
+    proxyAdmin,
     '0x',
     args
   );
@@ -133,7 +134,7 @@ async function main() {
   await oracles.deployed();
   const oraclesProxy = await AdminUpgradeabilityProxy.deploy(
     oracles.address,
-    admin,
+    proxyAdmin,
     '0x',
     args
   );
