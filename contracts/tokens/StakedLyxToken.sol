@@ -43,10 +43,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     uint256 internal _totalDeposits;
 
     // @dev Total Unstaked - total amount of tokens that were unstaked from the staking node and submitted for claiming.
-    uint256 public totalUnstaked;
+    uint256 public override totalUnstaked;
 
     // @dev Total Pending Unstake - total amount of tokens pending to be unstaked. When unstaked, the amount unstaked is deducted
-    uint256 public totalPendingUnstake;
+    uint256 public override totalPendingUnstake;
 
     // @dev Unstake Request Count - Used as an index to keep track of unstake requests.
     uint256 public unstakeRequestCount;
@@ -347,26 +347,25 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     /**
      * @dev See {IStakedLyxToken-setUnstakeProcessing}.
      */
-    function setUnstakeProcessing(uint256 unstakeNonce) external override returns (bool) {
+    function setUnstakeProcessing() external override {
         require(msg.sender == oracles, "StakedLyxToken: access denied");
         require(!unstakeProcessing, "StakedLyxToken: unstaking already in progress");
+        require(totalPendingUnstake >= VALIDATOR_TOTAL_DEPOSIT, "StakedLyxToken: insufficient pending unstake");
 
-        if (totalPendingUnstake >= VALIDATOR_TOTAL_DEPOSIT) {
-            unstakeProcessing = true;
-            emit UnstakeReady(unstakeNonce, totalPendingUnstake);
-            return true;
-        } else {
-            emit UnstakeCancelled(unstakeNonce);
-            return false;
-        }
+        unstakeProcessing = true;
+        emit UnstakeReady((totalPendingUnstake - (totalPendingUnstake % VALIDATOR_TOTAL_DEPOSIT)) / VALIDATOR_TOTAL_DEPOSIT);
     }
 
     /**
      * @dev See {IStakedLyxToken-unstakeProcessed}.
      */
-    function unstakeProcessed(uint256 unstakeNonce, uint256 unstakeAmount) external override {
+    function unstakeProcessed(uint256 exitedValidators) external override {
         require(msg.sender == oracles, "StakedLyxToken: access denied");
         require(unstakeProcessing, "StakedLyxToken: unstaking not in process");
+
+        uint256 unstakeAmount = exitedValidators * VALIDATOR_TOTAL_DEPOSIT;
+
+        require(unstakeAmount <= totalPendingUnstake, "StakedLyxToken: insufficient pending unstake");
 
         totalPendingUnstake -= unstakeAmount;
         totalUnstaked += unstakeAmount;
@@ -388,9 +387,12 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             }
         }
 
-        unstakeProcessing = false;
+        // If less pending unstake under VALIDATOR_TOTAL_DEPOSIT, it means the unstake is completed
+        if (totalPendingUnstake < VALIDATOR_TOTAL_DEPOSIT) {
+            unstakeProcessing = false;
+        }
 
-        emit UnstakeProcessed(unstakeNonce, unstakeAmount, totalPendingUnstake);
+        emit UnstakeProcessed(unstakeAmount, totalPendingUnstake);
     }
 
     /**

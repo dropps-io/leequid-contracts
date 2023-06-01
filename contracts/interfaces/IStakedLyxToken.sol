@@ -26,16 +26,10 @@ interface IStakedLyxToken is ILSP7DigitalAsset {
     );
 
     event UnstakeReady(
-        uint256 unstakeNonce,
-        uint256 totalPendingUnstake
-    );
-
-    event UnstakeCancelled(
-        uint256 unstakeNonce
+        uint256 validatorsToExit
     );
 
     event UnstakeProcessed(
-        uint256 unstakeNonce,
         uint256 unstakeAmount,
         uint256 newTotalPendingUnstake
     );
@@ -50,6 +44,10 @@ interface IStakedLyxToken is ILSP7DigitalAsset {
     * @dev Function for retrieving the total deposits amount.
     */
     function totalDeposits() external view returns (uint256);
+
+    function totalUnstaked() external view returns (uint256);
+
+    function totalPendingUnstake() external view returns (uint256);
 
     function unstakeProcessing() external view returns (bool);
 
@@ -92,20 +90,17 @@ interface IStakedLyxToken is ILSP7DigitalAsset {
      * The ensure the pending unstake value doesn't change while being processed.
      * Only callable by the oracles contract. Requires unstaking not to be in progress.
      * Emits either an {UnstakeReady} or {UnstakeCancelled} event.
-     * @param unstakeNonce - the unstake nonce for the processing.
-     * @return bool - whether the unstake processing has been set.
      */
-    function setUnstakeProcessing(uint256 unstakeNonce) external returns (bool);
+    function setUnstakeProcessing() external;
 
     /**
      * @dev Submit the unstake amount so users can claim their unstakes.
      * Only callable by the oracles contract. Requires unstaking to be in progress.
      * Requires the unstake amount to be a multiple of VALIDATOR_TOTAL_DEPOSIT LYX.
      * Emits an {UnstakeProcessed} event.
-     * @param unstakeNonce - The unstake nonce for the processing.
-     * @param unstakeAmount - The amount of tokens unstaked.
+     * @param exitedValidators - The number of new exited validators.
      */
-    function unstakeProcessed(uint256 unstakeNonce, uint256 unstakeAmount) external;
+    function unstakeProcessed(uint256 exitedValidators) external;
 
     /**
      * @dev Claim unstake for the specified account and unstake request indexes.

@@ -152,6 +152,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     function submitRewards(
         uint256 totalRewards,
         uint256 activatedValidators,
+        uint256 exitedValidators,
         bytes[] calldata signatures
     ) external override onlyOracle whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
@@ -159,7 +160,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         // calculate candidate ID hash
         uint256 nonce = rewardsNonce.current();
         bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
-            keccak256(abi.encode(nonce, activatedValidators, totalRewards))
+            keccak256(abi.encode(nonce, activatedValidators, exitedValidators, totalRewards))
         );
 
         // check signatures and calculate number of submitted oracle votes
@@ -168,7 +169,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         // increment nonce for future signatures
         rewardsNonce.increment();
 
-        emit RewardsVoteSubmitted(msg.sender, signedOracles, nonce, totalRewards, activatedValidators);
+        emit RewardsVoteSubmitted(msg.sender, signedOracles, nonce, totalRewards, activatedValidators, exitedValidators);
 
         // update total rewards
         rewardLyxToken.updateTotalRewards(totalRewards);
@@ -176,6 +177,13 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         // update activated validators
         if (activatedValidators != pool.activatedValidators()) {
             pool.setActivatedValidators(activatedValidators);
+        }
+
+        uint256 newExitedValidators = exitedValidators - pool.exitedValidators();
+
+        if (newExitedValidators > 0) {
+            pool.setExitedValidators(exitedValidators);
+            stakedLyxToken.unstakeProcessed(newExitedValidators);
         }
     }
 
@@ -264,37 +272,12 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         // check signatures and calculate number of submitted oracle votes
         address[] memory signedOracles = _verifySignatures(candidateId, signatures);
 
-        // update total rewards
-        bool processing = stakedLyxToken.setUnstakeProcessing(nonce);
-
-        if (!processing) unstakeNonce.increment();
-
-        emit UnstakeProcessingVoteSubmitted(msg.sender, signedOracles, nonce);
-    }
-
-    /**
-     * @dev See {IOracles-submitUnstakeAmount}.
-    */
-    function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external override onlyOracle whenNotPaused {
-        require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
-        require(unstakeAmount > 0 &&  (unstakeAmount % VALIDATOR_TOTAL_DEPOSIT) == 0, "Oracles: unstake amount must be non null and a multiple of VALIDATOR_TOTAL_DEPOSIT LYX");
-
-        // calculate candidate ID hash
-        uint256 nonce = unstakeNonce.current();
-        bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
-            keccak256(abi.encode(nonce, unstakeAmount, "submitUnstakeAmount"))
-        );
-
-        // check signatures and calculate number of submitted oracle votes
-        address[] memory signedOracles = _verifySignatures(candidateId, signatures);
-
-        // update total rewards
-        stakedLyxToken.unstakeProcessed(nonce, unstakeAmount);
-        pool.addRemovedValidators(unstakeAmount / VALIDATOR_TOTAL_DEPOSIT);
+        // Set unstake as processing
+        stakedLyxToken.setUnstakeProcessing();
 
         unstakeNonce.increment();
 
-        emit SubmitUnstakeAmountVoteSubmitted(msg.sender, signedOracles, nonce, unstakeAmount);
+        emit UnstakeProcessingVoteSubmitted(msg.sender, signedOracles, nonce);
     }
 
     /**

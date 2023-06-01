@@ -16,13 +16,15 @@ interface IOracles {
     * @param nonce - current nonce.
     * @param totalRewards - submitted value of total rewards.
     * @param activatedValidators - submitted amount of activated validators.
+    * @param exitedValidators - submitted amount of exited validators.
     */
     event RewardsVoteSubmitted(
         address indexed sender,
         address[] oracles,
         uint256 nonce,
         uint256 totalRewards,
-        uint256 activatedValidators
+        uint256 activatedValidators,
+        uint256 exitedValidators
     );
 
     /**
@@ -57,13 +59,6 @@ interface IOracles {
         address indexed sender,
         address[] oracles,
         uint256 nonce
-    );
-
-    event SubmitUnstakeAmountVoteSubmitted(
-        address indexed sender,
-        address[] oracles,
-        uint256 nonce,
-        uint256 unstakeAmount
     );
 
     /**
@@ -126,11 +121,13 @@ interface IOracles {
     * The quorum of signatures over the same data is required to submit the new value.
     * @param totalRewards - voted total rewards.
     * @param activatedValidators - voted amount of activated validators.
+    * @param exitedValidators - voted amount of exited validators.
     * @param signatures - oracles' signatures.
     */
     function submitRewards(
         uint256 totalRewards,
         uint256 activatedValidators,
+        uint256 exitedValidators,
         bytes[] calldata signatures
     ) external;
 
@@ -169,14 +166,4 @@ interface IOracles {
      * Emits an {UnstakeProcessingVoteSubmitted} event.
      */
     function setUnstakeProcessing(bytes[] calldata signatures) external;
-
-    /**
-     * @dev Submit the unstake amount so users can claim their unstakes.
-     * Only callable by an Oracle and when contract is not paused and when the unstake processing status is true.
-     * Requires the unstake amount to be a multiple of VALIDATOR_TOTAL_DEPOSIT LYX.
-     * @param unstakeAmount - The unstake amount to be submitted.
-     * @param signatures -  Array of bytes containing signatures from oracles.
-     * Emits a {SubmitUnstakeAmountVoteSubmitted} event.
-     */
-    function submitUnstakeAmount(uint256 unstakeAmount, bytes[] calldata signatures) external;
 }

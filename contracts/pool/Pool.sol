@@ -25,8 +25,8 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     // @dev Total activated validators.
     uint256 public override activatedValidators;
 
-    // @dev Total removed validators.
-    uint256 public override removedValidators;
+    // @dev Total exited validators.
+    uint256 public override exitedValidators;
 
     // @dev Pool validator withdrawal credentials.
     bytes32 public override withdrawalCredentials;
@@ -120,11 +120,11 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     /**
     * @dev See {IPool-setActivatedValidators}.
     */
-    function addRemovedValidators(uint256 newRemovedValidators) external override {
+    function setExitedValidators(uint256 newExitedValidators) external override {
         require(msg.sender == oracles || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
 
-        removedValidators += newRemovedValidators;
-        emit RemovedValidatorsUpdated(removedValidators, msg.sender);
+        exitedValidators = newExitedValidators;
+        emit ExitedValidatorsUpdated(exitedValidators, msg.sender);
     }
 
     /**
@@ -214,9 +214,8 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
         // mint tokens if current pending validators limit is not exceeded
         uint256 _pendingValidators = pendingValidators + (address(this).balance / VALIDATOR_TOTAL_DEPOSIT);
         uint256 _activatedValidators = activatedValidators; // gas savings
-        uint256 _removedValidators = removedValidators; // gas savings
         uint256 validatorIndex = _activatedValidators + _pendingValidators;
-        if (validatorIndex * 1e4 <= (_activatedValidators - _removedValidators) * (pendingValidatorsLimit + 1e4)) {
+        if (validatorIndex * 1e4 <= _activatedValidators  * (pendingValidatorsLimit + 1e4)) {
             stakedLyxToken.mint(recipient, value, true, "");
         } else {
             // lock deposit amount until validator activated
@@ -230,7 +229,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
      * @dev See {IPool-canActivate}.
      */
     function canActivate(uint256 validatorIndex) external view override returns (bool) {
-        return validatorIndex * 1e4 <= (activatedValidators - removedValidators) * (pendingValidatorsLimit + 1e4);
+        return validatorIndex * 1e4 <= activatedValidators * (pendingValidatorsLimit + 1e4);
     }
 
     /**
@@ -240,7 +239,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 activatedAmount = _activateAmount(
             account,
             validatorIndex,
-            (activatedValidators - removedValidators) * (pendingValidatorsLimit + 1e4)
+            activatedValidators * (pendingValidatorsLimit + 1e4)
         );
         stakedLyxToken.mint(account, activatedAmount, true, "");
     }
@@ -250,7 +249,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     */
     function activateMultiple(address account, uint256[] calldata validatorIndexes) external override whenNotPaused {
         uint256 toMint;
-        uint256 maxValidatorIndex = (activatedValidators - removedValidators) * (pendingValidatorsLimit + 1e4);
+        uint256 maxValidatorIndex = activatedValidators * (pendingValidatorsLimit + 1e4);
         for (uint256 i = 0; i < validatorIndexes.length; i++) {
             uint256 activatedAmount = _activateAmount(account, validatorIndexes[i], maxValidatorIndex);
             toMint = toMint + activatedAmount;
