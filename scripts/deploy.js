@@ -45,11 +45,7 @@ async function main() {
 
   console.log('deploying FeesEscrow...');
   const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
-  const feesEscrow = await FeesEscrow.deploy(
-    pool.address,
-    rewardLyxToken.address,
-    args
-  );
+  const feesEscrow = await FeesEscrow.deploy(rewardLyxToken.address, args);
   await feesEscrow.deployed();
   console.log('FeesEscrow deployed to:', feesEscrow.address);
 

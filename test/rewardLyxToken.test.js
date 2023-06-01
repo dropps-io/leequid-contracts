@@ -36,7 +36,7 @@ describe('RewardLyxToken contract', function () {
     poolValidators = await PoolValidators.deploy();
     merkleDistributor = await MerkleDistributor.deploy();
     oracles = await Oracles.deploy();
-    feesEscrow = await FeesEscrow.deploy(pool.address, rewardLyxToken.address);
+    feesEscrow = await FeesEscrow.deploy(rewardLyxToken.address);
     beaconDepositMock = await DepositContract.deploy();
     await oracles.deployed();
     await rewardLyxToken.deployed();
