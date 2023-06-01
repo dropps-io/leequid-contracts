@@ -104,10 +104,10 @@ module.exports = {
       chainId: 4201, // The chain ID of the custom network (replace with the correct value)
       // You can also set other network-specific configurations, such as gas and block gas limit
     },
-    l3030: {
-      url: `https://rpc.execution.3030.devnet.lukso.dev`, // Replace this with the RPC URL for your custom network
+    luksoDevnet: {
+      url: `https://rpc.devnet.lukso.dev/`, // Replace this with the RPC URL for your custom network
       accounts: [process.env.PRIVATE_KEY], // The private key of the deployer account
-      chainId: 3030, // The chain ID of the custom network (replace with the correct value)
+      chainId: 7420, // The chain ID of the custom network (replace with the correct value)
       // You can also set other network-specific configurations, such as gas and block gas limit
     },
     sepolia: {

@@ -121,8 +121,8 @@ async function main() {
   console.log('deploying FeesEscrow...');
   const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
   const feesEscrow = await FeesEscrow.deploy(
-    pool.address,
-    rewardLyxToken.address,
+    poolProxy.address,
+    rewardLyxTokenProxy.address,
     args
   );
   await feesEscrow.deployed();

@@ -229,7 +229,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     function updateTotalRewards(uint256 newTotalRewards) external override {
         require(msg.sender == oracles, "RewardLyxToken: access denied");
 
-        uint256 feesCollected = feesEscrow.transferToPool();
+        uint256 feesCollected = feesEscrow.transferToRewards();
         uint256 periodRewards = newTotalRewards + feesCollected.toUint128() - totalRewards;
         if (periodRewards == 0) {
             lastUpdateBlockNumber = block.number;
