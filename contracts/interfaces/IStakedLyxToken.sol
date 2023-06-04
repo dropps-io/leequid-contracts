@@ -3,8 +3,9 @@
 pragma solidity ^0.8.20;
 
 import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
+import {ILSP7CompatibleERC20} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/extensions/ILSP7CompatibleERC20.sol";
 
-interface IStakedLyxToken is ILSP7DigitalAsset {
+interface IStakedLyxToken is ILSP7DigitalAsset, ILSP7CompatibleERC20 {
 
     struct UnstakeRequest {
         address account;

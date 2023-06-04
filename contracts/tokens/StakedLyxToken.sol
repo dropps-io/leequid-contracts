@@ -626,4 +626,29 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             }
         }
     }
+
+    // --- Methods for ERC20 compatibility ---
+
+    function allowance(address tokenOwner, address operator) public view virtual returns (uint256) {
+        return authorizedAmountFor(operator, tokenOwner);
+    }
+
+    function approve(address operator, uint256 amount) public virtual returns (bool) {
+        authorizeOperator(operator, amount);
+        return true;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual returns (bool) {
+        transfer(from, to, amount, true, "");
+        return true;
+    }
+
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
+        transfer(msg.sender, to, amount, true, "");
+        return true;
+    }
 }
