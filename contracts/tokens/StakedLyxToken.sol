@@ -119,6 +119,18 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     }
 
     /**
+     * @dev See {IStakedLyxToken-totalClaimableAmount}.
+     */
+    function totalClaimableUnstakes() public view override returns (uint256) {
+        uint256 totalClaimable;
+        for (uint256 i = 0; i <= unstakeRequestCurrentIndex; i++) {
+            UnstakeRequest memory _request = _unstakeRequests[i];
+            if (isUnstakeRequestClaimable(i)) totalClaimable += _request.amount;
+        }
+        return totalClaimable;
+    }
+
+    /**
      * @dev See {IStakedLyxToken-unstakeRequest}.
      */
     function unstakeRequest(uint256 index) public view override returns (UnstakeRequest memory) {

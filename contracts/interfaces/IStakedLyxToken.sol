@@ -46,14 +46,34 @@ interface IStakedLyxToken is ILSP7DigitalAsset, ILSP7CompatibleERC20 {
     */
     function totalDeposits() external view returns (uint256);
 
+    /**
+    * @dev Function for retrieving the total amount of unstake requests claimable.
+    */
+    function totalClaimableUnstakes() external view returns (uint256);
+
+    /**
+    * @dev Function for retrieving the total amount Lyx unstaked.
+    */
     function totalUnstaked() external view returns (uint256);
 
+    /**
+    * @dev Function for retrieving the total amount Lyx to be unstaked.
+    */
     function totalPendingUnstake() external view returns (uint256);
 
+    /**
+    * @dev Function for know whether an unstake (validators exiting) is being processed.
+    */
     function unstakeProcessing() external view returns (bool);
 
+    /**
+    * @dev Function to retrieve an unstake request.
+    */
     function unstakeRequest(uint256 index) external view returns (UnstakeRequest memory);
 
+    /**
+    * @dev Function to verify whether an unstake request is claimable.
+    */
     function isUnstakeRequestClaimable(uint256 index) external view returns (bool);
 
     /**
