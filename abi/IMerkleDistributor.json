@@ -318,7 +318,7 @@
   },
   {
     "inputs": [],
-    "name": "rewardEthToken",
+    "name": "rewardLyxToken",
     "outputs": [
       {
         "internalType": "address",

@@ -36,10 +36,10 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     // @dev Validators nonce is used to protect from submitting the same validator vote several times.
     CountersUpgradeable.Counter private validatorsNonce;
 
-    // @dev Unstake nonce is used to protect from requesting to start .
+    // @dev Unstake nonce is used to protect from requesting to unstake from previous signatures.
     CountersUpgradeable.Counter private unstakeNonce;
 
-    // @dev Address of the RewardLyxToken contract.
+    // @dev Address of the RewardLyxToken & StakedLyxToken contracts.
     IRewardLyxToken private rewardLyxToken;
     IStakedLyxToken private stakedLyxToken;
 

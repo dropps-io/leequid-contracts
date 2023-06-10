@@ -104,7 +104,7 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken
         .connect(user1)
         .unstake(ethers.utils.parseEther('32'));
-      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
       await expect(
         stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('1'))
       ).to.be.revertedWith('StakedLyxToken: unstaking in progress');
@@ -217,7 +217,7 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken
         .connect(user1)
         .unstake(ethers.utils.parseEther('32'));
-      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
       await expect(
         stakedLyxToken.connect(admin).matchUnstake(ethers.utils.parseEther('1'))
       ).to.be.revertedWith('StakedLyxToken: unstaking in progress');
@@ -405,14 +405,14 @@ describe('StakedLyxToken contract', function () {
   describe('setUnstakeProcessing', function () {
     it('should revert if not called by admin', async function () {
       await expect(
-        stakedLyxToken.connect(user1).setUnstakeProcessing(1)
+        stakedLyxToken.connect(user1).setUnstakeProcessing()
       ).to.be.revertedWith('StakedLyxToken: access denied');
     });
 
     it('should not be able to setUnstakeProcessing if less than 32LYX pending unstake', async function () {
-      await expect(stakedLyxToken.connect(admin).setUnstakeProcessing(1))
-        .to.emit(stakedLyxToken, 'UnstakeCancelled')
-        .withArgs(1);
+      await expect(
+        stakedLyxToken.connect(admin).setUnstakeProcessing()
+      ).to.be.revertedWith('StakedLyxToken: insufficient pending unstake');
       const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
       expect(unstakeProcessing).to.equal(false);
     });
@@ -420,13 +420,13 @@ describe('StakedLyxToken contract', function () {
     it('should be able to setUnstakeProcessing if more than 32LYX pending unstake', async function () {
       await stakedLyxToken
         .connect(admin)
-        .mint(user1.address, ethers.utils.parseEther('32'), true, '0x');
+        .mint(user1.address, ethers.utils.parseEther('42'), true, '0x');
       await stakedLyxToken
         .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
-      await expect(stakedLyxToken.connect(admin).setUnstakeProcessing(1))
+        .unstake(ethers.utils.parseEther('42'));
+      await expect(stakedLyxToken.connect(admin).setUnstakeProcessing())
         .to.emit(stakedLyxToken, 'UnstakeReady')
-        .withArgs(1, ethers.utils.parseEther('32'));
+        .withArgs(1);
 
       const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
       expect(unstakeProcessing).to.equal(true);
@@ -445,13 +445,13 @@ describe('StakedLyxToken contract', function () {
 
     it('should revert if not called by the pool contract', async function () {
       await expect(
-        stakedLyxToken.connect(user1).unstakeProcessed(1, user1.address)
+        stakedLyxToken.connect(user1).unstakeProcessed(1)
       ).to.be.revertedWith('StakedLyxToken: access denied');
     });
 
     it('should revert if the unstake request does not exist', async function () {
       await expect(
-        stakedLyxToken.connect(admin).unstakeProcessed(1, user1.address)
+        stakedLyxToken.connect(admin).unstakeProcessed(1)
       ).to.be.revertedWith('StakedLyxToken: unstaking not in process');
     });
 
@@ -459,10 +459,8 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken
         .connect(user1)
         .unstake(ethers.utils.parseEther('32'));
-      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
-      await stakedLyxToken
-        .connect(admin)
-        .unstakeProcessed(1, ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
+      await stakedLyxToken.connect(admin).unstakeProcessed(1);
 
       const unstakeRequest = await stakedLyxToken.unstakeRequest(1);
       const totalPendingUnstake = await stakedLyxToken.totalPendingUnstake();
@@ -481,31 +479,21 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken
         .connect(user1)
         .unstake(ethers.utils.parseEther('32'));
-      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
 
-      await expect(
-        stakedLyxToken
-          .connect(admin)
-          .unstakeProcessed(1, ethers.utils.parseEther('32'))
-      )
+      await expect(stakedLyxToken.connect(admin).unstakeProcessed(1))
         .to.emit(stakedLyxToken, 'UnstakeProcessed')
-        .withArgs(
-          1,
-          ethers.utils.parseEther('32'),
-          ethers.utils.parseEther('0')
-        );
+        .withArgs(ethers.utils.parseEther('32'), ethers.utils.parseEther('0'));
     });
 
     it('should not change the user balance', async function () {
       await stakedLyxToken
         .connect(user1)
         .unstake(ethers.utils.parseEther('32'));
-      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
 
       const userBalanceBefore = await stakedLyxToken.balanceOf(user1.address);
-      await stakedLyxToken
-        .connect(admin)
-        .unstakeProcessed(1, ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(admin).unstakeProcessed(1);
       const userBalanceAfter = await stakedLyxToken.balanceOf(user1.address);
 
       expect(userBalanceAfter).to.equal(userBalanceBefore);
@@ -523,10 +511,8 @@ describe('StakedLyxToken contract', function () {
         .unstake(ethers.utils.parseEther('18'));
       await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('3'));
 
-      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
-      await stakedLyxToken
-        .connect(admin)
-        .unstakeProcessed(1, ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
+      await stakedLyxToken.connect(admin).unstakeProcessed(1);
 
       let unstakeRequestCurrentIndex =
         await stakedLyxToken.unstakeRequestCurrentIndex();
@@ -539,10 +525,7 @@ describe('StakedLyxToken contract', function () {
       );
       expect(totalPendingUnstake).to.equal(ethers.utils.parseEther('32'));
 
-      await stakedLyxToken.connect(admin).setUnstakeProcessing(1);
-      await stakedLyxToken
-        .connect(admin)
-        .unstakeProcessed(1, ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(admin).unstakeProcessed(1);
 
       unstakeRequestCurrentIndex =
         await stakedLyxToken.unstakeRequestCurrentIndex();

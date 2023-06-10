@@ -9,10 +9,10 @@
         "type": "address"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "oracle",
-        "type": "address"
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "oracles",
+        "type": "address[]"
       },
       {
         "indexed": false,
@@ -97,10 +97,10 @@
         "type": "address"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "oracle",
-        "type": "address"
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "oracles",
+        "type": "address[]"
       },
       {
         "indexed": false,
@@ -119,10 +119,54 @@
         "internalType": "uint256",
         "name": "activatedValidators",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "exitedValidators",
+        "type": "uint256"
       }
     ],
     "name": "RewardsVoteSubmitted",
     "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "oracles",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nonce",
+        "type": "uint256"
+      }
+    ],
+    "name": "UnstakeProcessingVoteSubmitted",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "VALIDATOR_TOTAL_DEPOSIT",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [
@@ -140,6 +184,19 @@
   {
     "inputs": [],
     "name": "currentRewardsNonce",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentUnstakeNonce",
     "outputs": [
       {
         "internalType": "uint256",
@@ -266,6 +323,19 @@
   {
     "inputs": [
       {
+        "internalType": "bytes[]",
+        "name": "signatures",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "setUnstakeProcessing",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes32",
         "name": "merkleRoot",
         "type": "bytes32"
@@ -296,6 +366,11 @@
       {
         "internalType": "uint256",
         "name": "activatedValidators",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "exitedValidators",
         "type": "uint256"
       },
       {

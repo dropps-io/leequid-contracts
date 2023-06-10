@@ -8,7 +8,6 @@ const {
   registerValidators,
   generateSignaturesForSubmitMerkleRoot,
   generateSignaturesForSetUnstakeProcessing,
-  generateSignaturesForSubmitUnstakeAmount,
 } = require('./utils');
 
 describe('Oracles contract', function () {
@@ -438,6 +437,7 @@ describe('Oracles contract', function () {
     const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
     const stakePerUser = ethers.utils.parseEther((stakedAmount / 4).toString());
     const activatedValidators = 2;
+    const exitedValidators = 0;
 
     beforeEach(async function () {
       await pool.connect(user1).stake({ value: stakePerUser });
@@ -463,13 +463,19 @@ describe('Oracles contract', function () {
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
         totalRewardsWei,
-        activatedValidators
+        activatedValidators,
+        exitedValidators
       );
 
       // Call submitRewards with the signatures
       await oracles
         .connect(oracle1)
-        .submitRewards(totalRewardsWei, activatedValidators, signatures);
+        .submitRewards(
+          totalRewardsWei,
+          activatedValidators,
+          exitedValidators,
+          signatures
+        );
 
       const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
         admin.address
@@ -498,13 +504,19 @@ describe('Oracles contract', function () {
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
         totalRewardsWei,
-        activatedValidators
+        activatedValidators,
+        exitedValidators
       );
 
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+          .submitRewards(
+            totalRewardsWei,
+            activatedValidators,
+            exitedValidators,
+            signatures
+          )
       )
         .to.emit(oracles, 'RewardsVoteSubmitted')
         .withArgs(
@@ -512,7 +524,8 @@ describe('Oracles contract', function () {
           [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
           nonce,
           totalRewardsWei,
-          activatedValidators
+          activatedValidators,
+          exitedValidators
         );
     });
 
@@ -523,14 +536,20 @@ describe('Oracles contract', function () {
         [oracle1, oracle2],
         nonce.toString(),
         totalRewardsWei,
-        activatedValidators
+        activatedValidators,
+        exitedValidators
       );
 
       // Call submitRewards with the signatures
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+          .submitRewards(
+            totalRewardsWei,
+            activatedValidators,
+            exitedValidators,
+            signatures
+          )
       ).to.be.revertedWith('Oracles: invalid number of signatures');
     });
 
@@ -541,14 +560,20 @@ describe('Oracles contract', function () {
         [oracle1, oracle2, oracle3, admin],
         nonce.toString(),
         totalRewardsWei,
-        activatedValidators
+        activatedValidators,
+        exitedValidators
       );
 
       // Call submitRewards with the signatures
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+          .submitRewards(
+            totalRewardsWei,
+            activatedValidators,
+            exitedValidators,
+            signatures
+          )
       ).to.be.revertedWith('Oracles: invalid signer');
     });
 
@@ -559,14 +584,20 @@ describe('Oracles contract', function () {
         [oracle1, oracle2, oracle3, oracle3],
         nonce.toString(),
         totalRewardsWei,
-        activatedValidators
+        activatedValidators,
+        exitedValidators
       );
 
       // Call submitRewards with the signatures
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(totalRewardsWei, activatedValidators, signatures)
+          .submitRewards(
+            totalRewardsWei,
+            activatedValidators,
+            exitedValidators,
+            signatures
+          )
       ).to.be.revertedWith('Oracles: repeated signature');
     });
 
@@ -577,20 +608,27 @@ describe('Oracles contract', function () {
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
         totalRewardsWei,
-        activatedValidators
+        activatedValidators,
+        exitedValidators
       );
 
       // Call submitRewards with the signatures
       await oracles
         .connect(oracle1)
-        .submitRewards(totalRewardsWei, activatedValidators, signatures);
+        .submitRewards(
+          totalRewardsWei,
+          activatedValidators,
+          exitedValidators,
+          signatures
+        );
 
       nonce = await oracles.currentRewardsNonce();
       signatures = await generateSignaturesForSubmitRewards(
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
         ethers.utils.parseEther('200'),
-        activatedValidators
+        activatedValidators,
+        exitedValidators
       );
 
       await oracles
@@ -598,6 +636,7 @@ describe('Oracles contract', function () {
         .submitRewards(
           ethers.utils.parseEther('200'),
           activatedValidators,
+          exitedValidators,
           signatures
         );
 
@@ -643,7 +682,8 @@ describe('Oracles contract', function () {
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
         ethers.utils.parseEther('100'),
-        getTestDepositData(operator.address).length
+        getTestDepositData(operator.address).length,
+        0
       );
 
       // Call submitRewards with the signatures
@@ -652,6 +692,7 @@ describe('Oracles contract', function () {
         .submitRewards(
           ethers.utils.parseEther('100'),
           getTestDepositData(operator.address).length,
+          0,
           signatures
         );
     });
@@ -857,7 +898,8 @@ describe('Oracles contract', function () {
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
         ethers.utils.parseEther('200'),
-        getTestDepositData(operator.address).length
+        getTestDepositData(operator.address).length,
+        0
       );
 
       // Call submitRewards with the signatures
@@ -866,6 +908,7 @@ describe('Oracles contract', function () {
         .submitRewards(
           ethers.utils.parseEther('200'),
           getTestDepositData(operator.address).length,
+          0,
           signatures
         );
 
@@ -906,26 +949,6 @@ describe('Oracles contract', function () {
         .stake({ value: ethers.utils.parseEther('100') });
     });
 
-    it('Should increase nonce and emit UnstakeCancelled event if nothing to unstake', async function () {
-      const nonce = await oracles.currentUnstakeNonce();
-
-      const signatures = await generateSignaturesForSetUnstakeProcessing(
-        [oracle1, oracle2, oracle3, oracle4],
-        nonce.toString()
-      );
-
-      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures))
-        .to.emit(stakedLyxToken, 'UnstakeCancelled')
-        .withArgs(nonce.toString());
-
-      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
-
-      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
-      expect(unstakeProcessing).to.equal(false);
-    });
-
     it('Should not increase nonce and emit UnstakeReady event if 32LYX or more to unstake', async function () {
       await stakedLyxToken
         .connect(user1)
@@ -940,12 +963,12 @@ describe('Oracles contract', function () {
 
       await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures))
         .to.emit(stakedLyxToken, 'UnstakeReady')
-        .withArgs(nonce.toString(), ethers.utils.parseEther('32'));
+        .withArgs(1);
 
       const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
 
       expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
-        nonce.toNumber()
+        nonce.add(1).toNumber()
       );
       expect(unstakeProcessing).to.equal(true);
     });
@@ -957,12 +980,18 @@ describe('Oracles contract', function () {
 
       const nonce = await oracles.currentUnstakeNonce();
 
-      const signatures = await generateSignaturesForSetUnstakeProcessing(
+      let signatures = await generateSignaturesForSetUnstakeProcessing(
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString()
       );
 
       await oracles.connect(oracle1).setUnstakeProcessing(signatures);
+
+      signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.add(1).toString()
+      );
+
       await expect(
         oracles.connect(oracle1).setUnstakeProcessing(signatures)
       ).to.revertedWith('StakedLyxToken: unstaking already in progress');
@@ -1017,127 +1046,6 @@ describe('Oracles contract', function () {
       await expect(
         oracles.connect(oracle1).setUnstakeProcessing(signatures)
       ).to.revertedWith('Oracles: repeated signature');
-    });
-  });
-
-  describe('submitUnstakeAmount', function () {
-    let processingSignatures;
-
-    beforeEach(async function () {
-      await pool
-        .connect(user1)
-        .stake({ value: ethers.utils.parseEther('100') });
-      await pool
-        .connect(user2)
-        .stake({ value: ethers.utils.parseEther('100') });
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
-
-      const nonce = await oracles.currentUnstakeNonce();
-
-      processingSignatures = await generateSignaturesForSetUnstakeProcessing(
-        [oracle1, oracle2, oracle3, oracle4],
-        nonce.toString()
-      );
-    });
-
-    it('Should revert when not enough signatures', async function () {
-      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
-      const nonce = await oracles.currentUnstakeNonce();
-
-      const signatures = await generateSignaturesForSubmitUnstakeAmount(
-        [oracle1, oracle2],
-        nonce.toString(),
-        ethers.utils.parseEther('32')
-      );
-
-      await expect(
-        oracles
-          .connect(oracle1)
-          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
-      ).to.revertedWith('Oracles: invalid number of signatures');
-    });
-
-    it('Should revert if wrong signature', async function () {
-      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
-      const nonce = await oracles.currentUnstakeNonce();
-
-      const signatures = await generateSignaturesForSubmitUnstakeAmount(
-        [oracle1, oracle2, oracle3, admin],
-        nonce.toString(),
-        ethers.utils.parseEther('32')
-      );
-
-      await expect(
-        oracles
-          .connect(oracle1)
-          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
-      ).to.revertedWith('Oracles: invalid signer');
-    });
-
-    it('Should revert if repeated signature', async function () {
-      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
-      const nonce = await oracles.currentUnstakeNonce();
-
-      const signatures = await generateSignaturesForSubmitUnstakeAmount(
-        [oracle1, oracle2, oracle3, oracle3],
-        nonce.toString(),
-        ethers.utils.parseEther('32')
-      );
-
-      await expect(
-        oracles
-          .connect(oracle1)
-          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
-      ).to.revertedWith('Oracles: repeated signature');
-    });
-
-    it('Should revert if unstake not processing', async function () {
-      const nonce = await oracles.currentUnstakeNonce();
-
-      const signatures = await generateSignaturesForSubmitUnstakeAmount(
-        [oracle1, oracle2, oracle3, oracle4],
-        nonce.toString(),
-        ethers.utils.parseEther('32')
-      );
-
-      await expect(
-        oracles
-          .connect(oracle1)
-          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
-      ).to.revertedWith('StakedLyxToken: unstaking not in process');
-    });
-
-    it('Should process unstake if all right information', async function () {
-      await oracles.connect(oracle1).setUnstakeProcessing(processingSignatures);
-      const nonce = await oracles.currentUnstakeNonce();
-
-      const signatures = await generateSignaturesForSubmitUnstakeAmount(
-        [oracle1, oracle2, oracle3, oracle4],
-        nonce.toString(),
-        ethers.utils.parseEther('32')
-      );
-
-      await expect(
-        oracles
-          .connect(oracle1)
-          .submitUnstakeAmount(ethers.utils.parseEther('32'), signatures)
-      )
-        .to.emit(oracles, 'SubmitUnstakeAmountVoteSubmitted')
-        .withArgs(
-          oracle1.address,
-          [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
-          nonce.toString(),
-          ethers.utils.parseEther('32')
-        );
-
-      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
-
-      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
-      expect(unstakeProcessing).to.equal(false);
     });
   });
 });

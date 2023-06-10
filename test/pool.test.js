@@ -126,7 +126,8 @@ describe('Pool contract', function () {
       [oracle],
       nonce.toString(),
       ethers.utils.parseEther('100'),
-      depositData.length
+      depositData.length,
+      0
     );
 
     // Call submitRewards with the signatures
@@ -135,6 +136,7 @@ describe('Pool contract', function () {
       .submitRewards(
         ethers.utils.parseEther('100'),
         depositData.length,
+        0,
         signatures
       );
 
@@ -253,14 +255,15 @@ describe('Pool contract', function () {
         [oracle],
         nonce.toString(),
         ethers.utils.parseEther('100'),
-        3
+        3,
+        0
       );
 
       // Once the rewards are submitted with the new number of validators, the activatedValidators value is updated
       // Meaning the new maxIndex increased so we can activate our deposit
       await oracles
         .connect(oracle)
-        .submitRewards(ethers.utils.parseEther('100'), 3, signatures);
+        .submitRewards(ethers.utils.parseEther('100'), 3, 0, signatures);
 
       const sLYXBalanceBefore = await stakedLyxToken.balanceOf(user1.address);
       await pool.connect(user1).activate(user1.address, 3);
@@ -295,14 +298,15 @@ describe('Pool contract', function () {
         [oracle],
         nonce.toString(),
         ethers.utils.parseEther('100'),
-        3
+        3,
+        0
       );
 
       // Once the rewards are submitted with the new number of validators, the activatedValidators value is updated
       // Meaning the new maxIndex increased so we can activate our deposit
       await oracles
         .connect(oracle)
-        .submitRewards(ethers.utils.parseEther('100'), 3, signatures);
+        .submitRewards(ethers.utils.parseEther('100'), 3, 0, signatures);
 
       await expect(pool.connect(user1).activate(user1.address, 3))
         .to.emit(pool, 'Activated')

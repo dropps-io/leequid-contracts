@@ -489,6 +489,29 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "_admin",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_rewardLyxToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_oracles",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "_account",
         "type": "address"
       }
@@ -665,7 +688,7 @@
   },
   {
     "inputs": [],
-    "name": "rewardEthToken",
+    "name": "rewardLyxToken",
     "outputs": [
       {
         "internalType": "address",

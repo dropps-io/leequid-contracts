@@ -327,11 +327,12 @@ const generateSignaturesForSubmitRewards = async function (
   signers,
   nonce,
   totalRewards,
-  activatedValidators
+  activatedValidators,
+  exitedValidators
 ) {
   let encoded = defaultAbiCoder.encode(
-    ['uint256', 'uint256', 'uint256'],
-    [nonce, activatedValidators, totalRewards]
+    ['uint256', 'uint256', 'uint256', 'uint256'],
+    [nonce, activatedValidators, exitedValidators, totalRewards]
   );
   let candidateId = hexlify(keccak256(encoded));
 

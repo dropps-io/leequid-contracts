@@ -3,9 +3,8 @@
 pragma solidity ^0.8.20;
 
 import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
-import {ILSP7CompatibleERC20} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/extensions/ILSP7CompatibleERC20.sol";
 
-interface IStakedLyxToken is ILSP7DigitalAsset, ILSP7CompatibleERC20 {
+interface IStakedLyxToken is ILSP7DigitalAsset {
 
     struct UnstakeRequest {
         address account;
@@ -110,7 +109,7 @@ interface IStakedLyxToken is ILSP7DigitalAsset, ILSP7CompatibleERC20 {
      * @dev Set unstake processing status to true. Block any new unstake request and stakes/unstakes matching.
      * The ensure the pending unstake value doesn't change while being processed.
      * Only callable by the oracles contract. Requires unstaking not to be in progress.
-     * Emits either an {UnstakeReady} or {UnstakeCancelled} event.
+     * Emits either an UnstakeReady event.
      */
     function setUnstakeProcessing() external;
 
@@ -142,4 +141,49 @@ interface IStakedLyxToken is ILSP7DigitalAsset, ILSP7CompatibleERC20 {
         uint256 amount,
         bool allowNonLSP1Recipient,
         bytes memory data) external;
+
+    // -- ERC20 Compatibility --
+
+    /**
+    * @notice To provide compatibility with indexing ERC20 events.
+     * @dev Emitted when `owner` enables `spender` for `value` tokens.
+     * @param owner The account giving approval
+     * @param spender The account receiving approval
+     * @param value The amount of tokens `spender` has access to from `owner`
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    /*
+     * @dev Compatible with ERC20 transfer
+     * @param to The receiving address
+     * @param amount The amount of tokens to transfer
+     */
+    function transfer(address to, uint256 amount) external returns (bool);
+
+    /*
+     * @dev Compatible with ERC20 transferFrom
+     * @param from The sending address
+     * @param to The receiving address
+     * @param amount The amount of tokens to transfer
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+
+    /*
+     * @dev Compatible with ERC20 approve
+     * @param operator The address to approve for `amount`
+     * @param amount The amount to approve
+     */
+    function approve(address operator, uint256 amount) external returns (bool);
+
+    /*
+     * @dev Compatible with ERC20 allowance
+     * @param tokenOwner The address of the token owner
+     * @param operator The address approved by the `tokenOwner`
+     * @return The amount `operator` is approved by `tokenOwner`
+     */
+    function allowance(address tokenOwner, address operator) external view returns (uint256);
 }
