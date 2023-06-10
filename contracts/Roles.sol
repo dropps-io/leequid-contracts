@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.20;
 
-import "./presets/OwnablePausableUpgradeable.sol";
-import "./interfaces/IRoles.sol";
+import {OwnablePausableUpgradeable} from "./presets/OwnablePausableUpgradeable.sol";
+import {IRoles} from "./interfaces/IRoles.sol";
 
 /**
  * @title Roles

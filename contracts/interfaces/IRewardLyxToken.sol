@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import "./IFeesEscrow.sol";
+import {IFeesEscrow} from "./IFeesEscrow.sol";
 
 /**
  * @dev Interface of the RewardEthToken contract.

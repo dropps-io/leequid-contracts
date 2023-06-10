@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import "../presets/OwnablePausableUpgradeable.sol";
+import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
 
 contract OwnablePausableUpgradeableMock is OwnablePausableUpgradeable {
     function initialize(address _admin) external initializer {

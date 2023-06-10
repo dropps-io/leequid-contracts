@@ -15,7 +15,16 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // errors
-import "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
+import {LSP7AmountExceedsAuthorizedAmount,
+        LSP7CannotSendToSelf,
+        LSP7InvalidTransferBatch,
+        LSP7CannotUseAddressZeroAsOperator,
+        LSP7TokenOwnerCannotBeOperator,
+        LSP7CannotSendWithAddressZero,
+        LSP7AmountExceedsBalance,
+        LSP7NotifyTokenReceiverContractMissingLSP1Interface,
+        LSP7NotifyTokenReceiverIsEOA
+} from  "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
 import {_INTERFACEID_LSP1} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
@@ -25,7 +34,7 @@ import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
 import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@erc725/smart-contracts/contracts/ERC725YCore.sol";
+import {ERC725YCore} from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**

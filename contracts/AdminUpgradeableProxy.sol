@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import { ERC1967Proxy } from '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
  * @title AdminUpgradeabilityProxy
@@ -22,7 +22,7 @@ contract AdminUpgradeabilityProxy is ERC1967Proxy {
    * https://solidity.readthedocs.io/en/v0.4.24/abi-spec.html#function-selector-and-argument-encoding.
    * This parameter is optional, if no data is given the initialization call to proxied contract will be skipped.
    */
-    constructor(address _logic, address _admin, bytes memory _data) ERC1967Proxy(_logic, _data) public payable {
+    constructor(address _logic, address _admin, bytes memory _data) public ERC1967Proxy(_logic, _data) payable {
         _changeAdmin(_admin);
     }
 
@@ -68,7 +68,7 @@ contract AdminUpgradeabilityProxy is ERC1967Proxy {
      * It should include the signature and the parameters of the function to be called, as described in
      * https://solidity.readthedocs.io/en/v0.4.24/abi-spec.html#function-selector-and-argument-encoding.
      */
-    function upgradeToAndCall(address newImplementation, bytes calldata data) payable external ifAdmin {
+    function upgradeToAndCall(address newImplementation, bytes calldata data) external payable ifAdmin {
         _upgradeTo(newImplementation);
         (bool success,) = newImplementation.delegatecall(data);
         require(success);

@@ -3,16 +3,13 @@
 pragma solidity 0.8.20;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
-import "../presets/OwnablePausableUpgradeable.sol";
-import "../interfaces/IPoolValidators.sol";
-import "../interfaces/IPool.sol";
+import {MerkleProofUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
+import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
+import {IPoolValidators} from "../interfaces/IPoolValidators.sol";
+import {IPool} from "../interfaces/IPool.sol";
 
 /**
 

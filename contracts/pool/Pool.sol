@@ -3,14 +3,13 @@
 pragma solidity ^0.8.20;
 pragma abicoder v2;
 
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "../presets/OwnablePausableUpgradeable.sol";
-import "../interfaces/IStakedLyxToken.sol";
-import "../interfaces/IRewardLyxToken.sol";
-import "../interfaces/IDepositContract.sol";
-import "../interfaces/IPoolValidators.sol";
-import "../interfaces/IPool.sol";
-import "../interfaces/IPoolValidators.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
+import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
+import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
+import {IDepositContract} from "../interfaces/IDepositContract.sol";
+import {IPoolValidators} from "../interfaces/IPoolValidators.sol";
+import {IPool} from "../interfaces/IPool.sol";
 
 /**
 

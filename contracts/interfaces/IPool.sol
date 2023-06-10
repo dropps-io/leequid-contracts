@@ -3,8 +3,8 @@
 pragma solidity ^0.8.20;
 pragma abicoder v2;
 
-import "./IDepositContract.sol";
-import "./IPoolValidators.sol";
+import {IDepositContract} from "./IDepositContract.sol";
+import {IPoolValidators} from "./IPoolValidators.sol";
 
 /**
  * @dev Interface of the Pool contract.

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import "./IPoolValidators.sol";
+import {IPoolValidators} from "./IPoolValidators.sol";
 pragma abicoder v2;
 
 /**

@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "./IOracles.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IOracles} from "./IOracles.sol";
 
 /**
  * @dev Interface of the MerkleDistributor contract.

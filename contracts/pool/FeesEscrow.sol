@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import "../interfaces/IFeesEscrow.sol";
+import {IFeesEscrow} from "../interfaces/IFeesEscrow.sol";
 
 /**
  * @title FeesEscrow

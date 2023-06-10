@@ -3,9 +3,9 @@
 pragma solidity ^0.8.20;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "../interfaces/IOracles.sol";
-import "../interfaces/IMerkleDistributor.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IOracles} from "../interfaces/IOracles.sol";
+import {IMerkleDistributor} from "../interfaces/IMerkleDistributor.sol";
 
 contract MulticallMock {
     struct OracleRewards {

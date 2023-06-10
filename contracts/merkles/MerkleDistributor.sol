@@ -2,14 +2,15 @@
 
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "../presets/OwnablePausableUpgradeable.sol";
-import "../interfaces/IMerkleDistributor.sol";
-import "../interfaces/IOracles.sol";
-import "../interfaces/IRewardLyxToken.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MerkleProofUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
+import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
+import {IMerkleDistributor} from "../interfaces/IMerkleDistributor.sol";
+import {IOracles} from "../interfaces/IOracles.sol";
+import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
 
 
 /**

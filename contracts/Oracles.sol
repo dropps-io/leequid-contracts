@@ -3,15 +3,15 @@
 pragma solidity 0.8.20;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
-import "./presets/OwnablePausableUpgradeable.sol";
-import "./interfaces/IRewardLyxToken.sol";
-import "./interfaces/IPool.sol";
-import "./interfaces/IOracles.sol";
-import "./interfaces/IMerkleDistributor.sol";
-import "./interfaces/IPoolValidators.sol";
-import "./interfaces/IStakedLyxToken.sol";
+import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
+import {ECDSAUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
+import {OwnablePausableUpgradeable} from "./presets/OwnablePausableUpgradeable.sol";
+import {IRewardLyxToken} from "./interfaces/IRewardLyxToken.sol";
+import {IPool} from "./interfaces/IPool.sol";
+import {IOracles} from "./interfaces/IOracles.sol";
+import {IMerkleDistributor} from "./interfaces/IMerkleDistributor.sol";
+import {IPoolValidators} from "./interfaces/IPoolValidators.sol";
+import {IStakedLyxToken} from "./interfaces/IStakedLyxToken.sol";
 
 /**
  * @title Oracles
