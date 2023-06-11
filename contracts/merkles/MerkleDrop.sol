@@ -2,8 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IMerkleDrop} from "../interfaces/IMerkleDrop.sol";
@@ -16,10 +15,8 @@ import {IMerkleDrop} from "../interfaces/IMerkleDrop.sol";
  * Adopted from https://github.com/Uniswap/merkle-distributor/blob/0d478d722da2e5d95b7292fd8cbdb363d98e9a93/contracts/MerkleDistributor.sol
  */
 contract MerkleDrop is IMerkleDrop, Ownable {
-    using SafeERC20 for IERC20;
-
     // @dev Address of the token contract.
-    IERC20 public immutable override token;
+    ILSP7DigitalAsset public immutable override token;
 
     // @dev Merkle Root for proving tokens ownership.
     bytes32 public immutable override merkleRoot;
@@ -38,7 +35,7 @@ contract MerkleDrop is IMerkleDrop, Ownable {
     * @param _duration - duration of the merkle drop in seconds.
     */
     constructor(address _owner, address _token, bytes32 _merkleRoot, uint256 _duration) {
-        token = IERC20(_token);
+        token = ILSP7DigitalAsset(_token);
         merkleRoot = _merkleRoot;
         // solhint-disable-next-line not-rely-on-time
         expireTimestamp = block.timestamp + _duration;
@@ -74,7 +71,7 @@ contract MerkleDrop is IMerkleDrop, Ownable {
 
         // Mark it claimed and send the token.
         _setClaimed(index);
-        token.safeTransfer(account, amount);
+        token.transfer(address(this), account, amount, true, "");
         emit Claimed(index, account, amount);
     }
 
@@ -86,7 +83,7 @@ contract MerkleDrop is IMerkleDrop, Ownable {
         // solhint-disable-next-line not-rely-on-time
         require(block.timestamp >= expireTimestamp, "MerkleDrop: not expired");
         uint256 amount = token.balanceOf(address(this));
-        token.safeTransfer(beneficiary, amount);
+        token.transfer(address(this), beneficiary, amount, true, "");
         emit Stopped(beneficiary, amount);
     }
 }

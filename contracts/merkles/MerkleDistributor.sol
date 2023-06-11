@@ -2,15 +2,13 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProofUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
-import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
 import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
 import {IMerkleDistributor} from "../interfaces/IMerkleDistributor.sol";
 import {IOracles} from "../interfaces/IOracles.sol";
 import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
+import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 
 
 /**
@@ -181,7 +179,7 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
         address token,
         uint256 amount
     ) internal {
-        IERC20 erc20Token = IERC20(token);
-        SafeERC20.safeTransferFrom(erc20Token, from, to, amount);
+        ILSP7DigitalAsset lsp7Token = ILSP7DigitalAsset(token);
+        lsp7Token.transfer(from, to, amount, true, "");
     }
 }
