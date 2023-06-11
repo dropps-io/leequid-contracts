@@ -376,6 +376,35 @@ describe('RewardLyxToken contract', function () {
       );
     });
 
+    it('should only update the rewardPerToken if stake is 0', async function () {
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(ethers.utils.parseEther('100'));
+
+      await stakedLyxToken
+        .connect(user1)
+        .transferFrom(user1.address, user2.address, stakePerUser);
+
+      await rewardLyxToken
+        .connect(admin)
+        .updateTotalRewards(ethers.utils.parseEther('200'));
+
+      await rewardLyxToken.updateRewardCheckpoint(user1.address);
+
+      const checkpoint = await rewardLyxToken.checkpoints(user1.address);
+      const balance = await rewardLyxToken.balanceOf(user1.address);
+
+      expect(checkpoint.rewardPerToken.toString()).to.equal(
+        ethers.utils.parseEther(((200 * (1 - protocolFee)) / 100).toString())
+      );
+      expect(checkpoint.reward.toString()).to.equal(
+        ethers.utils.parseEther(((100 * (1 - protocolFee)) / 4).toString())
+      );
+      expect(balance).to.equal(
+        ethers.utils.parseEther(((100 * (1 - protocolFee)) / 4).toString())
+      );
+    });
+
     it('should not update reward checkpoint for an account with rewards disabled', async function () {
       await stakedLyxToken.connect(admin).toggleRewards(user1.address, true);
 
@@ -454,6 +483,18 @@ describe('RewardLyxToken contract', function () {
 
       const newBalance = await rewardLyxToken.balanceOf(user1.address);
       expect(prevBalance).to.not.equal(newBalance);
+    });
+
+    it('should revert if sender not stakedLyxToken', async function () {
+      await expect(
+        rewardLyxToken.connect(user1).setRewardsDisabled(user1.address, true)
+      ).to.be.revertedWith('RewardLyxToken: access denied');
+    });
+
+    it('should revert if trying to set the same value', async function () {
+      await expect(
+        stakedLyxToken.connect(admin).toggleRewards(user1.address, false)
+      ).to.be.revertedWith('RewardLyxToken: value did not change');
     });
   });
 

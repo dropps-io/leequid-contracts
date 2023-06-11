@@ -431,6 +431,27 @@ describe('StakedLyxToken contract', function () {
       const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
       expect(unstakeProcessing).to.equal(true);
     });
+
+    it('should be able to setUnstakeProcessing if more than 96LYX pending unstake', async function () {
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user1.address, ethers.utils.parseEther('42'), true, '0x');
+      await stakedLyxToken
+        .connect(admin)
+        .mint(user2.address, ethers.utils.parseEther('60'), true, '0x');
+      await stakedLyxToken
+        .connect(user1)
+        .unstake(ethers.utils.parseEther('42'));
+      await stakedLyxToken
+        .connect(user2)
+        .unstake(ethers.utils.parseEther('60'));
+      await expect(stakedLyxToken.connect(admin).setUnstakeProcessing())
+        .to.emit(stakedLyxToken, 'UnstakeReady')
+        .withArgs(3);
+
+      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
+      expect(unstakeProcessing).to.equal(true);
+    });
   });
 
   describe('unstakeProcessed', function () {

@@ -87,7 +87,7 @@ describe('Pool contract', function () {
       oracles.address,
       getTestDepositData(operator.address)[0].withdrawalCredentials,
       beaconDepositMock.address,
-      ethers.utils.parseEther(minDepositForActivation.toString()),
+      ethers.utils.parseEther('999999999'),
       '500' // Limit of pending validators: max 50% of pending validators
     );
 
@@ -105,10 +105,7 @@ describe('Pool contract', function () {
       getTestDepositData(operator.address)[0],
       getTestDepositData(operator.address)[1],
     ];
-    // So it mints directly when stake more than minActivatingDeposit
-    await pool
-      .connect(admin)
-      .setMinActivatingDeposit(ethers.utils.parseEther('999999999'));
+
     await pool.connect(user2).stake({ value: ethers.utils.parseEther('64') });
 
     await registerValidators(
