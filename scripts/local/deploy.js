@@ -163,14 +163,14 @@ async function main() {
   fs.writeFileSync(
     'local_addresses.json',
     JSON.stringify({
-      MockBeacon: mockBeacon.address,
-      RewardLyxToken: rewardLyxToken.address,
-      StakedLyxToken: stakedLyxToken.address,
-      MerkleDistributor: merkleDistributor.address,
-      Oracles: oracles.address,
-      Pool: pool.address,
-      PoolValidators: poolValidators.address,
-      FeesEscrow: feesEscrow.address,
+      deposit: mockBeacon.address,
+      rewardLyxToken: rewardLyxToken.address,
+      stakedLyxToken: stakedLyxToken.address,
+      merkleDistributor: merkleDistributor.address,
+      oracles: oracles.address,
+      pool: pool.address,
+      poolValidators: poolValidators.address,
+      peesEscrow: feesEscrow.address,
     })
   );
 }

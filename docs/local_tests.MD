@@ -39,28 +39,28 @@ await (async () => {
   [admin, protocolFeeRecipient, operator, user1, user2, user3, oracle1, oracle2] = accounts;
 
   const MockBeacon = await ethers.getContractFactory('DepositContract');
-  mockBeacon = MockBeacon.attach(deployedAddresses.MockBeacon);
+  mockBeacon = MockBeacon.attach(deployedAddresses.deposit);
 
   const RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
-  rewardLyxToken = RewardLyxToken.attach(deployedAddresses.RewardLyxToken);
+  rewardLyxToken = RewardLyxToken.attach(deployedAddresses.rewardLyxToken);
 
   const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
-  stakedLyxToken = StakedLyxToken.attach(deployedAddresses.StakedLyxToken);
+  stakedLyxToken = StakedLyxToken.attach(deployedAddresses.stakedLyxToken);
 
   const Pool = await ethers.getContractFactory('Pool');
-  pool = Pool.attach(deployedAddresses.Pool);
+  pool = Pool.attach(deployedAddresses.pool);
 
   const PoolValidators = await ethers.getContractFactory('PoolValidators');
-  poolValidators = PoolValidators.attach(deployedAddresses.PoolValidators);
+  poolValidators = PoolValidators.attach(deployedAddresses.poolValidators);
 
   const MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
-  merkleDistributor = MerkleDistributor.attach(deployedAddresses.MerkleDistributor);
+  merkleDistributor = MerkleDistributor.attach(deployedAddresses.merkleDistributor);
 
   const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
-  feesEscrow = FeesEscrow.attach(deployedAddresses.FeesEscrow);
+  feesEscrow = FeesEscrow.attach(deployedAddresses.feesEscrow);
 
   const Oracles = await ethers.getContractFactory('Oracles');
-  oracles = Oracles.attach(deployedAddresses.Oracles);
+  oracles = Oracles.attach(deployedAddresses.oracles);
 })();
 
 ```
