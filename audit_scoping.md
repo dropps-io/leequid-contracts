@@ -16,6 +16,11 @@ to keep track of the rewards, and allow the stakers to claim their rewards (cash
 A unstake mechanism (validator exiting) was also added to the protocol.
 For the reason that validators withdrawals are not possible yet, the feature will be activated later.
 
+## Dependencies
+
+- [OpenZeppelin Contracts](https://www.npmjs.com/package/@openzeppelin/contracts)
+- [LUKSO contracts](https://www.npmjs.com/package/@lukso/lsp-smart-contracts) - For the usage of LSP7 token (already audited multiple times), an ERC20 like standard for LUKSO blockchain
+
 ## Scope
 
 - [x] [Oracles.sol](./contracts/Oracles.sol)
