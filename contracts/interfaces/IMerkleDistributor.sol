@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {IOracles} from "./IOracles.sol";
 
 /**

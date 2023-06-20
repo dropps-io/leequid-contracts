@@ -2,8 +2,6 @@
  *Submitted for verification at Etherscan.io on 2020-10-14
 */
 
-import "hardhat/console.sol";
-
 // ┏━━━┓━┏┓━┏┓━━┏━━━┓━━┏━━━┓━━━━┏━━━┓━━━━━━━━━━━━━━━━━━━┏┓━━━━━┏━━━┓━━━━━━━━━┏┓━━━━━━━━━━━━━━┏┓━
 // ┃┏━━┛┏┛┗┓┃┃━━┃┏━┓┃━━┃┏━┓┃━━━━┗┓┏┓┃━━━━━━━━━━━━━━━━━━┏┛┗┓━━━━┃┏━┓┃━━━━━━━━┏┛┗┓━━━━━━━━━━━━┏┛┗┓
 // ┃┗━━┓┗┓┏┛┃┗━┓┗┛┏┛┃━━┃┃━┃┃━━━━━┃┃┃┃┏━━┓┏━━┓┏━━┓┏━━┓┏┓┗┓┏┛━━━━┃┃━┗┛┏━━┓┏━┓━┗┓┏┛┏━┓┏━━┓━┏━━┓┗┓┏┛
@@ -20,7 +18,7 @@ pragma solidity 0.8.20;
 // This interface is designed to be compatible with the Vyper version.
 /// @notice This is the Ethereum 2.0 deposit contract interface.
 /// For more information see the Phase 0 specification under https://github.com/ethereum/eth2.0-specs
-interface IDepositContractMock {
+interface IDepositContract {
     /// @notice A processed deposit event.
     event DepositEvent(
         bytes pubkey,
@@ -67,7 +65,7 @@ interface ERC165 {
 // It tries to stay as close as possible to the original source code.
 /// @notice This is the Ethereum 2.0 deposit contract interface.
 /// For more information see the Phase 0 specification under https://github.com/ethereum/eth2.0-specs
-contract DepositContract is IDepositContractMock, ERC165 {
+contract DepositContract is IDepositContract, ERC165 {
     uint constant DEPOSIT_CONTRACT_TREE_DEPTH = 32;
     // NOTE: this also ensures `deposit_count` will fit into 64-bits
     uint constant MAX_DEPOSIT_COUNT = 2**DEPOSIT_CONTRACT_TREE_DEPTH - 1;
@@ -115,15 +113,8 @@ contract DepositContract is IDepositContractMock, ERC165 {
         require(withdrawal_credentials.length == 32, "DepositContract: invalid withdrawal_credentials length");
         require(signature.length == 96, "DepositContract: invalid signature length");
 
-        // Check deposit amount
-        require(msg.value >= 1 ether, "DepositContract: deposit value too low");
-        require(msg.value % 1 gwei == 0, "DepositContract: deposit value not multiple of gwei");
-        uint deposit_amount = msg.value / 1 gwei;
-        require(deposit_amount <= type(uint64).max, "DepositContract: deposit value too high");
-
         // Emit `DepositEvent` log
-        bytes memory amount = to_little_endian_64(uint64(deposit_amount));
-
+        bytes memory amount = to_little_endian_64(uint64(32000000000));
         emit DepositEvent(
             pubkey,
             withdrawal_credentials,
@@ -166,7 +157,7 @@ contract DepositContract is IDepositContractMock, ERC165 {
     }
 
     function supportsInterface(bytes4 interfaceId) override external pure returns (bool) {
-        return interfaceId == type(ERC165).interfaceId || interfaceId == type(IDepositContractMock).interfaceId;
+        return interfaceId == type(ERC165).interfaceId || interfaceId == type(IDepositContract).interfaceId;
     }
 
     function to_little_endian_64(uint64 value) internal pure returns (bytes memory ret) {
@@ -181,5 +172,12 @@ contract DepositContract is IDepositContractMock, ERC165 {
         ret[5] = bytesValue[2];
         ret[6] = bytesValue[1];
         ret[7] = bytesValue[0];
+    }
+
+    function withdraw(address payable recipient, uint256 amount) external {
+        uint256 amount = address(this).balance;
+
+        (bool success,) = recipient.call{value: amount}("");
+        require(success, "DepositContract: failed to send funds to recipient");
     }
 }

@@ -90,7 +90,7 @@ module.exports = {
       },
     },
     local: {
-      url: 'http://localhost:8545',
+      url: 'http://127.0.0.1:8545/',
     },
     l16: {
       url: `https://rpc.l16.lukso.network`, // Replace this with the RPC URL for your custom network
