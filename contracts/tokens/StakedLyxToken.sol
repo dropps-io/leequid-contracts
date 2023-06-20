@@ -24,7 +24,7 @@ import {LSP7AmountExceedsAuthorizedAmount,
         LSP7AmountExceedsBalance,
         LSP7NotifyTokenReceiverContractMissingLSP1Interface,
         LSP7NotifyTokenReceiverIsEOA
-} from  "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
+} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
 import {_INTERFACEID_LSP1} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
@@ -38,11 +38,9 @@ import {ERC725YCore} from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**
- * @title LSP7DigitalAsset contract
- * @author Matthew Stevens
- * @dev Core Implementation of a LSP7 compliant contract.
+ * @title StakedLyxToken
  *
- * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
+ * @dev StakedLyxToken contract stores pool staked tokens.
  */
 contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken, ReentrancyGuardUpgradeable {
     // @dev Validator deposit amount.
