@@ -61,6 +61,10 @@ Oracles contract stores accounts responsible for submitting or updating values b
    yarn deploy-contracts --network rinkeby
    ```
 
+## Testing locally
+
+See [Local Tests](./docs/local_tests.md) for more information.
+
 ## Contributing
 
 Development of the project happens in the open on GitHub, and we are grateful to the community for contributing bug fixes and improvements.

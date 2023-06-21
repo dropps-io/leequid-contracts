@@ -38,3 +38,4 @@ artifacts
 .husky
 
 .env
+local_addresses.json

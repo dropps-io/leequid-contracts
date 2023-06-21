@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 
 /**
  * @dev Interface of the MerkleDrop contract.
@@ -32,7 +32,7 @@ interface IMerkleDrop {
     /**
     * @dev Function for retrieving the token contract address.
     */
-    function token() external view returns (IERC20);
+    function token() external view returns (ILSP7DigitalAsset);
 
     /**
     * @dev Function for retrieving the expire timestamp of the merkle drop.

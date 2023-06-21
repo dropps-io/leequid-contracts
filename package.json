@@ -22,7 +22,10 @@
     "test:gas": "hardhat test --gas --optimizer",
     "deploy-contracts": "yarn compile --optimizer && npx hardhat run --no-compile scripts/deploy.js",
     "upgrade-contracts": "yarn compile --optimizer && npx hardhat run --no-compile scripts/upgrade.js",
-    "verify": "npx hardhat verify --optimizer"
+    "verify": "npx hardhat verify --optimizer",
+    "node": "npx hardhat node",
+    "deploy-locally": "yarn compile --optimizer && npx hardhat run scripts/local/deploy.js --no-compile --network local",
+    "local-console": "npx hardhat console --network local"
   },
   "husky": {
     "hooks": {
