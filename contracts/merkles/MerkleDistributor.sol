@@ -7,7 +7,7 @@ import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.
 import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
 import {IMerkleDistributor} from "../interfaces/IMerkleDistributor.sol";
 import {IOracles} from "../interfaces/IOracles.sol";
-import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
+import {IRewards} from "../interfaces/IRewards.sol";
 import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 
 
@@ -21,8 +21,8 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
     // @dev Merkle Root for proving rewards ownership.
     bytes32 public override merkleRoot;
 
-    // @dev Address of the rewardLyxToken contract.
-    address public override rewardLyxToken;
+    // @dev Address of the rewards contract.
+    address public override rewards;
 
     // @dev Address of the Oracles contract.
     IOracles public override oracles;
@@ -35,11 +35,11 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
 
     function initialize(
         address _admin,
-        address _rewardLyxToken,
+        address _rewards,
         address _oracles
     ) external initializer {
         __OwnablePausableUpgradeable_init_unchained(_admin);
-        rewardLyxToken = _rewardLyxToken;
+        rewards = _rewards;
         oracles = IOracles(_oracles);
     }
 
@@ -145,9 +145,9 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
         external override whenNotPaused
     {
         require(account != address(0), "MerkleDistributor: invalid account");
-        address _rewardLyxToken = rewardLyxToken; // gas savings
+        address _rewards = rewards; // gas savings
         require(
-            IRewardLyxToken(_rewardLyxToken).lastUpdateBlockNumber() < lastUpdateBlockNumber,
+            IRewards(_rewards).lastUpdateBlockNumber() < lastUpdateBlockNumber,
             "MerkleDistributor: merkle root updating"
         );
 
@@ -164,8 +164,8 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
         for (uint256 i = 0; i < tokensCount; i++) {
             address token = tokens[i];
             uint256 amount = amounts[i];
-            if (token == _rewardLyxToken) {
-                IRewardLyxToken(_rewardLyxToken).claim(account, amount);
+            if (token == _rewards) {
+                IRewards(_rewards).claim(account, amount);
             } else {
                 _transferToken(address(this), account, token, amount);
             }

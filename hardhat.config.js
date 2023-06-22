@@ -132,7 +132,7 @@ module.exports = {
       'Pool',
       'PoolEscrow',
       'PoolValidators',
-      'RewardLyxToken',
+      'Rewards',
       'StakedLyxToken',
       'StakeWiseToken',
       'VestingEscrow',

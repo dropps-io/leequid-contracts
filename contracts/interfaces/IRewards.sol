@@ -7,7 +7,7 @@ import {IFeesEscrow} from "./IFeesEscrow.sol";
 /**
  * @dev Interface of the RewardEthToken contract.
  */
-interface IRewardLyxToken {
+interface IRewards {
     /**
     * @dev Structure for storing information about user reward checkpoint.
     * @param rewardPerToken - user reward per token.

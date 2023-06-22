@@ -7,7 +7,7 @@ describe('PoolValidators contract', function () {
   const protocolFee = 0.1; // 10%
   const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-  let RewardLyxToken, rewardLyxToken;
+  let Rewards, rewards;
   let StakedLyxToken, stakedLyxToken;
   let Pool, pool;
   let PoolValidators, poolValidators;
@@ -18,7 +18,7 @@ describe('PoolValidators contract', function () {
 
   before(async function () {
     Oracles = await ethers.getContractFactory('Oracles');
-    RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
+    Rewards = await ethers.getContractFactory('Rewards');
     StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
     Pool = await ethers.getContractFactory('Pool');
     PoolValidators = await ethers.getContractFactory('PoolValidators');
@@ -29,21 +29,21 @@ describe('PoolValidators contract', function () {
   });
 
   beforeEach(async function () {
-    rewardLyxToken = await RewardLyxToken.deploy();
+    rewards = await Rewards.deploy();
     stakedLyxToken = await StakedLyxToken.deploy();
     pool = await Pool.deploy();
     poolValidators = await PoolValidators.deploy();
     merkleDistributor = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewardLyxToken.address);
-    await rewardLyxToken.deployed();
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
+    await rewards.deployed();
     await stakedLyxToken.deployed();
     await pool.deployed();
     await poolValidators.deployed();
     await merkleDistributor.deployed();
     await feesEscrow.deployed();
 
-    await rewardLyxToken.initialize(
+    await rewards.initialize(
       admin.address,
       stakedLyxToken.address,
       oracles.address,
@@ -60,13 +60,13 @@ describe('PoolValidators contract', function () {
         admin.address,
         pool.address,
         oracles.address,
-        rewardLyxToken.address
+        rewards.address
       );
 
     await pool.connect(admin).initialize(
       admin.address,
       stakedLyxToken.address,
-      rewardLyxToken.address,
+      rewards.address,
       poolValidators.address,
       oracles.address,
       getTestDepositData(operator.address)[0].withdrawalCredentials,
@@ -81,7 +81,7 @@ describe('PoolValidators contract', function () {
 
     await merkleDistributor
       .connect(admin)
-      .initialize(admin.address, rewardLyxToken.address, oracles.address);
+      .initialize(admin.address, rewards.address, oracles.address);
   });
 
   describe('addOperator', function () {

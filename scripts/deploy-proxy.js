@@ -16,26 +16,21 @@ async function main() {
     'AdminUpgradeabilityProxy'
   );
 
-  console.log('deploying RewardLyxToken...');
-  const RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
-  const rewardLyxToken = await RewardLyxToken.deploy(args);
-  await rewardLyxToken.deployed();
-  const rewardLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
-    rewardLyxToken.address,
+  console.log('deploying Rewards...');
+  const Rewards = await ethers.getContractFactory('Rewards');
+  const rewards = await Rewards.deploy(args);
+  await rewards.deployed();
+  const rewardsProxy = await AdminUpgradeabilityProxy.deploy(
+    rewards.address,
     proxyAdmin,
     '0x',
     args
   );
-  console.log('RewardLyxToken deployed to:', rewardLyxTokenProxy.address);
-  console.log(
-    'RewardLyxToken implementation deployed to:',
-    rewardLyxToken.address
-  );
+  console.log('Rewards deployed to:', rewardsProxy.address);
+  console.log('Rewards implementation deployed to:', rewards.address);
 
   // Create an interface of your contract
-  const rewardLyxTokenProxyContract = RewardLyxToken.attach(
-    rewardLyxTokenProxy.address
-  );
+  const rewardsProxyContract = Rewards.attach(rewardsProxy.address);
 
   console.log('deploying StakedLyxToken...');
   const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
@@ -120,7 +115,7 @@ async function main() {
 
   console.log('deploying FeesEscrow...');
   const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
-  const feesEscrow = await FeesEscrow.deploy(rewardLyxTokenProxy.address, args);
+  const feesEscrow = await FeesEscrow.deploy(rewardsProxy.address, args);
   await feesEscrow.deployed();
   console.log('FeesEscrow deployed to:', feesEscrow.address);
 
@@ -144,7 +139,7 @@ async function main() {
   console.log('Initializing Oracles...');
   await oraclesProxyContract.initialize(
     admin,
-    rewardLyxTokenProxy.address,
+    rewardsProxy.address,
     stakedLyxTokenProxy.address,
     poolProxy.address,
     poolValidatorsProxy.address,
@@ -154,11 +149,11 @@ async function main() {
   console.log('Oracles initialized');
 
   const withdrawalCredentials =
-    '0x010000000000000000000000' + rewardLyxTokenProxy.address.slice(2);
+    '0x010000000000000000000000' + rewardsProxy.address.slice(2);
 
-  // Initialize RewardLyxToken
-  console.log('Initializing RewardLyxToken...');
-  await rewardLyxTokenProxyContract.initialize(
+  // Initialize Rewards
+  console.log('Initializing Rewards...');
+  await rewardsProxyContract.initialize(
     admin,
     stakedLyxTokenProxy.address,
     oraclesProxy.address,
@@ -169,7 +164,7 @@ async function main() {
     poolProxy.address,
     args
   );
-  console.log('RewardLyxToken initialized');
+  console.log('Rewards initialized');
 
   // Initialize StakedLyxToken
   console.log('Initializing StakedLyxToken...');
@@ -177,7 +172,7 @@ async function main() {
     admin,
     poolProxy.address,
     oraclesProxy.address,
-    rewardLyxTokenProxy.address,
+    rewardsProxy.address,
     args
   );
   console.log('StakedLyxToken initialized');
@@ -187,7 +182,7 @@ async function main() {
   await poolProxyContract.initialize(
     admin,
     stakedLyxTokenProxy.address,
-    rewardLyxTokenProxy.address,
+    rewardsProxy.address,
     poolValidatorsProxy.address,
     oraclesProxy.address,
     withdrawalCredentials,
@@ -211,7 +206,7 @@ async function main() {
   console.log('Initializing MerkleDistributor...');
   await merkleDistributorProxyContract.initialize(
     admin,
-    rewardLyxTokenProxy.address,
+    rewardsProxy.address,
     oraclesProxy.address,
     args
   );

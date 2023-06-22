@@ -24,8 +24,8 @@ The Pool contract is an entry point for deposits into the StakeWise Pool. This c
 The StakedEthToken is a LSP7 contract. It reflects the deposits made by the stakers in the form of sLYX tokens. The tokens are mapped 1 to 1 to LYX. 
 The total supply of sLYX is the sum of all the Leequid Pool's validators' effective balances, plus an additional amount of up to (32 LYX - 1 Wei) LYX awaiting inclusion into a new validator. 
 
-#### RewardLyxToken
-The RewardLyxToken is reflects the rewards accumulated by the stakers. 
+#### Rewards
+The Rewards is reflects the rewards accumulated by the stakers. 
 It is the contract where user can cash-out/withdraw their rewards, and claim their unstakes.
 
 #### Oracle

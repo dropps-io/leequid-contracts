@@ -830,8 +830,8 @@
         "type": "address"
       },
       {
-        "internalType": "contract IRewardLyxToken",
-        "name": "_rewardLyxToken",
+        "internalType": "contract IRewards",
+        "name": "_rewards",
         "type": "address"
       }
     ],
