@@ -10,7 +10,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 // constants
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
-import { IRewardLyxToken } from "../interfaces/IRewardLyxToken.sol";
+import { IRewards } from "../interfaces/IRewards.sol";
 import { IFeesEscrow } from "../interfaces/IFeesEscrow.sol";
 
 import { IPool } from "../interfaces/IPool.sol";
@@ -22,7 +22,7 @@ import { IPool } from "../interfaces/IPool.sol";
  *
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
-contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
+contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeCast for uint256;
 
     // @dev Address of the StakedLyxToken contract.
@@ -77,13 +77,13 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
         address _feesEscrow,
         address _pool
     ) external initializer {
-        require(_stakedLyxToken != address(0), "RewardLyxToken: stakedLyxToken address cannot be zero");
-        require(_admin != address(0), "RewardLyxToken: admin address cannot be zero");
-        require(_oracles != address(0), "RewardLyxToken: oracles address cannot be zero");
-        require(_merkleDistributor != address(0), "RewardLyxToken: merkleDistributor address cannot be zero");
-        require(_feesEscrow != address(0), "RewardLyxToken: feesEscrow address cannot be zero");
+        require(_stakedLyxToken != address(0), "Rewards: stakedLyxToken address cannot be zero");
+        require(_admin != address(0), "Rewards: admin address cannot be zero");
+        require(_oracles != address(0), "Rewards: oracles address cannot be zero");
+        require(_merkleDistributor != address(0), "Rewards: merkleDistributor address cannot be zero");
+        require(_feesEscrow != address(0), "Rewards: feesEscrow address cannot be zero");
         require(_protocolFee < 1e4, "RewardEthToken: invalid protocol fee");
-        require(_pool != address(0), "RewardLyxToken: pool address cannot be zero");
+        require(_pool != address(0), "Rewards: pool address cannot be zero");
 
         __OwnablePausableUpgradeable_init_unchained(_admin);
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
@@ -100,7 +100,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     // --- Token owner queries
 
     /**
-     * @dev See {IRewardLyxToken-balanceOf}.
+     * @dev See {IRewards-balanceOf}.
      */
     function balanceOf(address account) public view virtual override returns (uint256) {
         return _balanceOf(account, rewardPerToken);
@@ -126,14 +126,14 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-    * @dev See {IRewardLyxToken-totalAvailableRewards}.
+    * @dev See {IRewards-totalAvailableRewards}.
      */
     function totalAvailableRewards() public view virtual override returns (uint128) {
         return totalRewards + totalFeesCollected - totalCashedOut;
     }
 
     /**
-    * @dev See {IRewardLyxToken-updateRewardCheckpoint}.
+    * @dev See {IRewards-updateRewardCheckpoint}.
      */
     function updateRewardCheckpoint(address account) public override returns (bool accRewardsDisabled) {
         accRewardsDisabled = rewardsDisabled[account];
@@ -176,11 +176,11 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-    * @dev See {IRewardLyxToken-setRewardsDisabled}.
+    * @dev See {IRewards-setRewardsDisabled}.
     */
     function setRewardsDisabled(address account, bool isDisabled) external override {
-        require(msg.sender == address(stakedLyxToken), "RewardLyxToken: access denied");
-        require(rewardsDisabled[account] != isDisabled, "RewardLyxToken: value did not change");
+        require(msg.sender == address(stakedLyxToken), "Rewards: access denied");
+        require(rewardsDisabled[account] != isDisabled, "Rewards: value did not change");
 
         uint128 _rewardPerToken = rewardPerToken;
         checkpoints[account] = Checkpoint({
@@ -193,7 +193,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-    * @dev See {IRewardLyxToken-setProtocolFeeRecipient}.
+    * @dev See {IRewards-setProtocolFeeRecipient}.
     */
     function setProtocolFeeRecipient(address recipient) external override onlyAdmin {
         // can be address(0) to distribute fee through the Merkle Distributor
@@ -202,7 +202,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-    * @dev See {IRewardLyxToken-setProtocolFee}.
+    * @dev See {IRewards-setProtocolFee}.
     */
     function setProtocolFee(uint256 _protocolFee) external override onlyAdmin {
         require(_protocolFee < 1e4, "RewardEthToken: invalid protocol fee");
@@ -211,7 +211,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-     * @dev See {IRewardLyxToken-updateRewardCheckpoints}.
+     * @dev See {IRewards-updateRewardCheckpoints}.
      */
     function updateRewardCheckpoints(address account1, address account2) public override returns (bool rewardsDisabled1, bool rewardsDisabled2) {
         rewardsDisabled1 = rewardsDisabled[account1];
@@ -224,10 +224,10 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-     * @dev See {IRewardLyxToken-updateTotalRewards}.
+     * @dev See {IRewards-updateTotalRewards}.
      */
     function updateTotalRewards(uint256 newTotalRewards) external override {
-        require(msg.sender == oracles, "RewardLyxToken: access denied");
+        require(msg.sender == oracles, "Rewards: access denied");
 
         uint256 feesCollected = feesEscrow.transferToRewards();
         uint256 periodRewards = newTotalRewards + feesCollected.toUint128() - totalRewards;
@@ -283,11 +283,11 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-     * @dev See {IRewardLyxToken-claim}.
+     * @dev See {IRewards-claim}.
      */
     function claim(address account, uint256 amount) external override {
-        require(msg.sender == merkleDistributor, "RewardLyxToken: access denied");
-        require(account != address(0), "RewardLyxToken: invalid account");
+        require(msg.sender == merkleDistributor, "Rewards: access denied");
+        require(account != address(0), "Rewards: invalid account");
 
         // update checkpoints, transfer amount from distributor to account
         uint128 _rewardPerToken = rewardPerToken;
@@ -302,10 +302,10 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-     * @dev See {IRewardLyxToken-claimUnstake}.
+     * @dev See {IRewards-claimUnstake}.
      */
     function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant {
-        require(unstakeRequestIndexes.length > 0, "RewardLyxToken: no unstake indexes provided");
+        require(unstakeRequestIndexes.length > 0, "Rewards: no unstake indexes provided");
         address payable account = payable(msg.sender);
 
         uint256 totalUnstakeAmount = stakedLyxToken.claimUnstake(account, unstakeRequestIndexes);
@@ -316,7 +316,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-     * @dev See {IRewardLyxToken-cashOutRewards}.
+     * @dev See {IRewards-cashOutRewards}.
      */
     function cashOutRewards(uint256 amount) external override nonReentrant {
         address payable recipient = payable(msg.sender);
@@ -328,7 +328,7 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
     }
 
     /**
-     * @dev See {IRewardLyxToken-compoundRewards}.
+     * @dev See {IRewards-compoundRewards}.
      */
     function compoundRewards(uint256 amount) external override nonReentrant {
         address recipient = msg.sender;
@@ -350,8 +350,8 @@ contract RewardLyxToken is IRewardLyxToken, OwnablePausableUpgradeable, Reentran
      */
     function _cashOutAccountRewards(address account, uint256 amount) internal {
         uint256 accountBalance = balanceOf(account);
-        require(accountBalance >= amount, "RewardLyxToken: insufficient reward balance");
-        require(address(this).balance >= amount, "RewardLyxToken: insufficient contract balance");
+        require(accountBalance >= amount, "Rewards: insufficient reward balance");
+        require(address(this).balance >= amount, "Rewards: insufficient contract balance");
 
         uint128 _rewardPerToken = rewardPerToken;
         // Update the state before the transfer

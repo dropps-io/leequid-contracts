@@ -124,7 +124,7 @@ interface IStakedLyxToken is ILSP7DigitalAsset {
 
     /**
      * @dev Claim unstake for the specified account and unstake request indexes.
-     * Only callable by the rewardLyxToken contract that will transfer the claimed amount.
+     * Only callable by the rewards contract that will transfer the claimed amount.
      * @param account - The account to claim unstake for.
      * @param unstakeRequestIndexes - Array of indexes corresponding to the unstake requests to be claimed.
      * @return totalClaimedAmount - The total amount claimed.

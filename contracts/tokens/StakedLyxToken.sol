@@ -31,7 +31,7 @@ import {_INTERFACEID_LSP1} from "@lukso/lsp-smart-contracts/contracts/LSP1Univer
 import {LSP4DigitalAssetMetadataInitAbstract} from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
 import {_TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
-import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
+import {IRewards} from "../interfaces/IRewards.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ERC725YCore} from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
@@ -80,8 +80,8 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     // @dev Address of the Oracles contract.
     address private oracles;
 
-    // @dev Address of the RewardLyxToken contract.
-    IRewardLyxToken private rewardLyxToken;
+    // @dev Address of the Rewards contract.
+    IRewards private rewards;
 
     // @dev The principal amount of the distributor.
     uint256 public override distributorPrincipal;
@@ -90,18 +90,18 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         address _admin,
         address _pool,
         address _oracles,
-        IRewardLyxToken _rewardLyxToken
+        IRewards _rewards
     ) external initializer {
         require(_pool != address(0), "StakedLyxToken: pool address cannot be zero");
         require(_oracles != address(0), "StakedLyxToken: oracles address cannot be zero");
         require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
-        require(address(_rewardLyxToken) != address(0), "StakedLyxToken: rewardLyxToken address cannot be zero");
+        require(address(_rewards) != address(0), "StakedLyxToken: rewards address cannot be zero");
 
         LSP4DigitalAssetMetadataInitAbstract._initialize("StakedLyxToken", "sLYX", _admin);
         __OwnablePausableUpgradeable_init_unchained(_admin);
         pool = _pool;
         oracles = _oracles;
-        rewardLyxToken = _rewardLyxToken;
+        rewards = _rewards;
     }
 
     // --- Token queries
@@ -176,7 +176,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(tokenOwner != address(0), "StakedLyxToken: invalid tokenOwner");
 
         // toggle rewards
-        rewardLyxToken.setRewardsDisabled(tokenOwner, isDisabled);
+        rewards.setRewardsDisabled(tokenOwner, isDisabled);
 
         // update distributor principal
         uint256 tokenOwnerBalance = _deposits[tokenOwner];
@@ -300,7 +300,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(_deposits[account] >= amount, "StakedLyxToken: insufficient balance");
 
         // start calculating account rewards with updated deposit amount
-        bool rewardsDisabled = rewardLyxToken.updateRewardCheckpoint(account);
+        bool rewardsDisabled = rewards.updateRewardCheckpoint(account);
         if (rewardsDisabled) {
             // update merkle distributor principal if account has disabled rewards
             distributorPrincipal = distributorPrincipal - amount;
@@ -418,7 +418,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
      * @dev See {IStakedLyxToken-claimUnstake}.
      */
     function claimUnstake(address account, uint256[] calldata unstakeRequestIndexes) external override returns (uint256) {
-        require(msg.sender == address(rewardLyxToken), "StakedLyxToken: access denied");
+        require(msg.sender == address(rewards), "StakedLyxToken: access denied");
         uint256 totalClaimedAmount = 0;
         for (uint256 i = 0; i < unstakeRequestIndexes.length; i++) {
             uint256 unstakeRequestIndex = unstakeRequestIndexes[i];
@@ -443,7 +443,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(msg.sender == pool, "StakedLyxToken: access denied");
 
         // start calculating account rewards with updated deposit amount
-        bool rewardsDisabled = rewardLyxToken.updateRewardCheckpoint(to);
+        bool rewardsDisabled = rewards.updateRewardCheckpoint(to);
         if (rewardsDisabled) {
             // update merkle distributor principal if account has disabled rewards
             distributorPrincipal = distributorPrincipal + amount;
@@ -552,7 +552,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         bool allowNonLSP1Recipient,
         bytes memory data
     ) internal virtual {
-        require(block.number > rewardLyxToken.lastUpdateBlockNumber(), "StakedLyxToken: cannot transfer during rewards update");
+        require(block.number > rewards.lastUpdateBlockNumber(), "StakedLyxToken: cannot transfer during rewards update");
         if (from == address(0) || to == address(0)) {
             revert LSP7CannotSendWithAddressZero();
         }
@@ -562,7 +562,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             revert LSP7AmountExceedsBalance(balance, from, amount);
         }
 
-        (bool senderRewardsDisabled, bool recipientRewardsDisabled) = rewardLyxToken.updateRewardCheckpoints(from, to);
+        (bool senderRewardsDisabled, bool recipientRewardsDisabled) = rewards.updateRewardCheckpoints(from, to);
         if ((senderRewardsDisabled || recipientRewardsDisabled) && !(senderRewardsDisabled && recipientRewardsDisabled)) {
             // update merkle distributor principal if any of the addresses has disabled rewards
             uint256 _distributorPrincipal = distributorPrincipal; // gas savings

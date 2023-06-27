@@ -11,16 +11,16 @@ async function main() {
 
   const beaconDepositContract = '0x5Cc0ca9b4fe325Fa4c443475AE6C6d5f00d1631D'; // Lukso testnet
 
-  console.log('deploying RewardLyxToken...');
-  const RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
-  const rewardLyxToken = await RewardLyxToken.deploy(args);
-  await rewardLyxToken.deployed();
-  console.log('RewardLyxToken deployed to:', rewardLyxToken.address);
+  console.log('deploying Rewards...');
+  const Rewards = await ethers.getContractFactory('Rewards');
+  const rewards = await Rewards.deploy(args);
+  await rewards.deployed();
+  console.log('Rewards deployed to:', rewards.address);
 
   console.log('deploying StakedLyxToken...');
   const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
   const stakedLyxToken = await StakedLyxToken.deploy(args);
-  await rewardLyxToken.deployed();
+  await rewards.deployed();
   console.log('StakedLyxToken deployed to:', stakedLyxToken.address);
 
   console.log('deploying Pool...');
@@ -45,7 +45,7 @@ async function main() {
 
   console.log('deploying FeesEscrow...');
   const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
-  const feesEscrow = await FeesEscrow.deploy(rewardLyxToken.address, args);
+  const feesEscrow = await FeesEscrow.deploy(rewards.address, args);
   await feesEscrow.deployed();
   console.log('FeesEscrow deployed to:', feesEscrow.address);
 
@@ -59,7 +59,7 @@ async function main() {
   console.log('Initializing Oracles...');
   await oracles.initialize(
     admin,
-    rewardLyxToken.address,
+    rewards.address,
     stakedLyxToken.address,
     pool.address,
     poolValidators.address,
@@ -69,12 +69,12 @@ async function main() {
   console.log('Oracles initialized');
 
   const withdrawalCredentials =
-    '0x010000000000000000000000' + rewardLyxToken.address.slice(2);
+    '0x010000000000000000000000' + rewards.address.slice(2);
 
-  // Initialize RewardLyxToken
+  // Initialize Rewards
 
-  console.log('Initializing RewardLyxToken...');
-  await rewardLyxToken.initialize(
+  console.log('Initializing Rewards...');
+  await rewards.initialize(
     admin,
     stakedLyxToken.address,
     oracles.address,
@@ -85,7 +85,7 @@ async function main() {
     pool.address,
     args
   );
-  console.log('RewardLyxToken initialized');
+  console.log('Rewards initialized');
 
   // Initialize StakedLyxToken
   console.log('Initializing StakedLyxToken...');
@@ -93,7 +93,7 @@ async function main() {
     admin,
     pool.address,
     oracles.address,
-    rewardLyxToken.address,
+    rewards.address,
     args
   );
   console.log('StakedLyxToken initialized');
@@ -103,7 +103,7 @@ async function main() {
   await pool.initialize(
     admin,
     stakedLyxToken.address,
-    rewardLyxToken.address,
+    rewards.address,
     poolValidators.address,
     oracles.address,
     withdrawalCredentials,
@@ -120,11 +120,7 @@ async function main() {
   console.log('PoolValidators initialized');
 
   console.log('Initializing MerkleDistributor...');
-  await merkleDistributor.initialize(
-    admin,
-    rewardLyxToken.address,
-    oracles.address
-  );
+  await merkleDistributor.initialize(admin, rewards.address, oracles.address);
   console.log('MerkleDistributor initialized');
 }
 

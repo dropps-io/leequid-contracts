@@ -5,14 +5,11 @@ async function main() {
     gasPrice: '0x1DCD65000', // 8 Gwei
   };
 
-  console.log('deploying RewardLyxToken...');
-  const RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
-  const rewardLyxToken = await RewardLyxToken.deploy(args);
-  await rewardLyxToken.deployed();
-  console.log(
-    'RewardLyxToken implementation deployed to:',
-    rewardLyxToken.address
-  );
+  console.log('deploying Rewards...');
+  const Rewards = await ethers.getContractFactory('Rewards');
+  const rewards = await Rewards.deploy(args);
+  await rewards.deployed();
+  console.log('Rewards implementation deployed to:', rewards.address);
 
   console.log('deploying StakedLyxToken...');
   const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');

@@ -6,7 +6,7 @@ pragma abicoder v2;
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnablePausableUpgradeable} from "../presets/OwnablePausableUpgradeable.sol";
 import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
-import {IRewardLyxToken} from "../interfaces/IRewardLyxToken.sol";
+import {IRewards} from "../interfaces/IRewards.sol";
 import {IDepositContract} from "../interfaces/IDepositContract.sol";
 import {IPoolValidators} from "../interfaces/IPoolValidators.sol";
 import {IPool} from "../interfaces/IPool.sol";
@@ -36,7 +36,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     // @dev Address of the StakedLyxToken contract.
     IStakedLyxToken private stakedLyxToken;
 
-    IRewardLyxToken private rewardLyxToken;
+    IRewards private rewards;
 
     // @dev Address of the PoolValidators contract.
     IPoolValidators private validators;
@@ -59,7 +59,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     function initialize(
         address _admin,
         address _stakedLyxToken,
-        address _rewardLyxToken,
+        address _rewards,
         address _validators,
         address _oracles,
         bytes32 _withdrawalCredentials,
@@ -68,7 +68,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 _pendingValidatorsLimit
     ) public initializer {
         require(_stakedLyxToken != address(0), "Pool: stakedLyxToken address cannot be zero");
-        require(_rewardLyxToken != address(0), "Pool: rewardLyxToken address cannot be zero");
+        require(_rewards != address(0), "Pool: rewards address cannot be zero");
         require(_admin != address(0), "Pool: admin address cannot be zero");
         require(_oracles != address(0), "Pool: oracles address cannot be zero");
         require(_validatorRegistration != address(0), "Pool: validatorRegistration address cannot be zero");
@@ -78,7 +78,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
         __OwnablePausableUpgradeable_init(_admin);
 
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
-        rewardLyxToken = IRewardLyxToken(_rewardLyxToken);
+        rewards = IRewards(_rewards);
         validators = IPoolValidators(_validators);
         oracles = _oracles;
         withdrawalCredentials = _withdrawalCredentials;
@@ -199,7 +199,7 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
             unstakeMatchedAmount = stakedLyxToken.matchUnstake(value);
         }
         if (unstakeMatchedAmount > 0) {
-            address(rewardLyxToken).call{value: unstakeMatchedAmount}("");
+            address(rewards).call{value: unstakeMatchedAmount}("");
         }
 
         uint256 _valueToDeposit = value - unstakeMatchedAmount;

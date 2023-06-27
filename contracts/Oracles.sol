@@ -6,7 +6,7 @@ pragma abicoder v2;
 import {CountersUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import {ECDSAUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import {OwnablePausableUpgradeable} from "./presets/OwnablePausableUpgradeable.sol";
-import {IRewardLyxToken} from "./interfaces/IRewardLyxToken.sol";
+import {IRewards} from "./interfaces/IRewards.sol";
 import {IPool} from "./interfaces/IPool.sol";
 import {IOracles} from "./interfaces/IOracles.sol";
 import {IMerkleDistributor} from "./interfaces/IMerkleDistributor.sol";
@@ -39,8 +39,8 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     // @dev Unstake nonce is used to protect from requesting to unstake from previous signatures.
     CountersUpgradeable.Counter private unstakeNonce;
 
-    // @dev Address of the RewardLyxToken & StakedLyxToken contracts.
-    IRewardLyxToken private rewardLyxToken;
+    // @dev Address of the Rewards & StakedLyxToken contracts.
+    IRewards private rewards;
     IStakedLyxToken private stakedLyxToken;
 
     // @dev Address of the Pool contract.
@@ -62,13 +62,13 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
     function initialize(
         address _admin,
-        address _rewardLyxToken,
+        address _rewards,
         address _stakedLyxToken,
         address _pool,
         address _poolValidators,
         address _merkleDistributor
     ) external initializer {
-        require(_rewardLyxToken != address(0), "Oracles: invalid rewardLyxToken address");
+        require(_rewards != address(0), "Oracles: invalid rewards address");
         require(_stakedLyxToken != address(0), "Oracles: invalid stakedLyxToken address");
         require(_pool != address(0), "Oracles: invalid pool address");
         require(_poolValidators != address(0), "Oracles: invalid poolValidators address");
@@ -76,7 +76,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
         oracleCount = 0;
         __OwnablePausableUpgradeable_init_unchained(_admin);
-        rewardLyxToken = IRewardLyxToken(_rewardLyxToken);
+        rewards = IRewards(_rewards);
         stakedLyxToken = IStakedLyxToken(_stakedLyxToken);
         pool = IPool(_pool);
         poolValidators = IPoolValidators(_poolValidators);
@@ -134,7 +134,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      * @dev See {IOracles-isMerkleRootVoting}.
      */
     function isMerkleRootVoting() public override view returns (bool) {
-        uint256 lastRewardBlockNumber = rewardLyxToken.lastUpdateBlockNumber();
+        uint256 lastRewardBlockNumber = rewards.lastUpdateBlockNumber();
         return merkleDistributor.lastUpdateBlockNumber() < lastRewardBlockNumber && lastRewardBlockNumber != block.number;
     }
 
@@ -172,7 +172,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         emit RewardsVoteSubmitted(msg.sender, signedOracles, nonce, totalRewards, activatedValidators, exitedValidators);
 
         // update total rewards
-        rewardLyxToken.updateTotalRewards(totalRewards);
+        rewards.updateTotalRewards(totalRewards);
 
         // update activated validators
         if (activatedValidators != pool.activatedValidators()) {

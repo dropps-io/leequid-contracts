@@ -7,14 +7,14 @@ pragma solidity ^0.8.20;
  */
 interface IFeesEscrow {
     /**
-    * @dev Event for tracking fees withdrawals to RewardLyxToken contract.
+    * @dev Event for tracking fees withdrawals to Rewards contract.
     * @param amount - the number of fees.
     */
     event FeesTransferred(uint256 amount);
 
     /**
-    * @dev Function is used to transfer accumulated rewards to RewardLyxToken contract.
-    * Can only be executed by the RewardLyxToken contract.
+    * @dev Function is used to transfer accumulated rewards to Rewards contract.
+    * Can only be executed by the Rewards contract.
     */
     function transferToRewards() external returns (uint256);
 }

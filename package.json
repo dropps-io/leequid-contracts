@@ -1,29 +1,25 @@
 {
-  "name": "stakewise",
+  "name": "leequid",
   "version": "0.1.0",
   "private": true,
   "author": "Dmitri Tsumak <dmitri@stakewise.io>",
   "license": "GNU GPLv3",
-  "description": "StakeWise smart contracts",
+  "description": "Leequid smart contracts",
   "keywords": [
+    "Leequid",
     "StakeWise",
     "Solidity",
     "DeFi"
   ],
   "scripts": {
     "compile": "hardhat compile",
-    "coverage": "NODE_OPTIONS=\"--max-old-space-size=4096\" hardhat coverage",
     "format": "prettier --write \"**/*.js\" \"*.json\"",
     "lint": "solhint --max-warnings 0 \"contracts/**/*.sol\" && eslint \"**/*.js\"",
     "lint:fix": "eslint --fix \"**/*.js\"",
     "linter": "solhint 'contracts/**/*.sol'",
-    "slither": "pip3 install --user slither-analyzer && slither .",
     "test": "hardhat test",
-    "test:gas": "hardhat test --gas --optimizer",
-    "deploy-contracts": "yarn compile --optimizer && npx hardhat run --no-compile scripts/deploy.js",
-    "upgrade-contracts": "yarn compile --optimizer && npx hardhat run --no-compile scripts/upgrade.js",
-    "verify": "npx hardhat verify --optimizer",
     "node": "npx hardhat node",
+    "node-fork": "npx hardhat node --fork https://rpc.testnet.lukso.network",
     "deploy-locally": "yarn compile --optimizer && npx hardhat run scripts/local/deploy.js --no-compile --network local",
     "local-console": "npx hardhat console --network local"
   },
@@ -43,10 +39,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/stakewise/contracts"
+    "url": "https://github.com/dropps-io/leequid-contracts"
   },
   "bugs": {
-    "url": "https://github.com/stakewise/contracts/issues"
+    "url": "https://github.com/dropps-io/leequid-contracts/issues"
   },
   "devDependencies": {
     "@codechecks/client": "^0.1.12",

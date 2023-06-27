@@ -29,7 +29,7 @@ In the console or in scripts you will write, you'll need those lines
 in order to have all the contracts to interact with, and to add the operator  :
 
 ```js
-let mockBeacon, rewardLyxToken, stakedLyxToken, pool, poolValidators, feesEscrow, merkleDistributor, oracles, operator, admin, protocolFeeRecipient, operator, user1, user2, user3, oracle1, oracle2;
+let mockBeacon, rewards, stakedLyxToken, pool, poolValidators, feesEscrow, merkleDistributor, oracles, operator, admin, protocolFeeRecipient, operator, user1, user2, user3, oracle1, oracle2;
 await (async () => {
   const { ethers } = require('hardhat')
   const fs = require('fs');
@@ -41,8 +41,8 @@ await (async () => {
   const MockBeacon = await ethers.getContractFactory('DepositContract');
   mockBeacon = MockBeacon.attach(deployedAddresses.deposit);
 
-  const RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
-  rewardLyxToken = RewardLyxToken.attach(deployedAddresses.rewardLyxToken);
+  const Rewards = await ethers.getContractFactory('Rewards');
+  rewards = Rewards.attach(deployedAddresses.rewards);
 
   const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
   stakedLyxToken = StakedLyxToken.attach(deployedAddresses.stakedLyxToken);

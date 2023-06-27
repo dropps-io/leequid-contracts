@@ -14,7 +14,7 @@ describe('Oracles contract', function () {
   const protocolFee = 0.1; // 10%
 
   let Oracles, oracles;
-  let RewardLyxToken, rewardLyxToken;
+  let Rewards, rewards;
   let StakedLyxToken, stakedLyxToken;
   let Pool, pool;
   let PoolValidators, poolValidators;
@@ -34,7 +34,7 @@ describe('Oracles contract', function () {
 
   before(async function () {
     Oracles = await ethers.getContractFactory('Oracles');
-    RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
+    Rewards = await ethers.getContractFactory('Rewards');
     StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
     Pool = await ethers.getContractFactory('Pool');
     PoolValidators = await ethers.getContractFactory('PoolValidators');
@@ -57,15 +57,15 @@ describe('Oracles contract', function () {
 
   beforeEach(async function () {
     oracles = await Oracles.deploy();
-    rewardLyxToken = await RewardLyxToken.deploy();
+    rewards = await Rewards.deploy();
     stakedLyxToken = await StakedLyxToken.deploy();
     pool = await Pool.deploy();
     poolValidators = await PoolValidators.deploy();
     merkleDistributor = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewardLyxToken.address);
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
     await oracles.deployed();
-    await rewardLyxToken.deployed();
+    await rewards.deployed();
     await stakedLyxToken.deployed();
     await pool.deployed();
     await poolValidators.deployed();
@@ -74,14 +74,14 @@ describe('Oracles contract', function () {
 
     await oracles.initialize(
       admin.address,
-      rewardLyxToken.address,
+      rewards.address,
       stakedLyxToken.address,
       pool.address,
       poolValidators.address,
       merkleDistributor.address
     );
 
-    await rewardLyxToken.initialize(
+    await rewards.initialize(
       admin.address,
       stakedLyxToken.address,
       oracles.address,
@@ -98,7 +98,7 @@ describe('Oracles contract', function () {
         admin.address,
         pool.address,
         oracles.address,
-        rewardLyxToken.address
+        rewards.address
       );
 
     await pool
@@ -106,7 +106,7 @@ describe('Oracles contract', function () {
       .initialize(
         admin.address,
         stakedLyxToken.address,
-        rewardLyxToken.address,
+        rewards.address,
         poolValidators.address,
         oracles.address,
         getTestDepositData(operator.address)[0].withdrawalCredentials,
@@ -121,7 +121,7 @@ describe('Oracles contract', function () {
 
     await merkleDistributor
       .connect(admin)
-      .initialize(admin.address, rewardLyxToken.address, oracles.address);
+      .initialize(admin.address, rewards.address, oracles.address);
 
     await oracles.connect(admin).addOracle(oracle1.address);
     await oracles.connect(admin).addOracle(oracle2.address);
@@ -477,10 +477,10 @@ describe('Oracles contract', function () {
           signatures
         );
 
-      const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
+      const protocolFeeRecipientBalance = await rewards.balanceOf(
         admin.address
       );
-      const userBalance = await rewardLyxToken.balanceOf(user1.address);
+      const userBalance = await rewards.balanceOf(user1.address);
 
       expect(protocolFeeRecipientBalance).to.equal(
         ethers.utils.parseEther((totalRewards * protocolFee).toString())
@@ -640,10 +640,10 @@ describe('Oracles contract', function () {
           signatures
         );
 
-      const protocolFeeRecipientBalance = await rewardLyxToken.balanceOf(
+      const protocolFeeRecipientBalance = await rewards.balanceOf(
         admin.address
       );
-      const userBalance = await rewardLyxToken.balanceOf(user1.address);
+      const userBalance = await rewards.balanceOf(user1.address);
 
       expect(protocolFeeRecipientBalance).to.equal(
         ethers.utils.parseEther((totalRewards * 2 * protocolFee).toString())

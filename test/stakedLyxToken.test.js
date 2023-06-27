@@ -6,7 +6,7 @@ describe('StakedLyxToken contract', function () {
   const protocolFee = 0; // 0%
 
   let Oracles, oracles;
-  let RewardLyxToken, rewardLyxToken;
+  let Rewards, rewards;
   let StakedLyxToken, stakedLyxToken;
   let Pool, pool;
   let PoolValidators, poolValidators;
@@ -17,7 +17,7 @@ describe('StakedLyxToken contract', function () {
 
   before(async function () {
     Oracles = await ethers.getContractFactory('Oracles');
-    RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
+    Rewards = await ethers.getContractFactory('Rewards');
     StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
     Pool = await ethers.getContractFactory('Pool');
     PoolValidators = await ethers.getContractFactory('PoolValidators');
@@ -29,15 +29,15 @@ describe('StakedLyxToken contract', function () {
 
   beforeEach(async function () {
     oracles = await Oracles.deploy();
-    rewardLyxToken = await RewardLyxToken.deploy();
+    rewards = await Rewards.deploy();
     stakedLyxToken = await StakedLyxToken.deploy();
     pool = await Pool.deploy();
     poolValidators = await PoolValidators.deploy();
     merkleDistributor = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewardLyxToken.address);
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
     await oracles.deployed();
-    await rewardLyxToken.deployed();
+    await rewards.deployed();
     await stakedLyxToken.deployed();
     await pool.deployed();
     await poolValidators.deployed();
@@ -46,14 +46,14 @@ describe('StakedLyxToken contract', function () {
 
     await oracles.initialize(
       admin.address,
-      rewardLyxToken.address,
+      rewards.address,
       stakedLyxToken.address,
       pool.address,
       poolValidators.address,
       merkleDistributor.address
     );
 
-    await rewardLyxToken.initialize(
+    await rewards.initialize(
       admin.address,
       stakedLyxToken.address,
       oracles.address,
@@ -66,19 +66,14 @@ describe('StakedLyxToken contract', function () {
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(
-        admin.address,
-        admin.address,
-        admin.address,
-        rewardLyxToken.address
-      );
+      .initialize(admin.address, admin.address, admin.address, rewards.address);
 
     await pool
       .connect(admin)
       .initialize(
         admin.address,
         stakedLyxToken.address,
-        rewardLyxToken.address,
+        rewards.address,
         poolValidators.address,
         oracles.address,
         getTestDepositData(operator.address)[0].withdrawalCredentials,
@@ -93,7 +88,7 @@ describe('StakedLyxToken contract', function () {
 
     await merkleDistributor
       .connect(admin)
-      .initialize(admin.address, rewardLyxToken.address, oracles.address);
+      .initialize(admin.address, rewards.address, oracles.address);
   });
 
   describe('unstake', function () {
@@ -567,23 +562,23 @@ describe('StakedLyxToken contract', function () {
         .connect(admin)
         .mint(user1.address, ethers.utils.parseEther('64'), true, '0x');
       const transaction = {
-        to: rewardLyxToken.address,
+        to: rewards.address,
         value: ethers.utils.parseEther('9999'),
         gasLimit: '30000000',
       };
       await chain.sendTransaction(transaction);
     });
 
-    it('should revert if sender not rewardLyxToken', async function () {
+    it('should revert if sender not rewards', async function () {
       await expect(
         stakedLyxToken.connect(user1).claimUnstake(user1.address, [1])
       ).to.be.revertedWith('StakedLyxToken: access denied');
     });
 
     it('should revert if no unstake request exists for this index', async function () {
-      await expect(
-        rewardLyxToken.connect(user1).claimUnstake([1])
-      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+      await expect(rewards.connect(user1).claimUnstake([1])).to.be.revertedWith(
+        'StakedLyxToken: unstake request not claimable'
+      );
     });
 
     it('should revert if sender not the account associated with the unstake', async function () {
@@ -591,9 +586,7 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
       await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
 
-      await expect(
-        rewardLyxToken.connect(user2).claimUnstake([1])
-      ).to.be.revertedWith(
+      await expect(rewards.connect(user2).claimUnstake([1])).to.be.revertedWith(
         'StakedLyxToken: unstake request not from this account'
       );
     });
@@ -603,26 +596,26 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
       await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
 
-      await rewardLyxToken.connect(user1).claimUnstake([1]);
-      await expect(
-        rewardLyxToken.connect(user1).claimUnstake([1])
-      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+      await rewards.connect(user1).claimUnstake([1]);
+      await expect(rewards.connect(user1).claimUnstake([1])).to.be.revertedWith(
+        'StakedLyxToken: unstake request not claimable'
+      );
     });
 
     it('should revert if unstake request has not been processed yet', async function () {
       const unstakeAmount = ethers.utils.parseEther('16');
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
 
-      await expect(
-        rewardLyxToken.connect(user1).claimUnstake([1])
-      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+      await expect(rewards.connect(user1).claimUnstake([1])).to.be.revertedWith(
+        'StakedLyxToken: unstake request not claimable'
+      );
 
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
       await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
 
-      await expect(
-        rewardLyxToken.connect(user1).claimUnstake([2])
-      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+      await expect(rewards.connect(user1).claimUnstake([2])).to.be.revertedWith(
+        'StakedLyxToken: unstake request not claimable'
+      );
     });
 
     it('should revert if unstake request has been processed partially', async function () {
@@ -632,16 +625,16 @@ describe('StakedLyxToken contract', function () {
         .connect(admin)
         .matchUnstake(ethers.utils.parseEther('8'));
 
-      await expect(
-        rewardLyxToken.connect(user1).claimUnstake([1])
-      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+      await expect(rewards.connect(user1).claimUnstake([1])).to.be.revertedWith(
+        'StakedLyxToken: unstake request not claimable'
+      );
 
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
       await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
 
-      await expect(
-        rewardLyxToken.connect(user1).claimUnstake([2])
-      ).to.be.revertedWith('StakedLyxToken: unstake request not claimable');
+      await expect(rewards.connect(user1).claimUnstake([2])).to.be.revertedWith(
+        'StakedLyxToken: unstake request not claimable'
+      );
     });
 
     it('should claim successful when conditions fulfilled', async function () {
@@ -649,7 +642,7 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
       await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
 
-      await rewardLyxToken.connect(user1).claimUnstake([1]);
+      await rewards.connect(user1).claimUnstake([1]);
 
       let unstakeRequest = await stakedLyxToken.unstakeRequest(1);
 
@@ -660,7 +653,7 @@ describe('StakedLyxToken contract', function () {
       await stakedLyxToken.connect(user1).unstake(unstakeAmount);
       await stakedLyxToken.connect(admin).matchUnstake(unstakeAmount);
 
-      await rewardLyxToken.connect(user1).claimUnstake([2]);
+      await rewards.connect(user1).claimUnstake([2]);
 
       unstakeRequest = await stakedLyxToken.unstakeRequest(2);
 
@@ -675,7 +668,7 @@ describe('StakedLyxToken contract', function () {
         .connect(admin)
         .matchUnstake(ethers.utils.parseEther('45'));
 
-      await await rewardLyxToken.connect(user1).claimUnstake([1, 2]);
+      await await rewards.connect(user1).claimUnstake([1, 2]);
 
       const unstakeRequest = await stakedLyxToken.unstakeRequest(1);
       const unstakeRequest2 = await stakedLyxToken.unstakeRequest(2);

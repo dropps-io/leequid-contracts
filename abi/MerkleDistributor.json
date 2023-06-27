@@ -494,7 +494,7 @@
       },
       {
         "internalType": "address",
-        "name": "_rewardLyxToken",
+        "name": "_rewards",
         "type": "address"
       },
       {
@@ -688,7 +688,7 @@
   },
   {
     "inputs": [],
-    "name": "rewardLyxToken",
+    "name": "rewards",
     "outputs": [
       {
         "internalType": "address",

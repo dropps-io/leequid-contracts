@@ -9,8 +9,8 @@ The LEEQUID smart contracts are forked from [StakeWise V2 smart contracts](https
 As the StakeWise protocol V2 was deployed 2 years ago, rewards withdrawals were not yet possible, 
 so the rewards were not going back to the protocol, explaining the utility of a dual token system.  
 As now, rewards withdrawals are possible, the dual token system is not needed anymore, 
-and that's why we only used the sLYX token in our fork (RewardLyxToken contract is not a token anymore).
-The RewardLyxToken contract is now used to receive the rewards (it is the withdrawal credential of the validators), 
+and that's why we only used the sLYX token in our fork (Rewards contract is not a token anymore).
+The Rewards contract is now used to receive the rewards (it is the withdrawal credential of the validators), 
 to keep track of the rewards, and allow the stakers to claim their rewards (cash out or compound) directly in LYX.
 
 A unstake mechanism (validator exiting) was also added to the protocol.
@@ -26,7 +26,7 @@ For the reason that validators withdrawals are not possible yet, the feature wil
 - [x] [Oracles.sol](./contracts/Oracles.sol)
 - [x] [AdminUpgradeabilityProxy.sol](./contracts/AdminUpgradeableProxy.sol)
 - [x] [StakedLyxToken.sol](./contracts/tokens/StakedLyxToken.sol)
-- [x] [RewardLyxToken.sol](./contracts/tokens/RewardLyxToken.sol)
+- [x] [Rewards.sol](./contracts/tokens/Rewards.sol)
 - [x] [Pool.sol](./contracts/pool/Pool.sol)
 - [x] [PoolValidators.sol](./contracts/pool/PoolValidators.sol)
 - [x] [FeesEscrow.sol](./contracts/pool/FeesEscrow.sol)
@@ -65,9 +65,9 @@ Fork modifications:
 - Migration from ERC20 to LSP7
 - Addition of an unstake mechanism (`unstake`, `matchUnstake`, `setUnstakeProcessing`, `unstakeProcessed`, `claimUnstake` methods)
 
-### RewardLyxToken
+### Rewards
 
-The [RewardLyxToken](./contracts/tokens/RewardLyxToken.sol) contract is used to keep track of the rewards of each staker.
+The [Rewards](./contracts/tokens/Rewards.sol) contract is used to keep track of the rewards of each staker.
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
@@ -98,7 +98,7 @@ The [FeesEscrow](./contracts/pool/FeesEscrow.sol) contract is used to manage the
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
-- Fees being sent the `RewardLyxToken` contract instead of the `Pool` contract
+- Fees being sent the `Rewards` contract instead of the `Pool` contract
 
 ### MerkleDistributor
 

@@ -12,7 +12,7 @@ describe('Pool contract', function () {
   const ZERRO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
   let Oracles, oracles;
-  let RewardLyxToken, rewardLyxToken;
+  let Rewards, rewards;
   let StakedLyxToken, stakedLyxToken;
   let Pool, pool;
   let PoolValidators, poolValidators;
@@ -23,7 +23,7 @@ describe('Pool contract', function () {
 
   before(async function () {
     Oracles = await ethers.getContractFactory('Oracles');
-    RewardLyxToken = await ethers.getContractFactory('RewardLyxToken');
+    Rewards = await ethers.getContractFactory('Rewards');
     StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
     Pool = await ethers.getContractFactory('Pool');
     PoolValidators = await ethers.getContractFactory('PoolValidators');
@@ -35,15 +35,15 @@ describe('Pool contract', function () {
 
   beforeEach(async function () {
     oracles = await Oracles.deploy();
-    rewardLyxToken = await RewardLyxToken.deploy();
+    rewards = await Rewards.deploy();
     stakedLyxToken = await StakedLyxToken.deploy();
     pool = await Pool.deploy();
     poolValidators = await PoolValidators.deploy();
     merkleDistributor = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewardLyxToken.address);
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
     await oracles.deployed();
-    await rewardLyxToken.deployed();
+    await rewards.deployed();
     await stakedLyxToken.deployed();
     await pool.deployed();
     await poolValidators.deployed();
@@ -52,14 +52,14 @@ describe('Pool contract', function () {
 
     await oracles.initialize(
       admin.address,
-      rewardLyxToken.address,
+      rewards.address,
       stakedLyxToken.address,
       pool.address,
       poolValidators.address,
       merkleDistributor.address
     );
 
-    await rewardLyxToken.initialize(
+    await rewards.initialize(
       admin.address,
       stakedLyxToken.address,
       oracles.address,
@@ -76,13 +76,13 @@ describe('Pool contract', function () {
         admin.address,
         pool.address,
         oracles.address,
-        rewardLyxToken.address
+        rewards.address
       );
 
     await pool.connect(admin).initialize(
       admin.address,
       stakedLyxToken.address,
-      rewardLyxToken.address,
+      rewards.address,
       poolValidators.address,
       oracles.address,
       getTestDepositData(operator.address)[0].withdrawalCredentials,
@@ -97,7 +97,7 @@ describe('Pool contract', function () {
 
     await merkleDistributor
       .connect(admin)
-      .initialize(admin.address, rewardLyxToken.address, oracles.address);
+      .initialize(admin.address, rewards.address, oracles.address);
 
     await oracles.connect(admin).addOracle(oracle.address);
 
