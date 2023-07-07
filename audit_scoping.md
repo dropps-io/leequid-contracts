@@ -121,3 +121,9 @@ Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
 - Removed usage of SafeMath library
 - ERC20 usages changed to LSP7
+
+![infra.png](docs%2Finfra.png)
+
+![stake_happy_path.png](docs%2Fstake_happy_path.png)
+
+![submit_rewards_happy_path.png](docs%2Fsubmit_rewards_happy_path.png)
