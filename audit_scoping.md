@@ -42,6 +42,8 @@ For the reason that validators withdrawals are not possible yet, the feature wil
 ### Oracles 
 
 The [Oracles](./contracts/Oracles.sol) contract stores the accounts responsible for submitting or updating values based on the off-chain data.
+The Oracles.sol contract act as an interface and between our backend (oracles) and the protocol 
+-> It is used for submitting the rewards, registering new validators, starting an unstake process, & submitting merkle tree for token distribution
 The threshold of inputs from different oracles is required to submit the data.
 
 Fork modifications:
@@ -52,12 +54,13 @@ Fork modifications:
 
 ### AdminUpgradeabilityProxy
 
-The [AdminUpgradeabilityProxy](./contracts/AdminUpgradeableProxy.sol) contract is used to upgrade the implementation of the proxy contract.
+The [AdminUpgradeabilityProxy](./contracts/AdminUpgradeableProxy.sol) contract is used to deploy our protocol in an upgradeable way.
 This contract is not forked from StakeWise V2.
 
 ### StakedLyxToken
 
-The [StakedLyxToken](./contracts/tokens/StakedLyxToken.sol) contract is used to represent the pool staked LYX tokens.
+The [StakedLyxToken](./contracts/tokens/StakedLyxToken.sol) contract is used to represent the pool staked LYX as tokens.
+1 LYX = 1 sLYX. This contract is also responsible to receive unstake requests from stakers.
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
@@ -67,7 +70,9 @@ Fork modifications:
 
 ### Rewards
 
-The [Rewards](./contracts/tokens/Rewards.sol) contract is used to keep track of the rewards of each staker.
+The [Rewards](./contracts/tokens/Rewards.sol) contract is used to handle and keep track of the rewards of each staker, as well as the unstaked LYX.
+The address of the contract is being used for the withdrawalCredentials of the protocol validators.
+Stakers can claim their rewards (cash out or compound) directly in LYX on this contract, and claim their unstaked LYX (once ready).
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
@@ -77,7 +82,9 @@ Fork modifications:
 
 ### Pool
 
-The [Pool](./contracts/pool/Pool.sol) contract is used to manage the staking pool.
+The [Pool](./contracts/pool/Pool.sol) contract is used to receive LYX from stakers and manage the staking pool.
+An activation period can be set to avoid having a rewards dilution being too high (when new entrants).
+This contract receiving the stakes, it is this contract that register the validators to the Beacon Deposit Contract.
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
@@ -86,7 +93,10 @@ Fork modifications:
 
 ### PoolValidators
 
-The [PoolValidators](./contracts/pool/PoolValidators.sol) contract is used to manage the validators of the pool.
+The [PoolValidators](./contracts/pool/PoolValidators.sol) contract is used to manage the operators and validators of the pool.
+In our case, we will (at least at the beginning) be the only operator.
+This contract hold the merkle root of our validators, so the protocol can verify that validators we register are part of the merkle.
+This contract also ensure that we don't register twice the same validator, by keeping track of the registered validators.
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
@@ -95,6 +105,7 @@ Fork modifications:
 ### FeesEscrow
 
 The [FeesEscrow](./contracts/pool/FeesEscrow.sol) contract is used to manage the consensus fees received by the nodes.
+So the address of this contract is used for the fee recipient address, and when updating the protocol rewards, the fees are transferred to the Rewards contract. 
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
@@ -103,7 +114,8 @@ Fork modifications:
 ### MerkleDistributor
 
 The [MerkleDistributor](./contracts/merkles/MerkleDistributor.sol) contract is used to manage the merkle distribution of the rewards 
-(for stakers adding their sLYX to liquidity pools).
+(for stakers adding their sLYX to liquidity pools). 
+The calculation of the rewards is done off-chain, and the merkle tree is submitted by the oracles.
 
 Fork modifications:
 - Solidity version from 0.7.5 to 0.8.20
