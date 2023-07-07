@@ -10,6 +10,7 @@ The [Leequid](https://leequid.io/) smart contracts for liquid non-custodial LUKS
 [LUKSO LSPs]('https://github.com/lukso-network/lsp-smart-contracts) compatibility.</b>
 
 # Audits
+
 All audit reports are presented in the [audits folder](https://github.com/stakewise/contracts/tree/master/audits)
 
 ## Documentation
@@ -18,17 +19,22 @@ You can find the documentation for every contract in the `contracts` directory. 
 The StakeWise documentation is also available on the [StakeWise official documentation page](https://docs.stakewise.io/smart-contracts).
 
 #### Pool
-The Pool contract is an entry point for deposits into the StakeWise Pool. This contract stores LYX collected from the users before it is sent to the LYXE Validator Registration Contract. 
+
+The Pool contract is an entry point for deposits into the StakeWise Pool. This contract stores LYX collected from the users before it is sent to the LYXE Validator Registration Contract.
 
 #### StakedLyxToken
-The StakedEthToken is a LSP7 contract. It reflects the deposits made by the stakers in the form of sLYX tokens. The tokens are mapped 1 to 1 to LYX. 
-The total supply of sLYX is the sum of all the Leequid Pool's validators' effective balances, plus an additional amount of up to (32 LYX - 1 Wei) LYX awaiting inclusion into a new validator. 
+
+The StakedEthToken is a LSP7 contract. It reflects the deposits made by the stakers in the form of sLYX tokens. The tokens are mapped 1 to 1 to LYX.
+The total supply of sLYX is the sum of all the Leequid Pool's validators' effective balances, plus an additional amount of up to (32 LYX - 1 Wei) LYX awaiting inclusion into a new validator.
+
 
 #### Rewards
+
 The Rewards is reflects the rewards accumulated by the stakers. 
 It is the contract where user can cash-out/withdraw their rewards, and claim their unstakes.
 
 #### Oracle
+
 Oracles contract stores accounts responsible for submitting or updating values based on the off-chain data.
 
 ## Development
@@ -47,11 +53,10 @@ Oracles contract stores accounts responsible for submitting or updating values b
    yarn compile --optimizer
    ```
 
-3. Update network parameters in `hardhat.config.js`. Learn more at [Hardhat config options](https://hardhat.org/config/).
-
-4. Change [settings](./deployments/settings.js) if needed. 
-
-5. Deploy StakeWise contracts to the selected network:
+3. Create a `.env` file in your project directory. You can use the provided `.env.template` file as a starting point. Modify the values in the `.env` file, including the private key and any other required variables.
+4. (Optional) Update network parameters in `hardhat.config.js` if required. Learn more at [Hardhat config options](https://hardhat.org/config/).
+5. Change [settings](./deployments/settings.js) if needed. This contains the proxy contract addresses and other settings.
+6. Deploy StakeWise contracts to the selected network:
 
    ```shell script
    yarn deploy-contracts --network rinkeby
@@ -65,11 +70,10 @@ See [Local Tests](./docs/local_tests.md) for more information.
 
 Development of the project happens in the open on GitHub, and we are grateful to the community for contributing bug fixes and improvements.
 
-
 ## Contact us
 
-- [Discord](https://discord.gg/paCyd4W9) 
-- [Twitter](https://twitter.com/leequid_io) 
+- [Discord](https://discord.gg/paCyd4W9)
+- [Twitter](https://twitter.com/leequid_io)
 
 ### License
 
