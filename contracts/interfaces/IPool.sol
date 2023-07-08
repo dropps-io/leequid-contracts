@@ -88,8 +88,15 @@ interface IPool {
     */
     function activatedValidators() external view returns (uint256);
 
-
+    /**
+    * @dev Function for retrieving the total amount of exited validators.
+    */
     function exitedValidators() external view returns (uint256);
+
+    /**
+    * @dev Function for retrieving the total amount of effective validators (activated - exited).
+    */
+    function effectiveValidators() external view returns (uint256);
 
     /**
     * @dev Function for retrieving the withdrawal credentials used to
