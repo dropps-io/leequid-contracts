@@ -2,7 +2,7 @@
 
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/dropps_io.svg?style=social&label=Follow%20%40dropps_io)](https://twitter.com/dropps_io)
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/leequid_io.svg?style=social&label=Follow%20%40leequid_io)](https://twitter.com/leequid_io)
-[![Discord](https://user-images.githubusercontent.com/7288322/34471967-1df7808a-efbb-11e7-9088-ed0b04151291.png)](https://discord.gg/paCyd4W9)
+[![Discord](https://user-images.githubusercontent.com/7288322/34471967-1df7808a-efbb-11e7-9088-ed0b04151291.png)](https://discord.gg/ezScSqvc)
 
 The [Leequid](https://leequid.io/) smart contracts for liquid non-custodial LUKSO staking.
 
