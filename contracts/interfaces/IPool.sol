@@ -134,7 +134,17 @@ interface IPool {
     */
     function setActivatedValidators(uint256 newActivatedValidators) external;
 
+    /**
+    * @dev Function for changing the total amount of exited validators.
+    * @param newExitedValidators - new total amount of exited validators.
+    */
     function setExitedValidators(uint256 newExitedValidators) external;
+
+    /**
+    * @dev Receive LYX from the stakeLyxToken contract without minting more sLYX
+    * This could be used if some validators are exited by mistake (more exit than pending unstakes)
+    */
+    function receiveWithoutActivation() external payable;
 
     /**
     * @dev Function for changing pending validators limit.

@@ -32,6 +32,7 @@ import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts
 import { _TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
 import { IRewards } from "../interfaces/IRewards.sol";
+import { IPool } from "../interfaces/IPool.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { ERC725YCore } from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
@@ -75,7 +76,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     mapping(address => mapping(address => uint256)) internal _operatorAuthorizedAmount;
 
     // @dev Address of the Pool contract.
-    address private pool;
+    IPool private pool;
 
     // @dev Address of the Oracles contract.
     address private oracles;
@@ -88,11 +89,11 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
     function initialize(
         address _admin,
-        address _pool,
+        IPool _pool,
         address _oracles,
         IRewards _rewards
     ) external initializer {
-        require(_pool != address(0), "StakedLyxToken: pool address cannot be zero");
+        require(address(_pool) != address(0), "StakedLyxToken: pool address cannot be zero");
         require(_oracles != address(0), "StakedLyxToken: oracles address cannot be zero");
         require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
         require(address(_rewards) != address(0), "StakedLyxToken: rewards address cannot be zero");
@@ -325,7 +326,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
      * @dev See {IStakedLyxToken-matchUnstake}.
      */
     function matchUnstake(uint256 amount) external override returns (uint256) {
-        require(msg.sender == pool, "StakedLyxToken: access denied");
+        require(msg.sender == address(pool), "StakedLyxToken: access denied");
         require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
         uint256 amountMatched = 0;
 
@@ -384,7 +385,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         uint256 unstakeAmount = exitedValidators * VALIDATOR_TOTAL_DEPOSIT;
 
-        require(unstakeAmount <= totalPendingUnstake, "StakedLyxToken: insufficient pending unstake");
+        if (unstakeAmount > totalPendingUnstake) {
+            pool.receiveWithoutActivation{value: unstakeAmount - totalPendingUnstake}();
+            unstakeAmount = totalPendingUnstake;
+        }
 
         totalPendingUnstake -= unstakeAmount;
         totalUnstaked += unstakeAmount;
@@ -440,7 +444,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 amount,
         bool allowNonLSP1Recipient,
         bytes memory data) external override {
-        require(msg.sender == pool, "StakedLyxToken: access denied");
+        require(msg.sender == address(pool), "StakedLyxToken: access denied");
 
         // start calculating account rewards with updated deposit amount
         bool rewardsDisabled = rewards.updateRewardCheckpoint(to);

@@ -129,6 +129,10 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
         emit ExitedValidatorsUpdated(exitedValidators, msg.sender);
     }
 
+    function receiveWithoutActivation() external payable override {
+        require(msg.sender == address(stakedLyxToken) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
+    }
+
     /**
     * @dev See {IPool-stake}.
     */

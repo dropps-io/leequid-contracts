@@ -92,12 +92,6 @@ module.exports = {
     local: {
       url: 'http://127.0.0.1:8545/',
     },
-    l16: {
-      url: `https://rpc.l16.lukso.network`, // Replace this with the RPC URL for your custom network
-      accounts: [process.env.PRIVATE_KEY], // The private key of the deployer account
-      chainId: 2828, // The chain ID of the custom network (replace with the correct value)
-      // You can also set other network-specific configurations, such as gas and block gas limit
-    },
     luksoTestnet: {
       url: `https://rpc.testnet.lukso.network`, // Replace this with the RPC URL for your custom network
       chainId: 4201, // The chain ID of the custom network (replace with the correct value)

@@ -39,3 +39,5 @@ artifacts
 
 .env
 local_addresses.json
+
+.vs
