@@ -95,16 +95,19 @@ module.exports = {
     luksoTestnet: {
       url: `https://rpc.testnet.lukso.network`, // Replace this with the RPC URL for your custom network
       chainId: 4201, // The chain ID of the custom network (replace with the correct value)
+      accounts: [process.env.PRIVATE_KEY],
       // You can also set other network-specific configurations, such as gas and block gas limit
     },
     luksoDevnet: {
       url: `https://rpc.devnet.lukso.dev/`, // Replace this with the RPC URL for your custom network
       chainId: 7420, // The chain ID of the custom network (replace with the correct value)
+      accounts: [process.env.PRIVATE_KEY],
       // You can also set other network-specific configurations, such as gas and block gas limit
     },
     sepolia: {
       url: 'https://rpc2.sepolia.org/ ', // Replace this with the RPC URL for your custom network
       chainId: 11155111, // The chain ID of the custom network (replace with the correct value)
+      accounts: [process.env.PRIVATE_KEY],
       // You can also set other network-specific configurations, such as gas and block gas limit
     },
   },
