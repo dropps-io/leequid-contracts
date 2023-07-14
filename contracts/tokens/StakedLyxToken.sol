@@ -2,17 +2,17 @@
 pragma solidity ^0.8.20;
 
 // interfaces
-import {ILSP1UniversalReceiver} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/ILSP1UniversalReceiver.sol";
-import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
+import { ILSP1UniversalReceiver } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/ILSP1UniversalReceiver.sol";
+import { ILSP7DigitalAsset } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 
 // libraries
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import {GasLib} from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import { GasLib } from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
 
 // modules
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // errors
 import {LSP7AmountExceedsAuthorizedAmount,
@@ -27,14 +27,15 @@ import {LSP7AmountExceedsAuthorizedAmount,
 } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
-import {_INTERFACEID_LSP1} from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
-import {LSP4DigitalAssetMetadataInitAbstract} from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
-import {_TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
-import {IStakedLyxToken} from "../interfaces/IStakedLyxToken.sol";
-import {IRewards} from "../interfaces/IRewards.sol";
+import { _INTERFACEID_LSP1 } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
+import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
+import { _TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
+import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
+import { IRewards } from "../interfaces/IRewards.sol";
+import { IPool } from "../interfaces/IPool.sol";
 import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {ERC725YCore} from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
+import { ERC725YCore } from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 /**
@@ -75,7 +76,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     mapping(address => mapping(address => uint256)) internal _operatorAuthorizedAmount;
 
     // @dev Address of the Pool contract.
-    address private pool;
+    IPool private pool;
 
     // @dev Address of the Oracles contract.
     address private oracles;
@@ -88,11 +89,11 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
     function initialize(
         address _admin,
-        address _pool,
+        IPool _pool,
         address _oracles,
         IRewards _rewards
     ) external initializer {
-        require(_pool != address(0), "StakedLyxToken: pool address cannot be zero");
+        require(address(_pool) != address(0), "StakedLyxToken: pool address cannot be zero");
         require(_oracles != address(0), "StakedLyxToken: oracles address cannot be zero");
         require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
         require(address(_rewards) != address(0), "StakedLyxToken: rewards address cannot be zero");
@@ -110,7 +111,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         return super.supportsInterface(interfaceId);
     }
 
-    function decimals() public view override returns (uint8) {
+    function decimals() public pure override returns (uint8) {
         return 18;
     }
 
@@ -325,7 +326,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
      * @dev See {IStakedLyxToken-matchUnstake}.
      */
     function matchUnstake(uint256 amount) external override returns (uint256) {
-        require(msg.sender == pool, "StakedLyxToken: access denied");
+        require(msg.sender == address(pool), "StakedLyxToken: access denied");
         require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
         uint256 amountMatched = 0;
 
@@ -384,7 +385,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         uint256 unstakeAmount = exitedValidators * VALIDATOR_TOTAL_DEPOSIT;
 
-        require(unstakeAmount <= totalPendingUnstake, "StakedLyxToken: insufficient pending unstake");
+        if (unstakeAmount > totalPendingUnstake) {
+            pool.receiveWithoutActivation{value: unstakeAmount - totalPendingUnstake}();
+            unstakeAmount = totalPendingUnstake;
+        }
 
         totalPendingUnstake -= unstakeAmount;
         totalUnstaked += unstakeAmount;
@@ -440,7 +444,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 amount,
         bool allowNonLSP1Recipient,
         bytes memory data) external override {
-        require(msg.sender == pool, "StakedLyxToken: access denied");
+        require(msg.sender == address(pool), "StakedLyxToken: access denied");
 
         // start calculating account rewards with updated deposit amount
         bool rewardsDisabled = rewards.updateRewardCheckpoint(to);
@@ -483,53 +487,6 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         emit Transfer(operator, address(0), to, amount, allowNonLSP1Recipient, data);
 
         _notifyTokenReceiver(address(0), to, amount, allowNonLSP1Recipient, data);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `from` must have at least `amount` tokens.
-     * - If the caller is not `from`, it must be an operator for `from` with access to at least
-     * `amount` tokens.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _burn(
-        address from,
-        uint256 amount,
-        bytes memory data
-    ) internal virtual {
-        if (from == address(0)) {
-            revert LSP7CannotSendWithAddressZero();
-        }
-
-        uint256 balance = _deposits[from];
-        if (amount > balance) {
-            revert LSP7AmountExceedsBalance(balance, from, amount);
-        }
-
-        address operator = msg.sender;
-        if (operator != from) {
-            uint256 authorizedAmount = _operatorAuthorizedAmount[from][operator];
-            if (amount > authorizedAmount) {
-                revert LSP7AmountExceedsAuthorizedAmount(from, authorizedAmount, operator, amount);
-            }
-            _operatorAuthorizedAmount[from][operator] -= amount;
-        }
-
-        _beforeTokenTransfer(from, address(0), amount);
-
-        // tokens being burned
-        _totalDeposits -= amount;
-
-        _deposits[from] -= amount;
-
-        emit Transfer(operator, from, address(0), amount, false, data);
-
-        _notifyTokenSender(from, address(0), amount, data);
     }
 
     /**
