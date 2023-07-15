@@ -116,6 +116,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      */
     function addOracle(address account) external override {
         require(account != address(0), "Oracles: invalid oracle address");
+        require(!hasRole(ORACLE_ROLE, account), "Oracles: oracle already exists");
         grantRole(ORACLE_ROLE, account);
         oracleCount++;
         emit OracleAdded(account);
@@ -125,6 +126,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      * @dev See {IOracles-removeOracle}.
      */
     function removeOracle(address account) external override {
+        require(hasRole(ORACLE_ROLE, account), "Oracles: oracle do not exists");
         revokeRole(ORACLE_ROLE, account);
         oracleCount--;
         emit OracleRemoved(account);
