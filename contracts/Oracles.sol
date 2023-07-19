@@ -53,8 +53,8 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     IMerkleDistributor private merkleDistributor;
 
     /**
-    * @dev Modifier for checking whether the caller is an oracle.
-    */
+     * @dev Modifier for checking whether the caller is an oracle.
+     */
     modifier onlyOracle() {
         require(hasRole(ORACLE_ROLE, msg.sender), "Oracles: access denied");
         _;
@@ -86,28 +86,28 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-currentRewardsNonce}.
      */
-    function currentRewardsNonce() external override view returns (uint256) {
+    function currentRewardsNonce() external view override returns (uint256) {
         return rewardsNonce.current();
     }
 
     /**
      * @dev See {IOracles-currentValidatorsNonce}.
      */
-    function currentValidatorsNonce() external override view returns (uint256) {
+    function currentValidatorsNonce() external view override returns (uint256) {
         return validatorsNonce.current();
     }
 
     /**
      * @dev See {IOracles-currentValidatorsNonce}.
      */
-    function currentUnstakeNonce() external override view returns (uint256) {
+    function currentUnstakeNonce() external view override returns (uint256) {
         return unstakeNonce.current();
     }
 
     /**
      * @dev See {IOracles-isOracle}.
      */
-    function isOracle(address account) external override view returns (bool) {
+    function isOracle(address account) external view override returns (bool) {
         return hasRole(ORACLE_ROLE, account);
     }
 
@@ -135,22 +135,24 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-isMerkleRootVoting}.
      */
-    function isMerkleRootVoting() public override view returns (bool) {
+    function isMerkleRootVoting() public view override returns (bool) {
         uint256 lastRewardBlockNumber = rewards.lastUpdateBlockNumber();
-        return merkleDistributor.lastUpdateBlockNumber() < lastRewardBlockNumber && lastRewardBlockNumber != block.number;
+        return
+            merkleDistributor.lastUpdateBlockNumber() < lastRewardBlockNumber &&
+            lastRewardBlockNumber != block.number;
     }
 
     /**
-    * @dev Function for checking whether the number of signatures is enough to update the value.
-    * @param signaturesCount - number of signatures.
-    */
+     * @dev Function for checking whether the number of signatures is enough to update the value.
+     * @param signaturesCount - number of signatures.
+     */
     function isEnoughSignatures(uint256 signaturesCount) internal view returns (bool) {
         return oracleCount >= signaturesCount && signaturesCount * 3 > oracleCount * 2;
     }
 
     /**
      * @dev See {IOracles-submitRewards}.
-    */
+     */
     function submitRewards(
         uint256 totalRewards,
         uint256 activatedValidators,
@@ -171,7 +173,14 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         // increment nonce for future signatures
         rewardsNonce.increment();
 
-        emit RewardsVoteSubmitted(msg.sender, signedOracles, nonce, totalRewards, activatedValidators, exitedValidators);
+        emit RewardsVoteSubmitted(
+            msg.sender,
+            signedOracles,
+            nonce,
+            totalRewards,
+            activatedValidators,
+            exitedValidators
+        );
 
         // update total rewards
         rewards.updateTotalRewards(totalRewards);
@@ -191,7 +200,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
     /**
      * @dev See {IOracles-submitMerkleRoot}.
-    */
+     */
     function submitMerkleRoot(
         bytes32 merkleRoot,
         string calldata merkleProofs,
@@ -203,13 +212,13 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         // calculate candidate ID hash
         uint256 nonce = rewardsNonce.current();
         bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
-        keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
+            keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
         );
 
         // check signatures and calculate number of submitted oracle votes
         address[] memory signedOracles = _verifySignatures(candidateId, signatures);
 
-            // increment nonce for future signatures
+        // increment nonce for future signatures
         rewardsNonce.increment();
 
         emit MerkleRootVoteSubmitted(msg.sender, signedOracles, nonce, merkleRoot, merkleProofs);
@@ -219,16 +228,14 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     }
 
     /**
-    * @dev See {IOracles-registerValidators}.
-    */
+     * @dev See {IOracles-registerValidators}.
+     */
     function registerValidators(
         IPoolValidators.DepositData[] calldata depositData,
         bytes32[][] calldata merkleProofs,
         bytes32 validatorsDepositRoot,
         bytes[] calldata signatures
-    )
-    external override onlyOracle whenNotPaused
-    {
+    ) external override onlyOracle whenNotPaused {
         require(
             pool.validatorRegistration().get_deposit_root() == validatorsDepositRoot,
             "Oracles: invalid validators deposit root"
@@ -258,11 +265,12 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         emit RegisterValidatorsVoteSubmitted(msg.sender, signedOracles, nonce);
     }
 
-
     /**
      * @dev See {IOracles-setUnstakeProcessing}.
-    */
-    function setUnstakeProcessing(bytes[] calldata signatures) external override onlyOracle whenNotPaused {
+     */
+    function setUnstakeProcessing(
+        bytes[] calldata signatures
+    ) external override onlyOracle whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
 
         // calculate candidate ID hash
@@ -291,8 +299,11 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      *
      * @dev Verifies the signatures provided by the oracles and returns an array of addresses
      * that represent the oracles who signed the candidateId.
-    */
-    function _verifySignatures(bytes32 candidateId, bytes[] calldata signatures) internal returns (address[] memory) {
+     */
+    function _verifySignatures(
+        bytes32 candidateId,
+        bytes[] calldata signatures
+    ) internal returns (address[] memory) {
         address[] memory signedOracles = new address[](signatures.length);
         for (uint256 i = 0; i < signatures.length; i++) {
             bytes memory signature = signatures[i];
