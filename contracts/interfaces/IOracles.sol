@@ -70,6 +70,13 @@ interface IOracles {
     event OracleRemoved(address indexed oracle);
 
     /**
+     * @dev Event for tracking new or updated orchestrators.
+     * @param orchestrator - address of new or removed orchestrator.
+     */
+    event OrchestratorAdded(address indexed orchestrator);
+    event OrchestratorRemoved(address indexed orchestrator);
+
+    /**
      * @dev Function for getting the total validator deposit.
      */
     // solhint-disable-next-line func-name-mixedcase
