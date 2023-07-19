@@ -12,6 +12,7 @@
     "DeFi"
   ],
   "scripts": {
+    "prepare": "husky install",
     "compile": "hardhat compile",
     "format": "prettier --write \"**/*.js\" \"*.json\"",
     "lint": "solhint --max-warnings 0 \"contracts/**/*.sol\" && eslint \"**/*.js\"",
