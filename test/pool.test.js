@@ -72,12 +72,7 @@ describe('Pool contract', function () {
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(
-        admin.address,
-        pool.address,
-        oracles.address,
-        rewards.address
-      );
+      .initialize(admin.address, pool.address, oracles.address, rewards.address);
 
     await pool.connect(admin).initialize(
       admin.address,
@@ -91,9 +86,7 @@ describe('Pool contract', function () {
       '500' // Limit of pending validators: max 50% of pending validators
     );
 
-    await poolValidators
-      .connect(admin)
-      .initialize(admin.address, pool.address, oracles.address);
+    await poolValidators.connect(admin).initialize(admin.address, pool.address, oracles.address);
 
     await merkleDistributor
       .connect(admin)
@@ -130,18 +123,11 @@ describe('Pool contract', function () {
     // Call submitRewards with the signatures
     await oracles
       .connect(oracle)
-      .submitRewards(
-        ethers.utils.parseEther('100'),
-        depositData.length,
-        0,
-        signatures
-      );
+      .submitRewards(ethers.utils.parseEther('100'), depositData.length, 0, signatures);
 
     await pool
       .connect(admin)
-      .setMinActivatingDeposit(
-        ethers.utils.parseEther(minDepositForActivation.toString())
-      );
+      .setMinActivatingDeposit(ethers.utils.parseEther(minDepositForActivation.toString()));
   });
 
   describe('stake', function () {
@@ -151,9 +137,7 @@ describe('Pool contract', function () {
       const balanceAfter = await ethers.provider.getBalance(user1.address);
       const poolBalance = await ethers.provider.getBalance(pool.address);
 
-      expect(balanceAfter).to.below(
-        balanceBefore.sub(ethers.utils.parseEther('1'))
-      );
+      expect(balanceAfter).to.below(balanceBefore.sub(ethers.utils.parseEther('1')));
       expect(poolBalance).to.be.equal(ethers.utils.parseEther('1'));
     });
 
@@ -195,16 +179,14 @@ describe('Pool contract', function () {
     });
 
     it('should not be able to stake on with value 0', async function () {
-      await expect(pool.connect(user1).stake()).to.be.revertedWith(
-        'Pool: invalid deposit amount'
-      );
+      await expect(pool.connect(user1).stake()).to.be.revertedWith('Pool: invalid deposit amount');
     });
 
     it('should not be able to stake on behalf of address 0', async function () {
       await expect(
-        pool
-          .connect(user1)
-          .stakeOnBehalf(ZERRO_ADDRESS, { value: ethers.utils.parseEther('1') })
+        pool.connect(user1).stakeOnBehalf(ZERRO_ADDRESS, {
+          value: ethers.utils.parseEther('1'),
+        })
       ).to.be.revertedWith('Pool: invalid recipient');
     });
   });
@@ -216,15 +198,15 @@ describe('Pool contract', function () {
         value: ethers.utils.parseEther('32'),
       });
 
-      await expect(
-        pool.connect(user1).activate(user1.address, 3)
-      ).to.revertedWith('Pool: validator is not active yet');
+      await expect(pool.connect(user1).activate(user1.address, 3)).to.revertedWith(
+        'Pool: validator is not active yet'
+      );
     });
 
     it('should revert when activating invalid validator index', async function () {
-      await expect(
-        pool.connect(user2).activate(user2.address, 1)
-      ).to.revertedWith('Pool: invalid validator index');
+      await expect(pool.connect(user2).activate(user2.address, 1)).to.revertedWith(
+        'Pool: invalid validator index'
+      );
     });
 
     it('should be able to activate pending deposits', async function () {
@@ -307,12 +289,7 @@ describe('Pool contract', function () {
 
       await expect(pool.connect(user1).activate(user1.address, 3))
         .to.emit(pool, 'Activated')
-        .withArgs(
-          user1.address,
-          3,
-          ethers.utils.parseEther('32'),
-          user1.address
-        );
+        .withArgs(user1.address, 3, ethers.utils.parseEther('32'), user1.address);
     });
   });
 
@@ -408,9 +385,9 @@ describe('Pool contract', function () {
       const depositData = [getTestDepositData(operator.address)[2]];
       // So it mints directly when stake more than minActivatingDeposit
 
-      await expect(
-        pool.connect(admin).registerValidator(depositData[0])
-      ).to.revertedWith('Pool: access denied');
+      await expect(pool.connect(admin).registerValidator(depositData[0])).to.revertedWith(
+        'Pool: access denied'
+      );
     });
   });
 });

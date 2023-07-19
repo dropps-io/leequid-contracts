@@ -12,9 +12,7 @@ async function main() {
 
   const beaconDepositContract = '0xCAfe00000000000000000000000000000000CAfe'; // Lukso testnet
 
-  const AdminUpgradeabilityProxy = await ethers.getContractFactory(
-    'AdminUpgradeabilityProxy'
-  );
+  const AdminUpgradeabilityProxy = await ethers.getContractFactory('AdminUpgradeabilityProxy');
 
   console.log('deploying Rewards...');
   const Rewards = await ethers.getContractFactory('Rewards');
@@ -43,26 +41,16 @@ async function main() {
     args
   );
   console.log('StakedLyxToken deployed to:', stakedLyxTokenProxy.address);
-  console.log(
-    'StakedLyxToken implementation deployed to:',
-    stakedLyxToken.address
-  );
+  console.log('StakedLyxToken implementation deployed to:', stakedLyxToken.address);
 
   // Create an interface of your contract
-  const stakedLyxTokenProxyContract = StakedLyxToken.attach(
-    stakedLyxTokenProxy.address
-  );
+  const stakedLyxTokenProxyContract = StakedLyxToken.attach(stakedLyxTokenProxy.address);
 
   console.log('deploying Pool...');
   const Pool = await ethers.getContractFactory('Pool');
   const pool = await Pool.deploy(args);
   await pool.deployed();
-  const poolProxy = await AdminUpgradeabilityProxy.deploy(
-    pool.address,
-    proxyAdmin,
-    '0x',
-    args
-  );
+  const poolProxy = await AdminUpgradeabilityProxy.deploy(pool.address, proxyAdmin, '0x', args);
   console.log('Pool deployed to:', poolProxy.address);
   console.log('Pool implementation deployed to:', pool.address);
 
@@ -80,20 +68,13 @@ async function main() {
     args
   );
   console.log('PoolValidators deployed to:', poolValidatorsProxy.address);
-  console.log(
-    'PoolValidators implementation deployed to:',
-    poolValidators.address
-  );
+  console.log('PoolValidators implementation deployed to:', poolValidators.address);
 
   // Create an interface of your contract
-  const poolValidatorsProxyContract = PoolValidators.attach(
-    poolValidatorsProxy.address
-  );
+  const poolValidatorsProxyContract = PoolValidators.attach(poolValidatorsProxy.address);
 
   console.log('deploying MerkleDistributor...');
-  const MerkleDistributor = await ethers.getContractFactory(
-    'MerkleDistributor'
-  );
+  const MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
   const merkleDistributor = await MerkleDistributor.deploy(args);
   await merkleDistributor.deployed();
   const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
@@ -103,15 +84,10 @@ async function main() {
     args
   );
   console.log('MerkleDistributor deployed to:', merkleDistributorProxy.address);
-  console.log(
-    'MerkleDistributor implementation deployed to:',
-    merkleDistributor.address
-  );
+  console.log('MerkleDistributor implementation deployed to:', merkleDistributor.address);
 
   // Create an interface of your contract
-  const merkleDistributorProxyContract = MerkleDistributor.attach(
-    merkleDistributorProxy.address
-  );
+  const merkleDistributorProxyContract = MerkleDistributor.attach(merkleDistributorProxy.address);
 
   console.log('deploying FeesEscrow...');
   const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
@@ -148,8 +124,7 @@ async function main() {
   );
   console.log('Oracles initialized');
 
-  const withdrawalCredentials =
-    '0x010000000000000000000000' + rewardsProxy.address.slice(2);
+  const withdrawalCredentials = '0x010000000000000000000000' + rewardsProxy.address.slice(2);
 
   // Initialize Rewards
   console.log('Initializing Rewards...');

@@ -2,11 +2,10 @@
 
 pragma solidity ^0.8.20;
 
-import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
-import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IMerkleDrop} from "../interfaces/IMerkleDrop.sol";
-
+import {ILSP7DigitalAsset} from '@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol';
+import {MerkleProof} from '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
+import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
+import {IMerkleDrop} from '../interfaces/IMerkleDrop.sol';
 
 /**
  * @title MerkleDrop
@@ -15,75 +14,80 @@ import {IMerkleDrop} from "../interfaces/IMerkleDrop.sol";
  * Adopted from https://github.com/Uniswap/merkle-distributor/blob/0d478d722da2e5d95b7292fd8cbdb363d98e9a93/contracts/MerkleDistributor.sol
  */
 contract MerkleDrop is IMerkleDrop, Ownable {
-    // @dev Address of the token contract.
-    ILSP7DigitalAsset public immutable override token;
+  // @dev Address of the token contract.
+  ILSP7DigitalAsset public immutable override token;
 
-    // @dev Merkle Root for proving tokens ownership.
-    bytes32 public immutable override merkleRoot;
+  // @dev Merkle Root for proving tokens ownership.
+  bytes32 public immutable override merkleRoot;
 
-    // @dev Expire timestamp for te merkle drop.
-    uint256 public immutable override expireTimestamp;
+  // @dev Expire timestamp for te merkle drop.
+  uint256 public immutable override expireTimestamp;
 
-    // This is a packed array of booleans.
-    mapping(uint256 => uint256) public override claimedBitMap;
+  // This is a packed array of booleans.
+  mapping(uint256 => uint256) public override claimedBitMap;
 
-    /**
-    * @dev Constructor for initializing the MerkleDrop contract.
-    * @param _owner - address of the contract owner.
-    * @param _token - address of the token contract.
-    * @param _merkleRoot - address of the merkle root.
-    * @param _duration - duration of the merkle drop in seconds.
-    */
-    constructor(address _owner, address _token, bytes32 _merkleRoot, uint256 _duration) {
-        token = ILSP7DigitalAsset(_token);
-        merkleRoot = _merkleRoot;
-        // solhint-disable-next-line not-rely-on-time
-        expireTimestamp = block.timestamp + _duration;
-        transferOwnership(_owner);
-    }
+  /**
+   * @dev Constructor for initializing the MerkleDrop contract.
+   * @param _owner - address of the contract owner.
+   * @param _token - address of the token contract.
+   * @param _merkleRoot - address of the merkle root.
+   * @param _duration - duration of the merkle drop in seconds.
+   */
+  constructor(address _owner, address _token, bytes32 _merkleRoot, uint256 _duration) {
+    token = ILSP7DigitalAsset(_token);
+    merkleRoot = _merkleRoot;
+    // solhint-disable-next-line not-rely-on-time
+    expireTimestamp = block.timestamp + _duration;
+    transferOwnership(_owner);
+  }
 
-    /**
-     * @dev See {IMerkleDrop-isClaimed}.
-     */
-    function isClaimed(uint256 index) public view override returns (bool) {
-        uint256 claimedWordIndex = index / 256;
-        uint256 claimedBitIndex = index % 256;
-        uint256 claimedWord = claimedBitMap[claimedWordIndex];
-        uint256 mask = (1 << claimedBitIndex);
-        return claimedWord & mask == mask;
-    }
+  /**
+   * @dev See {IMerkleDrop-isClaimed}.
+   */
+  function isClaimed(uint256 index) public view override returns (bool) {
+    uint256 claimedWordIndex = index / 256;
+    uint256 claimedBitIndex = index % 256;
+    uint256 claimedWord = claimedBitMap[claimedWordIndex];
+    uint256 mask = (1 << claimedBitIndex);
+    return claimedWord & mask == mask;
+  }
 
-    function _setClaimed(uint256 index) private {
-        uint256 claimedWordIndex = index / 256;
-        uint256 claimedBitIndex = index % 256;
-        claimedBitMap[claimedWordIndex] = claimedBitMap[claimedWordIndex] | (1 << claimedBitIndex);
-    }
+  function _setClaimed(uint256 index) private {
+    uint256 claimedWordIndex = index / 256;
+    uint256 claimedBitIndex = index % 256;
+    claimedBitMap[claimedWordIndex] = claimedBitMap[claimedWordIndex] | (1 << claimedBitIndex);
+  }
 
-    /**
-     * @dev See {IMerkleDrop-claim}.
-     */
-    function claim(uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) external override {
-        require(!isClaimed(index), "MerkleDrop: drop already claimed");
+  /**
+   * @dev See {IMerkleDrop-claim}.
+   */
+  function claim(
+    uint256 index,
+    address account,
+    uint256 amount,
+    bytes32[] calldata merkleProof
+  ) external override {
+    require(!isClaimed(index), 'MerkleDrop: drop already claimed');
 
-        // Verify the merkle proof.
-        bytes32 node = keccak256(abi.encodePacked(index, account, amount));
-        require(MerkleProof.verify(merkleProof, merkleRoot, node), "MerkleDrop: invalid proof");
+    // Verify the merkle proof.
+    bytes32 node = keccak256(abi.encodePacked(index, account, amount));
+    require(MerkleProof.verify(merkleProof, merkleRoot, node), 'MerkleDrop: invalid proof');
 
-        // Mark it claimed and send the token.
-        _setClaimed(index);
-        token.transfer(address(this), account, amount, true, "");
-        emit Claimed(index, account, amount);
-    }
+    // Mark it claimed and send the token.
+    _setClaimed(index);
+    token.transfer(address(this), account, amount, true, '');
+    emit Claimed(index, account, amount);
+  }
 
-    /**
-     * @dev See {IMerkleDrop-stop}.
-     */
-    function stop(address beneficiary) external override onlyOwner {
-        require(beneficiary != address(0), "MerkleDrop: beneficiary is the zero address");
-        // solhint-disable-next-line not-rely-on-time
-        require(block.timestamp >= expireTimestamp, "MerkleDrop: not expired");
-        uint256 amount = token.balanceOf(address(this));
-        token.transfer(address(this), beneficiary, amount, true, "");
-        emit Stopped(beneficiary, amount);
-    }
+  /**
+   * @dev See {IMerkleDrop-stop}.
+   */
+  function stop(address beneficiary) external override onlyOwner {
+    require(beneficiary != address(0), 'MerkleDrop: beneficiary is the zero address');
+    // solhint-disable-next-line not-rely-on-time
+    require(block.timestamp >= expireTimestamp, 'MerkleDrop: not expired');
+    uint256 amount = token.balanceOf(address(this));
+    token.transfer(address(this), beneficiary, amount, true, '');
+    emit Stopped(beneficiary, amount);
+  }
 }

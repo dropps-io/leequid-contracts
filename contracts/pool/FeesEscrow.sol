@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IFeesEscrow} from "../interfaces/IFeesEscrow.sol";
+import {IFeesEscrow} from '../interfaces/IFeesEscrow.sol';
 
 /**
  * @title FeesEscrow
@@ -11,35 +11,35 @@ import {IFeesEscrow} from "../interfaces/IFeesEscrow.sol";
  * them to the Rewards contract via calling transferToRewards method by Rewards contract.
  */
 contract FeesEscrow is IFeesEscrow {
-    // @dev Rewards contract's address.
-    address payable private immutable rewards;
+  // @dev Rewards contract's address.
+  address payable private immutable rewards;
 
-    constructor(address _rewards) {
-        rewards = payable(_rewards);
+  constructor(address _rewards) {
+    rewards = payable(_rewards);
+  }
+
+  /**
+   * @dev See {IFeesEscrow-transferToRewards}.
+   */
+  function transferToRewards() external override returns (uint256) {
+    require(msg.sender == rewards, 'FeesEscrow: invalid caller');
+
+    uint256 balance = address(this).balance;
+
+    if (balance == 0) {
+      return balance;
     }
 
-    /**
-     * @dev See {IFeesEscrow-transferToRewards}.
-     */
-    function transferToRewards() external override returns (uint256) {
-        require(msg.sender == rewards, "FeesEscrow: invalid caller");
+    rewards.transfer(balance);
 
-        uint256 balance = address(this).balance;
+    emit FeesTransferred(balance);
 
-        if (balance == 0) {
-            return balance;
-        }
+    return balance;
+  }
 
-        rewards.transfer(balance);
-
-        emit FeesTransferred(balance);
-
-        return balance;
-    }
-
-    /**
-     * @dev Allows FeesEscrow contract to receive MEV rewards and priority fees. Later these rewards will be transferred
-     * to the `Rewards` contract by `FeesEscrow.transferToRewards` method which is called by the `Rewards` contract.
-     */
-    receive() external payable {}
+  /**
+   * @dev Allows FeesEscrow contract to receive MEV rewards and priority fees. Later these rewards will be transferred
+   * to the `Rewards` contract by `FeesEscrow.transferToRewards` method which is called by the `Rewards` contract.
+   */
+  receive() external payable {}
 }

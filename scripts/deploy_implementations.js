@@ -15,10 +15,7 @@ async function main() {
   const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
   const stakedLyxToken = await StakedLyxToken.deploy(args);
   await stakedLyxToken.deployed();
-  console.log(
-    'StakedLyxToken implementation deployed to:',
-    stakedLyxToken.address
-  );
+  console.log('StakedLyxToken implementation deployed to:', stakedLyxToken.address);
 
   console.log('deploying Pool...');
   const Pool = await ethers.getContractFactory('Pool');
@@ -30,21 +27,13 @@ async function main() {
   const PoolValidators = await ethers.getContractFactory('PoolValidators');
   const poolValidators = await PoolValidators.deploy(args);
   await poolValidators.deployed();
-  console.log(
-    'PoolValidators implementation deployed to:',
-    poolValidators.address
-  );
+  console.log('PoolValidators implementation deployed to:', poolValidators.address);
 
   console.log('deploying MerkleDistributor...');
-  const MerkleDistributor = await ethers.getContractFactory(
-    'MerkleDistributor'
-  );
+  const MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
   const merkleDistributor = await MerkleDistributor.deploy(args);
   await merkleDistributor.deployed();
-  console.log(
-    'MerkleDistributor implementation deployed to:',
-    merkleDistributor.address
-  );
+  console.log('MerkleDistributor implementation deployed to:', merkleDistributor.address);
 
   console.log('deploying Oracles...');
   const Oracles = await ethers.getContractFactory('Oracles');

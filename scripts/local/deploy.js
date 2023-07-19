@@ -2,9 +2,7 @@ const { ethers } = require('hardhat');
 const fs = require('fs');
 const { getAccounts } = require('./utils/get-accounts');
 const { generateDepositDataMerkle } = require('../../utils/generate-merkle');
-const {
-  formatGeneratedDepositData,
-} = require('../../utils/format-deposit-data');
+const { formatGeneratedDepositData } = require('../../utils/format-deposit-data');
 const deposit_data = require('./test-deposit-data.json');
 
 async function main() {
@@ -48,9 +46,7 @@ async function main() {
   console.log('PoolValidators deployed to:', poolValidators.address);
 
   console.log('deploying MerkleDistributor...');
-  const MerkleDistributor = await ethers.getContractFactory(
-    'MerkleDistributor'
-  );
+  const MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
   const merkleDistributor = await MerkleDistributor.deploy(args);
   await merkleDistributor.deployed();
   console.log('MerkleDistributor deployed to:', merkleDistributor.address);
@@ -80,8 +76,7 @@ async function main() {
   );
   console.log('Oracles initialized');
 
-  const withdrawalCredentials =
-    '0x010000000000000000000000' + rewards.address.slice(2);
+  const withdrawalCredentials = '0x010000000000000000000000' + rewards.address.slice(2);
 
   // Initialize Rewards
 
@@ -128,33 +123,18 @@ async function main() {
 
   // Initialize PoolValidators
   console.log('Initializing PoolValidators...');
-  await poolValidators.initialize(
-    admin.address,
-    pool.address,
-    oracles.address,
-    args
-  );
+  await poolValidators.initialize(admin.address, pool.address, oracles.address, args);
   console.log('PoolValidators initialized');
 
   console.log('Initializing MerkleDistributor...');
-  await merkleDistributor.initialize(
-    admin.address,
-    rewards.address,
-    oracles.address
-  );
+  await merkleDistributor.initialize(admin.address, rewards.address, oracles.address);
   console.log('MerkleDistributor initialized');
 
-  const merkleTree = generateDepositDataMerkle(
-    formatGeneratedDepositData(deposit_data)
-  );
+  const merkleTree = generateDepositDataMerkle(formatGeneratedDepositData(deposit_data));
 
   await poolValidators
     .connect(admin)
-    .addOperator(
-      operator.address,
-      merkleTree.depositDataMerkleRoot,
-      '0x0000000'
-    );
+    .addOperator(operator.address, merkleTree.depositDataMerkleRoot, '0x0000000');
 
   await poolValidators.connect(operator).commitOperator();
 

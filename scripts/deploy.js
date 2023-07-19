@@ -36,9 +36,7 @@ async function main() {
   console.log('PoolValidators deployed to:', poolValidators.address);
 
   console.log('deploying MerkleDistributor...');
-  const MerkleDistributor = await ethers.getContractFactory(
-    'MerkleDistributor'
-  );
+  const MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
   const merkleDistributor = await MerkleDistributor.deploy(args);
   await merkleDistributor.deployed();
   console.log('MerkleDistributor deployed to:', merkleDistributor.address);
@@ -68,8 +66,7 @@ async function main() {
   );
   console.log('Oracles initialized');
 
-  const withdrawalCredentials =
-    '0x010000000000000000000000' + rewards.address.slice(2);
+  const withdrawalCredentials = '0x010000000000000000000000' + rewards.address.slice(2);
 
   // Initialize Rewards
 
@@ -89,13 +86,7 @@ async function main() {
 
   // Initialize StakedLyxToken
   console.log('Initializing StakedLyxToken...');
-  await stakedLyxToken.initialize(
-    admin,
-    pool.address,
-    oracles.address,
-    rewards.address,
-    args
-  );
+  await stakedLyxToken.initialize(admin, pool.address, oracles.address, rewards.address, args);
   console.log('StakedLyxToken initialized');
 
   // Initialize Pool

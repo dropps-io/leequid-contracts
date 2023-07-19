@@ -1,6 +1,6 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { generateDepositDataMerkle } = require('../utils/generate-merkle');
+const {ethers} = require('hardhat');
+const {expect} = require('chai');
+const {generateDepositDataMerkle} = require('../utils/generate-merkle');
 const {
   getTestDepositData,
   generateSignaturesForRegisterValidators,
@@ -21,16 +21,8 @@ describe('Oracles contract', function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin,
-    oracle1,
-    oracle2,
-    oracle3,
-    oracle4,
-    operator,
-    user1,
-    user2,
-    user3,
-    user4;
+  let admin, oracle1, oracle2, oracle3, oracle4, operator, user1, user2, user3, user4;
+  let orchestrator;
 
   before(async function () {
     Oracles = await ethers.getContractFactory('Oracles');
@@ -52,6 +44,7 @@ describe('Oracles contract', function () {
       user2,
       user3,
       user4,
+      orchestrator,
     ] = await ethers.getSigners();
   });
 
@@ -94,12 +87,7 @@ describe('Oracles contract', function () {
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(
-        admin.address,
-        pool.address,
-        oracles.address,
-        rewards.address
-      );
+      .initialize(admin.address, pool.address, oracles.address, rewards.address);
 
     await pool
       .connect(admin)
@@ -115,9 +103,7 @@ describe('Oracles contract', function () {
         '500'
       );
 
-    await poolValidators
-      .connect(admin)
-      .initialize(admin.address, pool.address, oracles.address);
+    await poolValidators.connect(admin).initialize(admin.address, pool.address, oracles.address);
 
     await merkleDistributor
       .connect(admin)
@@ -127,6 +113,7 @@ describe('Oracles contract', function () {
     await oracles.connect(admin).addOracle(oracle2.address);
     await oracles.connect(admin).addOracle(oracle3.address);
     await oracles.connect(admin).addOracle(oracle4.address);
+    await oracles.connect(admin).addOrchestrator(orchestrator.address);
   });
 
   describe('registerValidators', function () {
@@ -138,10 +125,12 @@ describe('Oracles contract', function () {
     });
 
     it('Should register validators with enough signatures', async function () {
+      // Get the root of the deposit contract (the deposit root is the root of the deposit tree), and the deposit data
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
-      const depositData = getTestDepositData(operator.address);
-      const merkle = generateDepositDataMerkle(depositData);
+      const depositData = getTestDepositData(operator.address); // Get the deposit data of the operator
+      const merkle = generateDepositDataMerkle(depositData); // Generate the merkle tree of the deposit data
 
+      // Add the operator to the poolValidators contract
       await poolValidators
         .connect(admin)
         .addOperator(
@@ -152,7 +141,7 @@ describe('Oracles contract', function () {
 
       await poolValidators.connect(operator).commitOperator();
 
-      // Calculate the nonce and the message to sign
+      // Calculate the nonce and "fetch" the signatures from the oracles
       const nonce = await oracles.currentValidatorsNonce();
       const signatures = await generateSignaturesForRegisterValidators(
         [oracle1, oracle2, oracle3, oracle4],
@@ -161,9 +150,9 @@ describe('Oracles contract', function () {
         validatorsDepositRoot
       );
 
-      // Call registerValidators with the signatures
+      // Call registerValidators with the signatures that the orchestrator has fetched from the oracles
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .registerValidators(
           depositData,
           merkle.depositDataMerkleProofNodes,
@@ -206,7 +195,7 @@ describe('Oracles contract', function () {
 
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .registerValidators(
             depositData,
             merkle.depositDataMerkleProofNodes,
@@ -216,7 +205,7 @@ describe('Oracles contract', function () {
       )
         .to.emit(oracles, 'RegisterValidatorsVoteSubmitted')
         .withArgs(
-          oracle1.address,
+          orchestrator.address,
           [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
           0
         );
@@ -249,7 +238,7 @@ describe('Oracles contract', function () {
       // Call registerValidators with the signatures
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .registerValidators(
             depositData,
             merkle.depositDataMerkleProofNodes,
@@ -292,7 +281,7 @@ describe('Oracles contract', function () {
       // Call registerValidators with the signatures
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .registerValidators(
             depositData,
             merkle.depositDataMerkleProofNodes,
@@ -335,7 +324,7 @@ describe('Oracles contract', function () {
       // Call registerValidators with the signatures
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .registerValidators(
             depositData,
             merkle.depositDataMerkleProofNodes,
@@ -378,7 +367,7 @@ describe('Oracles contract', function () {
 
       // Call registerValidators with the signatures
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .registerValidators(
           depositData,
           merkle.depositDataMerkleProofNodes,
@@ -386,8 +375,7 @@ describe('Oracles contract', function () {
           signatures
         );
 
-      const newValidatorsDepositRoot =
-        await beaconDepositMock.get_deposit_root();
+      const newValidatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const newDepositData = [getTestDepositData(operator.address)[1]];
       const newMerkle = generateDepositDataMerkle(newDepositData);
 
@@ -413,7 +401,7 @@ describe('Oracles contract', function () {
 
       // Call registerValidators with the signatures
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .registerValidators(
           newDepositData,
           newMerkle.depositDataMerkleProofNodes,
@@ -440,10 +428,10 @@ describe('Oracles contract', function () {
     const exitedValidators = 0;
 
     beforeEach(async function () {
-      await pool.connect(user1).stake({ value: stakePerUser });
-      await pool.connect(user2).stake({ value: stakePerUser });
-      await pool.connect(user3).stake({ value: stakePerUser });
-      await pool.connect(user4).stake({ value: stakePerUser });
+      await pool.connect(user1).stake({value: stakePerUser});
+      await pool.connect(user2).stake({value: stakePerUser});
+      await pool.connect(user3).stake({value: stakePerUser});
+      await pool.connect(user4).stake({value: stakePerUser});
 
       await registerValidators(
         getTestDepositData(operator.address),
@@ -452,7 +440,8 @@ describe('Oracles contract', function () {
         beaconDepositMock,
         [oracle1, oracle2, oracle3, oracle4],
         admin,
-        operator
+        operator,
+        orchestrator
       );
     });
 
@@ -469,17 +458,10 @@ describe('Oracles contract', function () {
 
       // Call submitRewards with the signatures
       await oracles
-        .connect(oracle1)
-        .submitRewards(
-          totalRewardsWei,
-          activatedValidators,
-          exitedValidators,
-          signatures
-        );
+        .connect(orchestrator)
+        .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures);
 
-      const protocolFeeRecipientBalance = await rewards.balanceOf(
-        admin.address
-      );
+      const protocolFeeRecipientBalance = await rewards.balanceOf(admin.address);
       const userBalance = await rewards.balanceOf(user1.address);
 
       expect(protocolFeeRecipientBalance).to.equal(
@@ -492,9 +474,7 @@ describe('Oracles contract', function () {
         )
       );
       // Check that the rewardsNonce has increased
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
     });
 
     it('Should emit a RewardsVoteSubmitted event', async function () {
@@ -510,17 +490,12 @@ describe('Oracles contract', function () {
 
       await expect(
         oracles
-          .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
+          .connect(orchestrator)
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
       )
         .to.emit(oracles, 'RewardsVoteSubmitted')
         .withArgs(
-          oracle1.address,
+          orchestrator.address,
           [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
           nonce,
           totalRewardsWei,
@@ -543,13 +518,8 @@ describe('Oracles contract', function () {
       // Call submitRewards with the signatures
       await expect(
         oracles
-          .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
+          .connect(orchestrator)
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
       ).to.be.revertedWith('Oracles: invalid number of signatures');
     });
 
@@ -567,13 +537,8 @@ describe('Oracles contract', function () {
       // Call submitRewards with the signatures
       await expect(
         oracles
-          .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
+          .connect(orchestrator)
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
       ).to.be.revertedWith('Oracles: invalid signer');
     });
 
@@ -591,13 +556,8 @@ describe('Oracles contract', function () {
       // Call submitRewards with the signatures
       await expect(
         oracles
-          .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
+          .connect(orchestrator)
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
       ).to.be.revertedWith('Oracles: repeated signature');
     });
 
@@ -614,13 +574,8 @@ describe('Oracles contract', function () {
 
       // Call submitRewards with the signatures
       await oracles
-        .connect(oracle1)
-        .submitRewards(
-          totalRewardsWei,
-          activatedValidators,
-          exitedValidators,
-          signatures
-        );
+        .connect(orchestrator)
+        .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures);
 
       nonce = await oracles.currentRewardsNonce();
       signatures = await generateSignaturesForSubmitRewards(
@@ -632,7 +587,7 @@ describe('Oracles contract', function () {
       );
 
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .submitRewards(
           ethers.utils.parseEther('200'),
           activatedValidators,
@@ -640,9 +595,7 @@ describe('Oracles contract', function () {
           signatures
         );
 
-      const protocolFeeRecipientBalance = await rewards.balanceOf(
-        admin.address
-      );
+      const protocolFeeRecipientBalance = await rewards.balanceOf(admin.address);
       const userBalance = await rewards.balanceOf(user1.address);
 
       expect(protocolFeeRecipientBalance).to.equal(
@@ -655,17 +608,13 @@ describe('Oracles contract', function () {
         )
       );
       // Check that the rewardsNonce has increased
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
     });
   });
 
   describe('submitMerkleRoot', function () {
     beforeEach(async function () {
-      await pool
-        .connect(user1)
-        .stake({ value: ethers.utils.parseEther('100') });
+      await pool.connect(user1).stake({value: ethers.utils.parseEther('100')});
 
       await registerValidators(
         getTestDepositData(operator.address),
@@ -674,7 +623,8 @@ describe('Oracles contract', function () {
         beaconDepositMock,
         [oracle1, oracle2, oracle3, oracle4],
         admin,
-        operator
+        operator,
+        orchestrator
       );
 
       const nonce = await oracles.currentRewardsNonce();
@@ -688,7 +638,7 @@ describe('Oracles contract', function () {
 
       // Call submitRewards with the signatures
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .submitRewards(
           ethers.utils.parseEther('100'),
           getTestDepositData(operator.address).length,
@@ -698,9 +648,7 @@ describe('Oracles contract', function () {
     });
 
     it('Should submit merkle root with enough signatures', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -711,25 +659,19 @@ describe('Oracles contract', function () {
       );
 
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .submitMerkleRoot(
           merkle.depositDataMerkleRoot,
           merkle.depositDataMerkleProofsString,
           signatures
         );
 
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
-      expect(await merkleDistributor.merkleRoot()).to.equal(
-        merkle.depositDataMerkleRoot
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
+      expect(await merkleDistributor.merkleRoot()).to.equal(merkle.depositDataMerkleRoot);
     });
 
     it('Should emit MerkleRootVoteSubmitted event', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -741,7 +683,7 @@ describe('Oracles contract', function () {
 
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .submitMerkleRoot(
             merkle.depositDataMerkleRoot,
             merkle.depositDataMerkleProofsString,
@@ -750,7 +692,7 @@ describe('Oracles contract', function () {
       )
         .to.emit(oracles, 'MerkleRootVoteSubmitted')
         .withArgs(
-          oracle1.address,
+          orchestrator.address,
           [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
           nonce,
           merkle.depositDataMerkleRoot,
@@ -759,9 +701,7 @@ describe('Oracles contract', function () {
     });
 
     it('Should revert when not enough signatures', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -773,7 +713,7 @@ describe('Oracles contract', function () {
 
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .submitMerkleRoot(
             merkle.depositDataMerkleRoot,
             merkle.depositDataMerkleProofsString,
@@ -783,9 +723,7 @@ describe('Oracles contract', function () {
     });
 
     it('Should revert if wrong signature', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -797,7 +735,7 @@ describe('Oracles contract', function () {
 
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .submitMerkleRoot(
             merkle.depositDataMerkleRoot,
             merkle.depositDataMerkleProofsString,
@@ -807,9 +745,7 @@ describe('Oracles contract', function () {
     });
 
     it('Should revert if wrong signature', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -821,7 +757,7 @@ describe('Oracles contract', function () {
 
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .submitMerkleRoot(
             merkle.depositDataMerkleRoot,
             merkle.depositDataMerkleProofsString,
@@ -831,9 +767,7 @@ describe('Oracles contract', function () {
     });
 
     it('Should not submit merkle root multiple times if not submitRewards before', async function () {
-      let merkle = generateDepositDataMerkle([
-        getTestDepositData(operator.address)[0],
-      ]);
+      let merkle = generateDepositDataMerkle([getTestDepositData(operator.address)[0]]);
       let nonce = await oracles.currentRewardsNonce();
 
       let signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -844,7 +778,7 @@ describe('Oracles contract', function () {
       );
 
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .submitMerkleRoot(
           merkle.depositDataMerkleRoot,
           merkle.depositDataMerkleProofsString,
@@ -863,19 +797,17 @@ describe('Oracles contract', function () {
 
       await expect(
         oracles
-          .connect(oracle1)
+          .connect(orchestrator)
           .submitMerkleRoot(
             merkle.depositDataMerkleRoot,
             merkle.depositDataMerkleProofsString,
             signatures
           )
-      ).to.be.revertedWith('Oracles: too early');
+      ).to.be.revertedWith('Oracles: merkle root voting is not active, too early');
     });
 
     it('Should submit merkle root multiple times', async function () {
-      let merkle = generateDepositDataMerkle([
-        getTestDepositData(operator.address)[0],
-      ]);
+      let merkle = generateDepositDataMerkle([getTestDepositData(operator.address)[0]]);
       let nonce = await oracles.currentRewardsNonce();
 
       let signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -886,7 +818,7 @@ describe('Oracles contract', function () {
       );
 
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .submitMerkleRoot(
           merkle.depositDataMerkleRoot,
           merkle.depositDataMerkleProofsString,
@@ -904,7 +836,7 @@ describe('Oracles contract', function () {
 
       // Call submitRewards with the signatures
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .submitRewards(
           ethers.utils.parseEther('200'),
           getTestDepositData(operator.address).length,
@@ -923,36 +855,26 @@ describe('Oracles contract', function () {
       );
 
       await oracles
-        .connect(oracle1)
+        .connect(orchestrator)
         .submitMerkleRoot(
           merkle.depositDataMerkleRoot,
           merkle.depositDataMerkleProofsString,
           signatures
         );
 
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
-      expect(await merkleDistributor.merkleRoot()).to.equal(
-        merkle.depositDataMerkleRoot
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
+      expect(await merkleDistributor.merkleRoot()).to.equal(merkle.depositDataMerkleRoot);
     });
   });
 
   describe('setUnstakeProcessing', function () {
     beforeEach(async function () {
-      await pool
-        .connect(user1)
-        .stake({ value: ethers.utils.parseEther('100') });
-      await pool
-        .connect(user2)
-        .stake({ value: ethers.utils.parseEther('100') });
+      await pool.connect(user1).stake({value: ethers.utils.parseEther('100')});
+      await pool.connect(user2).stake({value: ethers.utils.parseEther('100')});
     });
 
     it('Should not increase nonce and emit UnstakeReady event if 32LYX or more to unstake', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('32'));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -961,22 +883,18 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures))
+      await expect(oracles.connect(orchestrator).processUnstake(signatures))
         .to.emit(stakedLyxToken, 'UnstakeReady')
         .withArgs(1);
 
       const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
 
-      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
+      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
       expect(unstakeProcessing).to.equal(true);
     });
 
     it('Should revert if contract already processing unstake', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('32'));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -985,22 +903,20 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await oracles.connect(oracle1).setUnstakeProcessing(signatures);
+      await oracles.connect(orchestrator).processUnstake(signatures);
 
       signatures = await generateSignaturesForSetUnstakeProcessing(
         [oracle1, oracle2, oracle3, oracle4],
         nonce.add(1).toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('StakedLyxToken: unstaking already in progress');
+      await expect(oracles.connect(orchestrator).processUnstake(signatures)).to.revertedWith(
+        'StakedLyxToken: unstaking already in progress'
+      );
     });
 
     it('Should revert when not enough signatures', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('32'));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -1009,15 +925,13 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('Oracles: invalid number of signatures');
+      await expect(oracles.connect(orchestrator).processUnstake(signatures)).to.revertedWith(
+        'Oracles: invalid number of signatures'
+      );
     });
 
     it('Should revert if wrong signature', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('32'));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -1026,15 +940,13 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('Oracles: invalid signer');
+      await expect(oracles.connect(orchestrator).processUnstake(signatures)).to.revertedWith(
+        'Oracles: invalid signer'
+      );
     });
 
     it('Should revert if repeated signature', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther('32'));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -1043,9 +955,9 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('Oracles: repeated signature');
+      await expect(oracles.connect(orchestrator).processUnstake(signatures)).to.revertedWith(
+        'Oracles: repeated signature'
+      );
     });
   });
 });

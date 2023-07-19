@@ -56,12 +56,7 @@ describe('PoolValidators contract', function () {
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(
-        admin.address,
-        pool.address,
-        oracles.address,
-        rewards.address
-      );
+      .initialize(admin.address, pool.address, oracles.address, rewards.address);
 
     await pool.connect(admin).initialize(
       admin.address,
@@ -75,9 +70,7 @@ describe('PoolValidators contract', function () {
       '500' // Limit of pending validators: max 50% of pending validators
     );
 
-    await poolValidators
-      .connect(admin)
-      .initialize(admin.address, pool.address, oracles.address);
+    await poolValidators.connect(admin).initialize(admin.address, pool.address, oracles.address);
 
     await merkleDistributor
       .connect(admin)
@@ -190,9 +183,9 @@ describe('PoolValidators contract', function () {
 
   describe('commitOperator', function () {
     it('should revert if operator not added', async function () {
-      await expect(
-        poolValidators.connect(operator).commitOperator()
-      ).to.be.revertedWith('PoolValidators: invalid operator');
+      await expect(poolValidators.connect(operator).commitOperator()).to.be.revertedWith(
+        'PoolValidators: invalid operator'
+      );
     });
 
     it('should revert if operator already committed', async function () {
@@ -206,9 +199,9 @@ describe('PoolValidators contract', function () {
 
       await poolValidators.connect(operator).commitOperator();
 
-      await expect(
-        poolValidators.connect(operator).commitOperator()
-      ).to.be.revertedWith('PoolValidators: invalid operator');
+      await expect(poolValidators.connect(operator).commitOperator()).to.be.revertedWith(
+        'PoolValidators: invalid operator'
+      );
     });
 
     it('should be able to commit an operator', async function () {
@@ -296,9 +289,7 @@ describe('PoolValidators contract', function () {
           '0x'
         );
 
-      await expect(
-        poolValidators.connect(admin).removeOperator(operator.address)
-      )
+      await expect(poolValidators.connect(admin).removeOperator(operator.address))
         .to.emit(poolValidators, 'OperatorRemoved')
         .withArgs(admin.address, operator.address);
     });
@@ -322,45 +313,30 @@ describe('PoolValidators contract', function () {
     it('should be able to register a validator', async function () {
       await poolValidators
         .connect(oracles)
-        .registerValidator(
-          depositData[0],
-          merkle.depositDataMerkleProofNodes[0]
-        );
+        .registerValidator(depositData[0], merkle.depositDataMerkleProofNodes[0]);
     });
 
     it('should not be able to register a validator if not enough funds', async function () {
       await poolValidators
         .connect(oracles)
-        .registerValidator(
-          depositData[0],
-          merkle.depositDataMerkleProofNodes[0]
-        );
+        .registerValidator(depositData[0], merkle.depositDataMerkleProofNodes[0]);
 
       await expect(
         poolValidators
           .connect(oracles)
-          .registerValidator(
-            depositData[1],
-            merkle.depositDataMerkleProofNodes[1]
-          )
+          .registerValidator(depositData[1], merkle.depositDataMerkleProofNodes[1])
       ).to.be.revertedWithoutReason();
     });
 
     it('should not be able to register a validator if validator already registered', async function () {
       await poolValidators
         .connect(oracles)
-        .registerValidator(
-          depositData[0],
-          merkle.depositDataMerkleProofNodes[0]
-        );
+        .registerValidator(depositData[0], merkle.depositDataMerkleProofNodes[0]);
 
       await expect(
         poolValidators
           .connect(oracles)
-          .registerValidator(
-            depositData[0],
-            merkle.depositDataMerkleProofNodes[0]
-          )
+          .registerValidator(depositData[0], merkle.depositDataMerkleProofNodes[0])
       ).to.be.revertedWith('PoolValidators: validator already registered');
     });
 
@@ -368,10 +344,7 @@ describe('PoolValidators contract', function () {
       await expect(
         poolValidators
           .connect(admin)
-          .registerValidator(
-            depositData[0],
-            merkle.depositDataMerkleProofNodes[0]
-          )
+          .registerValidator(depositData[0], merkle.depositDataMerkleProofNodes[0])
       ).to.be.revertedWith('PoolValidators: access denied');
     });
 
@@ -379,10 +352,7 @@ describe('PoolValidators contract', function () {
       await expect(
         poolValidators
           .connect(oracles)
-          .registerValidator(
-            depositData[0],
-            merkle.depositDataMerkleProofNodes[1]
-          )
+          .registerValidator(depositData[0], merkle.depositDataMerkleProofNodes[1])
       ).to.be.revertedWith('PoolValidators: invalid merkle proof');
     });
 

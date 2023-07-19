@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Address} from '@openzeppelin/contracts/utils/Address.sol';
 
 /**
  * @title ContractChecker
@@ -10,10 +10,10 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
  * @dev ContractChecker can be used to check whether the address is a contract.
  */
 contract ContractChecker {
-    /**
-    * @dev Returns true if `account` is a contract.
-    */
-    function isContract(address account) external view returns (bool) {
-        return Address.isContract(account);
-    }
+  /**
+   * @dev Returns true if `account` is a contract.
+   */
+  function isContract(address account) external view returns (bool) {
+    return Address.isContract(account);
+  }
 }
