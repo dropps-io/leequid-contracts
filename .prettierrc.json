@@ -1,3 +1,5 @@
 {
-  "singleQuote": true
+  "printWidth": 125,
+  "singleQuote": false,
+  "useTabs": false
 }
