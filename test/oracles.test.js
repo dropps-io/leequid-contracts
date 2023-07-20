@@ -1,6 +1,6 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { generateDepositDataMerkle } = require('../utils/generate-merkle');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { generateDepositDataMerkle } = require("../utils/generate-merkle");
 const {
   getTestDepositData,
   generateSignaturesForRegisterValidators,
@@ -8,9 +8,9 @@ const {
   registerValidators,
   generateSignaturesForSubmitMerkleRoot,
   generateSignaturesForSetUnstakeProcessing,
-} = require('./utils');
+} = require("./utils");
 
-describe('Oracles contract', function () {
+describe("Oracles contract", function () {
   const protocolFee = 0.1; // 10%
 
   let Oracles, oracles;
@@ -21,38 +21,19 @@ describe('Oracles contract', function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin,
-    oracle1,
-    oracle2,
-    oracle3,
-    oracle4,
-    operator,
-    user1,
-    user2,
-    user3,
-    user4;
+  let admin, oracle1, oracle2, oracle3, oracle4, operator, user1, user2, user3, user4;
 
   before(async function () {
-    Oracles = await ethers.getContractFactory('Oracles');
-    Rewards = await ethers.getContractFactory('Rewards');
-    StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
-    Pool = await ethers.getContractFactory('Pool');
-    PoolValidators = await ethers.getContractFactory('PoolValidators');
-    MerkleDistributor = await ethers.getContractFactory('MerkleDistributor');
-    FeesEscrow = await ethers.getContractFactory('FeesEscrow');
-    DepositContract = await ethers.getContractFactory('DepositContract');
-    [
-      admin,
-      oracle1,
-      oracle2,
-      oracle3,
-      oracle4,
-      operator,
-      user1,
-      user2,
-      user3,
-      user4,
-    ] = await ethers.getSigners();
+    Oracles = await ethers.getContractFactory("Oracles");
+    Rewards = await ethers.getContractFactory("Rewards");
+    StakedLyxToken = await ethers.getContractFactory("StakedLyxToken");
+    Pool = await ethers.getContractFactory("Pool");
+    PoolValidators = await ethers.getContractFactory("PoolValidators");
+    MerkleDistributor = await ethers.getContractFactory("MerkleDistributor");
+    FeesEscrow = await ethers.getContractFactory("FeesEscrow");
+    DepositContract = await ethers.getContractFactory("DepositContract");
+    [admin, oracle1, oracle2, oracle3, oracle4, operator, user1, user2, user3, user4] =
+      await ethers.getSigners();
   });
 
   beforeEach(async function () {
@@ -94,12 +75,7 @@ describe('Oracles contract', function () {
 
     await stakedLyxToken
       .connect(admin)
-      .initialize(
-        admin.address,
-        pool.address,
-        oracles.address,
-        rewards.address
-      );
+      .initialize(admin.address, pool.address, oracles.address, rewards.address);
 
     await pool
       .connect(admin)
@@ -111,13 +87,11 @@ describe('Oracles contract', function () {
         oracles.address,
         getTestDepositData(operator.address)[0].withdrawalCredentials,
         beaconDepositMock.address,
-        ethers.utils.parseEther('9999999999999999999999999999999'),
-        '500'
+        ethers.utils.parseEther("9999999999999999999999999999999"),
+        "500"
       );
 
-    await poolValidators
-      .connect(admin)
-      .initialize(admin.address, pool.address, oracles.address);
+    await poolValidators.connect(admin).initialize(admin.address, pool.address, oracles.address);
 
     await merkleDistributor
       .connect(admin)
@@ -129,15 +103,15 @@ describe('Oracles contract', function () {
     await oracles.connect(admin).addOracle(oracle4.address);
   });
 
-  describe('registerValidators', function () {
+  describe("registerValidators", function () {
     beforeEach(async function () {
       await admin.sendTransaction({
         to: pool.address,
-        value: ethers.utils.parseEther('100'),
+        value: ethers.utils.parseEther("100"),
       });
     });
 
-    it('Should register validators with enough signatures', async function () {
+    it("Should register validators with enough signatures", async function () {
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const depositData = getTestDepositData(operator.address);
       const merkle = generateDepositDataMerkle(depositData);
@@ -173,14 +147,14 @@ describe('Oracles contract', function () {
 
       const depositCount = await beaconDepositMock.get_deposit_count();
 
-      expect(depositCount).to.equal('0x0300000000000000');
+      expect(depositCount).to.equal("0x0300000000000000");
       // Check that the validatorsNonce has increased
       expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(
         nonce.add(1).toNumber()
       );
     });
 
-    it('Should emit an log RegisterValidatorsVoteSubmitted', async function () {
+    it("Should emit an log RegisterValidatorsVoteSubmitted", async function () {
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const depositData = getTestDepositData(operator.address);
       const merkle = generateDepositDataMerkle(depositData);
@@ -214,7 +188,7 @@ describe('Oracles contract', function () {
             signatures
           )
       )
-        .to.emit(oracles, 'RegisterValidatorsVoteSubmitted')
+        .to.emit(oracles, "RegisterValidatorsVoteSubmitted")
         .withArgs(
           oracle1.address,
           [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
@@ -222,7 +196,7 @@ describe('Oracles contract', function () {
         );
     });
 
-    it('Should revert when not enough signatures', async function () {
+    it("Should revert when not enough signatures", async function () {
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const depositData = getTestDepositData(operator.address);
       const merkle = generateDepositDataMerkle(depositData);
@@ -256,16 +230,16 @@ describe('Oracles contract', function () {
             validatorsDepositRoot,
             signatures
           )
-      ).to.be.revertedWith('Oracles: invalid number of signatures');
+      ).to.be.revertedWith("Oracles: invalid number of signatures");
 
       const depositCount = await beaconDepositMock.get_deposit_count();
 
-      expect(depositCount).to.equal('0x0000000000000000');
+      expect(depositCount).to.equal("0x0000000000000000");
       // Check that the validatorsNonce has increased
       expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(0);
     });
 
-    it('Should revert if wrong signature', async function () {
+    it("Should revert if wrong signature", async function () {
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const depositData = getTestDepositData(operator.address);
       const merkle = generateDepositDataMerkle(depositData);
@@ -299,16 +273,16 @@ describe('Oracles contract', function () {
             validatorsDepositRoot,
             signatures
           )
-      ).to.be.revertedWith('Oracles: invalid signer');
+      ).to.be.revertedWith("Oracles: invalid signer");
 
       const depositCount = await beaconDepositMock.get_deposit_count();
 
-      expect(depositCount).to.equal('0x0000000000000000');
+      expect(depositCount).to.equal("0x0000000000000000");
       // Check that the validatorsNonce has increased
       expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(0);
     });
 
-    it('Should revert if repeated signature', async function () {
+    it("Should revert if repeated signature", async function () {
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const depositData = getTestDepositData(operator.address);
       const merkle = generateDepositDataMerkle(depositData);
@@ -342,16 +316,16 @@ describe('Oracles contract', function () {
             validatorsDepositRoot,
             signatures
           )
-      ).to.be.revertedWith('Oracles: repeated signature');
+      ).to.be.revertedWith("Oracles: repeated signature");
 
       const depositCount = await beaconDepositMock.get_deposit_count();
 
-      expect(depositCount).to.equal('0x0000000000000000');
+      expect(depositCount).to.equal("0x0000000000000000");
       // Check that the validatorsNonce has increased
       expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(0);
     });
 
-    it('Should register validators multiple times', async function () {
+    it("Should register validators multiple times", async function () {
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const depositData = [getTestDepositData(operator.address)[0]];
       const merkle = generateDepositDataMerkle(depositData);
@@ -386,8 +360,7 @@ describe('Oracles contract', function () {
           signatures
         );
 
-      const newValidatorsDepositRoot =
-        await beaconDepositMock.get_deposit_root();
+      const newValidatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const newDepositData = [getTestDepositData(operator.address)[1]];
       const newMerkle = generateDepositDataMerkle(newDepositData);
 
@@ -423,7 +396,7 @@ describe('Oracles contract', function () {
 
       const depositCount = await beaconDepositMock.get_deposit_count();
 
-      expect(depositCount).to.equal('0x0200000000000000');
+      expect(depositCount).to.equal("0x0200000000000000");
       // Check that the validatorsNonce has increased
       expect((await oracles.currentValidatorsNonce()).toNumber()).to.equal(
         nonce.add(1).toNumber()
@@ -431,7 +404,7 @@ describe('Oracles contract', function () {
     });
   });
 
-  describe('submitRewards', function () {
+  describe("submitRewards", function () {
     const stakedAmount = 100000; // eth
     const totalRewards = 100; // eth
     const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
@@ -456,7 +429,7 @@ describe('Oracles contract', function () {
       );
     });
 
-    it('Should submit rewards with enough signatures', async function () {
+    it("Should submit rewards with enough signatures", async function () {
       // Calculate the nonce and the message to sign
       const nonce = await oracles.currentRewardsNonce();
       const signatures = await generateSignaturesForSubmitRewards(
@@ -470,16 +443,9 @@ describe('Oracles contract', function () {
       // Call submitRewards with the signatures
       await oracles
         .connect(oracle1)
-        .submitRewards(
-          totalRewardsWei,
-          activatedValidators,
-          exitedValidators,
-          signatures
-        );
+        .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures);
 
-      const protocolFeeRecipientBalance = await rewards.balanceOf(
-        admin.address
-      );
+      const protocolFeeRecipientBalance = await rewards.balanceOf(admin.address);
       const userBalance = await rewards.balanceOf(user1.address);
 
       expect(protocolFeeRecipientBalance).to.equal(
@@ -492,12 +458,10 @@ describe('Oracles contract', function () {
         )
       );
       // Check that the rewardsNonce has increased
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
     });
 
-    it('Should emit a RewardsVoteSubmitted event', async function () {
+    it("Should emit a RewardsVoteSubmitted event", async function () {
       // Calculate the nonce and the message to sign
       const nonce = await oracles.currentRewardsNonce();
       const signatures = await generateSignaturesForSubmitRewards(
@@ -511,14 +475,9 @@ describe('Oracles contract', function () {
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
       )
-        .to.emit(oracles, 'RewardsVoteSubmitted')
+        .to.emit(oracles, "RewardsVoteSubmitted")
         .withArgs(
           oracle1.address,
           [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
@@ -529,7 +488,7 @@ describe('Oracles contract', function () {
         );
     });
 
-    it('Should revert when not enough signatures', async function () {
+    it("Should revert when not enough signatures", async function () {
       // Calculate the nonce and the message to sign
       const nonce = await oracles.currentRewardsNonce();
       const signatures = await generateSignaturesForSubmitRewards(
@@ -544,16 +503,11 @@ describe('Oracles contract', function () {
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
-      ).to.be.revertedWith('Oracles: invalid number of signatures');
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
+      ).to.be.revertedWith("Oracles: invalid number of signatures");
     });
 
-    it('Should revert if wrong signature', async function () {
+    it("Should revert if wrong signature", async function () {
       // Calculate the nonce and the message to sign
       const nonce = await oracles.currentRewardsNonce();
       const signatures = await generateSignaturesForSubmitRewards(
@@ -568,16 +522,11 @@ describe('Oracles contract', function () {
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
-      ).to.be.revertedWith('Oracles: invalid signer');
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
+      ).to.be.revertedWith("Oracles: invalid signer");
     });
 
-    it('Should revert if repeated signature', async function () {
+    it("Should revert if repeated signature", async function () {
       // Calculate the nonce and the message to sign
       const nonce = await oracles.currentRewardsNonce();
       const signatures = await generateSignaturesForSubmitRewards(
@@ -592,16 +541,11 @@ describe('Oracles contract', function () {
       await expect(
         oracles
           .connect(oracle1)
-          .submitRewards(
-            totalRewardsWei,
-            activatedValidators,
-            exitedValidators,
-            signatures
-          )
-      ).to.be.revertedWith('Oracles: repeated signature');
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
+      ).to.be.revertedWith("Oracles: repeated signature");
     });
 
-    it('Should be able to register rewards multiple times', async function () {
+    it("Should be able to register rewards multiple times", async function () {
       // Calculate the nonce and the message to sign
       let nonce = await oracles.currentRewardsNonce();
       let signatures = await generateSignaturesForSubmitRewards(
@@ -615,18 +559,13 @@ describe('Oracles contract', function () {
       // Call submitRewards with the signatures
       await oracles
         .connect(oracle1)
-        .submitRewards(
-          totalRewardsWei,
-          activatedValidators,
-          exitedValidators,
-          signatures
-        );
+        .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures);
 
       nonce = await oracles.currentRewardsNonce();
       signatures = await generateSignaturesForSubmitRewards(
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
-        ethers.utils.parseEther('200'),
+        ethers.utils.parseEther("200"),
         activatedValidators,
         exitedValidators
       );
@@ -634,15 +573,13 @@ describe('Oracles contract', function () {
       await oracles
         .connect(oracle1)
         .submitRewards(
-          ethers.utils.parseEther('200'),
+          ethers.utils.parseEther("200"),
           activatedValidators,
           exitedValidators,
           signatures
         );
 
-      const protocolFeeRecipientBalance = await rewards.balanceOf(
-        admin.address
-      );
+      const protocolFeeRecipientBalance = await rewards.balanceOf(admin.address);
       const userBalance = await rewards.balanceOf(user1.address);
 
       expect(protocolFeeRecipientBalance).to.equal(
@@ -655,17 +592,13 @@ describe('Oracles contract', function () {
         )
       );
       // Check that the rewardsNonce has increased
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
     });
   });
 
-  describe('submitMerkleRoot', function () {
+  describe("submitMerkleRoot", function () {
     beforeEach(async function () {
-      await pool
-        .connect(user1)
-        .stake({ value: ethers.utils.parseEther('100') });
+      await pool.connect(user1).stake({ value: ethers.utils.parseEther("100") });
 
       await registerValidators(
         getTestDepositData(operator.address),
@@ -681,7 +614,7 @@ describe('Oracles contract', function () {
       const signatures = await generateSignaturesForSubmitRewards(
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
-        ethers.utils.parseEther('100'),
+        ethers.utils.parseEther("100"),
         getTestDepositData(operator.address).length,
         0
       );
@@ -690,17 +623,15 @@ describe('Oracles contract', function () {
       await oracles
         .connect(oracle1)
         .submitRewards(
-          ethers.utils.parseEther('100'),
+          ethers.utils.parseEther("100"),
           getTestDepositData(operator.address).length,
           0,
           signatures
         );
     });
 
-    it('Should submit merkle root with enough signatures', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+    it("Should submit merkle root with enough signatures", async function () {
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -718,18 +649,12 @@ describe('Oracles contract', function () {
           signatures
         );
 
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
-      expect(await merkleDistributor.merkleRoot()).to.equal(
-        merkle.depositDataMerkleRoot
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
+      expect(await merkleDistributor.merkleRoot()).to.equal(merkle.depositDataMerkleRoot);
     });
 
-    it('Should emit MerkleRootVoteSubmitted event', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+    it("Should emit MerkleRootVoteSubmitted event", async function () {
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -748,7 +673,7 @@ describe('Oracles contract', function () {
             signatures
           )
       )
-        .to.emit(oracles, 'MerkleRootVoteSubmitted')
+        .to.emit(oracles, "MerkleRootVoteSubmitted")
         .withArgs(
           oracle1.address,
           [oracle1.address, oracle2.address, oracle3.address, oracle4.address],
@@ -758,10 +683,8 @@ describe('Oracles contract', function () {
         );
     });
 
-    it('Should revert when not enough signatures', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+    it("Should revert when not enough signatures", async function () {
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -779,13 +702,11 @@ describe('Oracles contract', function () {
             merkle.depositDataMerkleProofsString,
             signatures
           )
-      ).to.be.revertedWith('Oracles: invalid number of signatures');
+      ).to.be.revertedWith("Oracles: invalid number of signatures");
     });
 
-    it('Should revert if wrong signature', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+    it("Should revert if wrong signature", async function () {
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -803,13 +724,11 @@ describe('Oracles contract', function () {
             merkle.depositDataMerkleProofsString,
             signatures
           )
-      ).to.be.revertedWith('Oracles: invalid signer');
+      ).to.be.revertedWith("Oracles: invalid signer");
     });
 
-    it('Should revert if wrong signature', async function () {
-      const merkle = generateDepositDataMerkle(
-        getTestDepositData(operator.address)
-      );
+    it("Should revert if wrong signature", async function () {
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
       const nonce = await oracles.currentRewardsNonce();
 
       const signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -827,13 +746,11 @@ describe('Oracles contract', function () {
             merkle.depositDataMerkleProofsString,
             signatures
           )
-      ).to.be.revertedWith('Oracles: repeated signature');
+      ).to.be.revertedWith("Oracles: repeated signature");
     });
 
-    it('Should not submit merkle root multiple times if not submitRewards before', async function () {
-      let merkle = generateDepositDataMerkle([
-        getTestDepositData(operator.address)[0],
-      ]);
+    it("Should not submit merkle root multiple times if not submitRewards before", async function () {
+      let merkle = generateDepositDataMerkle([getTestDepositData(operator.address)[0]]);
       let nonce = await oracles.currentRewardsNonce();
 
       let signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -869,13 +786,11 @@ describe('Oracles contract', function () {
             merkle.depositDataMerkleProofsString,
             signatures
           )
-      ).to.be.revertedWith('Oracles: too early');
+      ).to.be.revertedWith("Oracles: too early");
     });
 
-    it('Should submit merkle root multiple times', async function () {
-      let merkle = generateDepositDataMerkle([
-        getTestDepositData(operator.address)[0],
-      ]);
+    it("Should submit merkle root multiple times", async function () {
+      let merkle = generateDepositDataMerkle([getTestDepositData(operator.address)[0]]);
       let nonce = await oracles.currentRewardsNonce();
 
       let signatures = await generateSignaturesForSubmitMerkleRoot(
@@ -897,7 +812,7 @@ describe('Oracles contract', function () {
       signatures = await generateSignaturesForSubmitRewards(
         [oracle1, oracle2, oracle3, oracle4],
         nonce.toString(),
-        ethers.utils.parseEther('200'),
+        ethers.utils.parseEther("200"),
         getTestDepositData(operator.address).length,
         0
       );
@@ -906,7 +821,7 @@ describe('Oracles contract', function () {
       await oracles
         .connect(oracle1)
         .submitRewards(
-          ethers.utils.parseEther('200'),
+          ethers.utils.parseEther("200"),
           getTestDepositData(operator.address).length,
           0,
           signatures
@@ -930,29 +845,19 @@ describe('Oracles contract', function () {
           signatures
         );
 
-      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
-      expect(await merkleDistributor.merkleRoot()).to.equal(
-        merkle.depositDataMerkleRoot
-      );
+      expect((await oracles.currentRewardsNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
+      expect(await merkleDistributor.merkleRoot()).to.equal(merkle.depositDataMerkleRoot);
     });
   });
 
-  describe('setUnstakeProcessing', function () {
+  describe("setUnstakeProcessing", function () {
     beforeEach(async function () {
-      await pool
-        .connect(user1)
-        .stake({ value: ethers.utils.parseEther('100') });
-      await pool
-        .connect(user2)
-        .stake({ value: ethers.utils.parseEther('100') });
+      await pool.connect(user1).stake({ value: ethers.utils.parseEther("100") });
+      await pool.connect(user2).stake({ value: ethers.utils.parseEther("100") });
     });
 
-    it('Should not increase nonce and emit UnstakeReady event if 32LYX or more to unstake', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+    it("Should not increase nonce and emit UnstakeReady event if 32LYX or more to unstake", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -962,21 +867,17 @@ describe('Oracles contract', function () {
       );
 
       await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures))
-        .to.emit(stakedLyxToken, 'UnstakeReady')
+        .to.emit(stakedLyxToken, "UnstakeReady")
         .withArgs(1);
 
       const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
 
-      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(
-        nonce.add(1).toNumber()
-      );
+      expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
       expect(unstakeProcessing).to.equal(true);
     });
 
-    it('Should revert if contract already processing unstake', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+    it("Should revert if contract already processing unstake", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -992,15 +893,13 @@ describe('Oracles contract', function () {
         nonce.add(1).toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('StakedLyxToken: unstaking already in progress');
+      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures)).to.revertedWith(
+        "StakedLyxToken: unstaking already in progress"
+      );
     });
 
-    it('Should revert when not enough signatures', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+    it("Should revert when not enough signatures", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -1009,15 +908,13 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('Oracles: invalid number of signatures');
+      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures)).to.revertedWith(
+        "Oracles: invalid number of signatures"
+      );
     });
 
-    it('Should revert if wrong signature', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+    it("Should revert if wrong signature", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -1026,15 +923,13 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('Oracles: invalid signer');
+      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures)).to.revertedWith(
+        "Oracles: invalid signer"
+      );
     });
 
-    it('Should revert if repeated signature', async function () {
-      await stakedLyxToken
-        .connect(user1)
-        .unstake(ethers.utils.parseEther('32'));
+    it("Should revert if repeated signature", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
 
       const nonce = await oracles.currentUnstakeNonce();
 
@@ -1043,9 +938,9 @@ describe('Oracles contract', function () {
         nonce.toString()
       );
 
-      await expect(
-        oracles.connect(oracle1).setUnstakeProcessing(signatures)
-      ).to.revertedWith('Oracles: repeated signature');
+      await expect(oracles.connect(oracle1).setUnstakeProcessing(signatures)).to.revertedWith(
+        "Oracles: repeated signature"
+      );
     });
   });
 });
