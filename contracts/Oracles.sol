@@ -55,13 +55,6 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     IMerkleDistributor private merkleDistributor;
 
     /**
-     * @dev Modifier for checking whether the caller is an oracle.
-     */
-    modifier onlyOracle() {
-        require(hasRole(ORACLE_ROLE, msg.sender), "Oracles: access denied");
-        _;
-    }
-    /**
      * @dev Modifier for checking whether the caller is an orchestrator.
      */
     modifier onlyOrchestrator() {

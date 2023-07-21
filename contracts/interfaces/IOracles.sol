@@ -83,17 +83,6 @@ interface IOracles {
     function VALIDATOR_TOTAL_DEPOSIT() external view returns (uint256);
 
     /**
-     * @dev Function for checking whether an account has an oracle role.
-     * @param account - account to check.
-     */
-    function isOracle(address account) external view returns (bool);
-
-    /**
-     * @dev Function for checking whether the oracles are currently voting for new merkle root.
-     */
-    function isMerkleRootVoting() external view returns (bool);
-
-    /**
      * @dev Function for retrieving current rewards nonce.
      */
     function currentRewardsNonce() external view returns (uint256);
@@ -103,7 +92,31 @@ interface IOracles {
      */
     function currentValidatorsNonce() external view returns (uint256);
 
+    /**
+     * @dev Function for retrieving current unstake nonce.
+     */
     function currentUnstakeNonce() external view returns (uint256);
+
+    /**
+     * @dev Function for checking whether an account has an orchestrator role.
+     */
+    function isOrchestrator(address account) external view returns (bool);
+
+    /**
+     * @dev Function for adding an orchestrator role to an account.
+     */
+    function addOrchestrator(address account) external;
+
+    /**
+     * @dev Function for removing an orchestrator role from an account.
+     */
+    function removeOrchestrator(address account) external;
+
+    /**
+     * @dev Function for checking whether an account has an oracle role.
+     * @param account - account to check.
+     */
+    function isOracle(address account) external view returns (bool);
 
     /**
      * @dev Function for adding an oracle role to the account.
@@ -118,6 +131,11 @@ interface IOracles {
      * @param account - account to remove an oracle role from.
      */
     function removeOracle(address account) external;
+
+    /**
+     * @dev Function for checking whether the oracles are currently voting for new merkle root.
+     */
+    function isMerkleRootVoting() external view returns (bool);
 
     /**
      * @dev Function for submitting oracle vote for total rewards.
