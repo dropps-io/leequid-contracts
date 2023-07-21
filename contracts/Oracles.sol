@@ -110,7 +110,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         return hasRole(ORCHESTRATOR_ROLE, account);
     }
 
-    function addOrchestrator(address account) external onlyAdmin {
+    function addOrchestrator(address account) external {
         require(account != address(0), "Orchestrators: invalid orchestrator address");
         require(!hasRole(ORCHESTRATOR_ROLE, account), "Oracles: orchestrator already exists");
         grantRole(ORCHESTRATOR_ROLE, account);
@@ -120,7 +120,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-removeOrchestator}.
      */
-    function removeOrchestrator(address account) external onlyAdmin {
+    function removeOrchestrator(address account) external {
         require(
             hasRole(ORCHESTRATOR_ROLE, account),
             "Orchestrators: Account isn't an orchestrator"
@@ -139,7 +139,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-addOracle}.
      */
-    function addOracle(address account) external override onlyAdmin {
+    function addOracle(address account) external override {
         require(account != address(0), "Oracles: invalid oracle address");
         require(!hasRole(ORACLE_ROLE, account), "Oracles: oracle already exists");
         grantRole(ORACLE_ROLE, account);
@@ -150,7 +150,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-removeOracle}.
      */
-    function removeOracle(address account) external override onlyAdmin {
+    function removeOracle(address account) external override {
         require(hasRole(ORACLE_ROLE, account), "Oracles: oracle do not exists");
         revokeRole(ORACLE_ROLE, account);
         oracleCount--;
