@@ -106,11 +106,11 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         return unstakeNonce.current();
     }
 
-    function isOrchestrator(address account) external view returns (bool) {
+    function isOrchestrator(address account) external view override returns (bool) {
         return hasRole(ORCHESTRATOR_ROLE, account);
     }
 
-    function addOrchestrator(address account) external {
+    function addOrchestrator(address account) external override {
         require(account != address(0), "Orchestrators: invalid orchestrator address");
         require(!hasRole(ORCHESTRATOR_ROLE, account), "Oracles: orchestrator already exists");
         grantRole(ORCHESTRATOR_ROLE, account);
@@ -120,7 +120,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-removeOrchestator}.
      */
-    function removeOrchestrator(address account) external {
+    function removeOrchestrator(address account) external override {
         require(
             hasRole(ORCHESTRATOR_ROLE, account),
             "Orchestrators: Account isn't an orchestrator"
