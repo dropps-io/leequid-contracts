@@ -163,10 +163,10 @@ interface IOracles {
     ) external;
 
     /**
-     * @dev Set the protocol as unstake processing so the unstake requests are frozen (no more request or stake/unstake matching).
-     * Only callable by an oracle and when contract is not paused.
+     * @dev Set the protocol to "unstake processing" so the unstake requests are frozen (no more request or stake/unstake matching).
+     * Only callable by an orchestrator and when contract is not paused.
      * @param signatures - Array of bytes containing signatures from oracles.
      * Emits an {UnstakeProcessingVoteSubmitted} event.
      */
-    function setUnstakeProcessing(bytes[] calldata signatures) external;
+    function beginUnstake(bytes[] calldata signatures) external;
 }

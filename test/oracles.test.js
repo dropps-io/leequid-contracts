@@ -881,7 +881,7 @@ describe("Oracles contract", function () {
         nonce.toString()
       );
 
-      await expect(oracles.connect(orchestrator).setUnstakeProcessing(signatures))
+      await expect(oracles.connect(orchestrator).beginUnstake(signatures))
         .to.emit(stakedLyxToken, "UnstakeReady")
         .withArgs(1);
 
@@ -901,14 +901,14 @@ describe("Oracles contract", function () {
         nonce.toString()
       );
 
-      await oracles.connect(orchestrator).setUnstakeProcessing(signatures);
+      await oracles.connect(orchestrator).beginUnstake(signatures);
 
       signatures = await generateSignaturesForSetUnstakeProcessing(
         [oracle1, oracle2, oracle3, oracle4],
         nonce.add(1).toString()
       );
 
-      await expect(oracles.connect(orchestrator).setUnstakeProcessing(signatures)).to.revertedWith(
+      await expect(oracles.connect(orchestrator).beginUnstake(signatures)).to.revertedWith(
         "StakedLyxToken: unstaking already in progress"
       );
     });
@@ -923,7 +923,7 @@ describe("Oracles contract", function () {
         nonce.toString()
       );
 
-      await expect(oracles.connect(orchestrator).setUnstakeProcessing(signatures)).to.revertedWith(
+      await expect(oracles.connect(orchestrator).beginUnstake(signatures)).to.revertedWith(
         "Oracles: invalid number of signatures"
       );
     });
@@ -938,7 +938,7 @@ describe("Oracles contract", function () {
         nonce.toString()
       );
 
-      await expect(oracles.connect(orchestrator).setUnstakeProcessing(signatures)).to.revertedWith(
+      await expect(oracles.connect(orchestrator).beginUnstake(signatures)).to.revertedWith(
         "Oracles: invalid signer"
       );
     });
@@ -953,7 +953,7 @@ describe("Oracles contract", function () {
         nonce.toString()
       );
 
-      await expect(oracles.connect(orchestrator).setUnstakeProcessing(signatures)).to.revertedWith(
+      await expect(oracles.connect(orchestrator).beginUnstake(signatures)).to.revertedWith(
         "Oracles: repeated signature"
       );
     });

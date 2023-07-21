@@ -298,9 +298,9 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     }
 
     /**
-     * @dev See {IOracles-setUnstakeProcessing}.
+     * @dev See {IOracles-beginUnstake}.
      */
-    function setUnstakeProcessing(
+    function beginUnstake(
         bytes[] calldata signatures
     ) external override onlyOrchestrator whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
