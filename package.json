@@ -22,6 +22,7 @@
     "node": "npx hardhat node",
     "node-fork": "npx hardhat node --fork https://rpc.testnet.lukso.network",
     "deploy-locally": "yarn compile --optimizer && npx hardhat run scripts/local/deploy.js --no-compile --network local",
+    "deploy-integrated": "yarn compile --optimizer && UPDATE_ENV=true npx hardhat run scripts/local/deploy.js --no-compile --network local",
     "local-console": "npx hardhat console --network local"
   },
   "husky": {
