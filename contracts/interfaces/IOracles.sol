@@ -70,21 +70,17 @@ interface IOracles {
     event OracleRemoved(address indexed oracle);
 
     /**
+     * @dev Event for tracking new or updated orchestrators.
+     * @param orchestrator - address of new or removed orchestrator.
+     */
+    event OrchestratorAdded(address indexed orchestrator);
+    event OrchestratorRemoved(address indexed orchestrator);
+
+    /**
      * @dev Function for getting the total validator deposit.
      */
     // solhint-disable-next-line func-name-mixedcase
     function VALIDATOR_TOTAL_DEPOSIT() external view returns (uint256);
-
-    /**
-     * @dev Function for checking whether an account has an oracle role.
-     * @param account - account to check.
-     */
-    function isOracle(address account) external view returns (bool);
-
-    /**
-     * @dev Function for checking whether the oracles are currently voting for new merkle root.
-     */
-    function isMerkleRootVoting() external view returns (bool);
 
     /**
      * @dev Function for retrieving current rewards nonce.
@@ -96,7 +92,31 @@ interface IOracles {
      */
     function currentValidatorsNonce() external view returns (uint256);
 
+    /**
+     * @dev Function for retrieving current unstake nonce.
+     */
     function currentUnstakeNonce() external view returns (uint256);
+
+    /**
+     * @dev Function for checking whether an account has an orchestrator role.
+     */
+    function isOrchestrator(address account) external view returns (bool);
+
+    /**
+     * @dev Function for adding an orchestrator role to an account.
+     */
+    function addOrchestrator(address account) external;
+
+    /**
+     * @dev Function for removing an orchestrator role from an account.
+     */
+    function removeOrchestrator(address account) external;
+
+    /**
+     * @dev Function for checking whether an account has an oracle role.
+     * @param account - account to check.
+     */
+    function isOracle(address account) external view returns (bool);
 
     /**
      * @dev Function for adding an oracle role to the account.
@@ -111,6 +131,11 @@ interface IOracles {
      * @param account - account to remove an oracle role from.
      */
     function removeOracle(address account) external;
+
+    /**
+     * @dev Function for checking whether the oracles are currently voting for new merkle root.
+     */
+    function isMerkleRootVoting() external view returns (bool);
 
     /**
      * @dev Function for submitting oracle vote for total rewards.
@@ -156,10 +181,10 @@ interface IOracles {
     ) external;
 
     /**
-     * @dev Set the protocol as unstake processing so the unstake requests are frozen (no more request or stake/unstake matching).
-     * Only callable by an oracle and when contract is not paused.
+     * @dev Set the protocol to "unstake processing" so the unstake requests are frozen (no more request or stake/unstake matching).
+     * Only callable by an orchestrator and when contract is not paused.
      * @param signatures - Array of bytes containing signatures from oracles.
      * Emits an {UnstakeProcessingVoteSubmitted} event.
      */
-    function setUnstakeProcessing(bytes[] calldata signatures) external;
+    function beginUnstake(bytes[] calldata signatures) external;
 }

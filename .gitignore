@@ -40,3 +40,4 @@ artifacts
 local_addresses.json
 
 .vs
+.env.test
