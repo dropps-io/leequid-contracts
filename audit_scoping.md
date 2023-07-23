@@ -127,3 +127,5 @@ Fork modifications:
 ![stake_happy_path.png](docs%2Fstake_happy_path.png)
 
 ![submit_rewards_happy_path.png](docs%2Fsubmit_rewards_happy_path.png)
+
+![unstake_happy_path.png](docs%2Funstake_happy_path.png)
