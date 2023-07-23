@@ -1,74 +1,71 @@
-const { ethers } = require('hardhat');
-const fs = require('fs');
-const { getAccounts } = require('./utils/get-accounts');
-const { generateDepositDataMerkle } = require('../../utils/generate-merkle');
-const {
-  formatGeneratedDepositData,
-} = require('../../utils/format-deposit-data');
-const deposit_data = require('./test-deposit-data.json');
+const { ethers } = require("hardhat");
+const fs = require("fs");
+const { getAccounts } = require("./utils/get-accounts");
+const { generateDepositDataMerkle } = require("../../utils/generate-merkle");
+const { formatGeneratedDepositData } = require("../../utils/format-deposit-data");
+const deposit_data = require("./test-deposit-data.json");
 
 async function main() {
+  const orchestratorPublicKey = process.env.ORCHESTRATOR_PUBLIC_KEY;
   const { admin, operator, protocolFeeRecipient } = {
     ...(await getAccounts()),
   };
   const args = {
-    gasPrice: '0xB2D05E00', // 3 Gwei
+    gasPrice: "0xB2D05E00", // 3 Gwei
   };
 
   const protocolFee = 0.1;
 
-  console.log('deploying MockBeacon...');
-  const MockBeacon = await ethers.getContractFactory('DepositContract');
+  console.log("deploying MockBeacon...");
+  const MockBeacon = await ethers.getContractFactory("DepositContract");
   const mockBeacon = await MockBeacon.deploy(args);
   await mockBeacon.deployed();
-  console.log('MockBeacon deployed to:', mockBeacon.address);
+  console.log("MockBeacon deployed to:", mockBeacon.address);
 
-  console.log('deploying Rewards...');
-  const Rewards = await ethers.getContractFactory('Rewards');
+  console.log("deploying Rewards...");
+  const Rewards = await ethers.getContractFactory("Rewards");
   const rewards = await Rewards.deploy(args);
   await rewards.deployed();
-  console.log('Rewards deployed to:', rewards.address);
+  console.log("Rewards deployed to:", rewards.address);
 
-  console.log('deploying StakedLyxToken...');
-  const StakedLyxToken = await ethers.getContractFactory('StakedLyxToken');
+  console.log("deploying StakedLyxToken...");
+  const StakedLyxToken = await ethers.getContractFactory("StakedLyxToken");
   const stakedLyxToken = await StakedLyxToken.deploy(args);
   await rewards.deployed();
-  console.log('StakedLyxToken deployed to:', stakedLyxToken.address);
+  console.log("StakedLyxToken deployed to:", stakedLyxToken.address);
 
-  console.log('deploying Pool...');
-  const Pool = await ethers.getContractFactory('Pool');
+  console.log("deploying Pool...");
+  const Pool = await ethers.getContractFactory("Pool");
   const pool = await Pool.deploy(args);
   await pool.deployed();
-  console.log('Pool deployed to:', pool.address);
+  console.log("Pool deployed to:", pool.address);
 
-  console.log('deploying PoolValidators...');
-  const PoolValidators = await ethers.getContractFactory('PoolValidators');
+  console.log("deploying PoolValidators...");
+  const PoolValidators = await ethers.getContractFactory("PoolValidators");
   const poolValidators = await PoolValidators.deploy(args);
   await poolValidators.deployed();
-  console.log('PoolValidators deployed to:', poolValidators.address);
+  console.log("PoolValidators deployed to:", poolValidators.address);
 
-  console.log('deploying MerkleDistributor...');
-  const MerkleDistributor = await ethers.getContractFactory(
-    'MerkleDistributor'
-  );
+  console.log("deploying MerkleDistributor...");
+  const MerkleDistributor = await ethers.getContractFactory("MerkleDistributor");
   const merkleDistributor = await MerkleDistributor.deploy(args);
   await merkleDistributor.deployed();
-  console.log('MerkleDistributor deployed to:', merkleDistributor.address);
+  console.log("MerkleDistributor deployed to:", merkleDistributor.address);
 
-  console.log('deploying FeesEscrow...');
-  const FeesEscrow = await ethers.getContractFactory('FeesEscrow');
+  console.log("deploying FeesEscrow...");
+  const FeesEscrow = await ethers.getContractFactory("FeesEscrow");
   const feesEscrow = await FeesEscrow.deploy(rewards.address, args);
   await feesEscrow.deployed();
-  console.log('FeesEscrow deployed to:', feesEscrow.address);
+  console.log("FeesEscrow deployed to:", feesEscrow.address);
 
-  console.log('deploying Oracles...');
-  const Oracles = await ethers.getContractFactory('Oracles');
+  console.log("deploying Oracles...");
+  const Oracles = await ethers.getContractFactory("Oracles");
   const oracles = await Oracles.deploy(args);
   await oracles.deployed();
-  console.log('Oracles deployed to:', oracles.address);
+  console.log("Oracles deployed to:", oracles.address);
 
   // Initialize the Oracles contract
-  console.log('Initializing Oracles...');
+  console.log("Initializing Oracles...");
   await oracles.initialize(
     admin.address,
     rewards.address,
@@ -78,14 +75,13 @@ async function main() {
     merkleDistributor.address,
     args
   );
-  console.log('Oracles initialized');
+  console.log("Oracles initialized");
 
-  const withdrawalCredentials =
-    '0x010000000000000000000000' + rewards.address.slice(2);
+  const withdrawalCredentials = "0x010000000000000000000000" + rewards.address.slice(2);
 
   // Initialize Rewards
 
-  console.log('Initializing Rewards...');
+  console.log("Initializing Rewards...");
   await rewards.initialize(
     admin.address,
     stakedLyxToken.address,
@@ -97,10 +93,10 @@ async function main() {
     pool.address,
     args
   );
-  console.log('Rewards initialized');
+  console.log("Rewards initialized");
 
   // Initialize StakedLyxToken
-  console.log('Initializing StakedLyxToken...');
+  console.log("Initializing StakedLyxToken...");
   await stakedLyxToken.initialize(
     admin.address,
     pool.address,
@@ -108,10 +104,10 @@ async function main() {
     rewards.address,
     args
   );
-  console.log('StakedLyxToken initialized');
+  console.log("StakedLyxToken initialized");
 
   // Initialize Pool
-  console.log('Initializing Pool...');
+  console.log("Initializing Pool...");
   await pool.initialize(
     admin.address,
     stakedLyxToken.address,
@@ -120,48 +116,43 @@ async function main() {
     oracles.address,
     withdrawalCredentials,
     mockBeacon.address,
-    ethers.utils.parseEther('9999999999999999999999999999999'),
-    '500',
+    ethers.utils.parseEther("9999999999999999999999999999999"),
+    "500",
     args
   );
-  console.log('Pool initialized');
+  console.log("Pool initialized");
 
   // Initialize PoolValidators
-  console.log('Initializing PoolValidators...');
-  await poolValidators.initialize(
-    admin.address,
-    pool.address,
-    oracles.address,
-    args
-  );
-  console.log('PoolValidators initialized');
+  console.log("Initializing PoolValidators...");
+  await poolValidators.initialize(admin.address, pool.address, oracles.address, args);
+  console.log("PoolValidators initialized");
 
-  console.log('Initializing MerkleDistributor...');
-  await merkleDistributor.initialize(
-    admin.address,
-    rewards.address,
-    oracles.address
-  );
-  console.log('MerkleDistributor initialized');
+  console.log("Initializing MerkleDistributor...");
+  await merkleDistributor.initialize(admin.address, rewards.address, oracles.address);
+  console.log("MerkleDistributor initialized");
 
-  const merkleTree = generateDepositDataMerkle(
-    formatGeneratedDepositData(deposit_data)
+  const merkleTree = generateDepositDataMerkle(formatGeneratedDepositData(deposit_data));
+  // Storing merkle root to a JSON file
+  fs.writeFileSync(
+    "merkleRoot.json",
+    JSON.stringify({
+      merkleRoot: merkleTree.depositDataMerkleRoot,
+    })
   );
 
   await poolValidators
     .connect(admin)
-    .addOperator(
-      operator.address,
-      merkleTree.depositDataMerkleRoot,
-      '0x0000000'
-    );
+    .addOperator(operator.address, merkleTree.depositDataMerkleRoot, "0x0000000");
 
   await poolValidators.connect(operator).commitOperator();
 
-  console.log('Operator added and committed');
+  // Add orhestrator private key to the Oracles contract
+  await oracles.connect(admin).addOrchestrator(orchestratorPublicKey || operator.address);
+
+  console.log("Orchestrator added to Oracles contract");
 
   fs.writeFileSync(
-    'local_addresses.json',
+    "local_addresses.json",
     JSON.stringify({
       deposit: mockBeacon.address,
       rewards: rewards.address,

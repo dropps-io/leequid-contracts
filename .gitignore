@@ -41,3 +41,8 @@ local_addresses.json
 
 .vs
 .env.test
+
+out
+cache_forge
+
+merkleRoot.json
