@@ -27,6 +27,8 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
+    bytes32 public constant ORCHESTRATOR_ROLE = keccak256("ORCHESTRATOR_ROLE");
+
     // @dev Oracle count - used to verify number of signatures.
     uint256 public oracleCount;
 
@@ -53,10 +55,10 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     IMerkleDistributor private merkleDistributor;
 
     /**
-    * @dev Modifier for checking whether the caller is an oracle.
-    */
-    modifier onlyOracle() {
-        require(hasRole(ORACLE_ROLE, msg.sender), "Oracles: access denied");
+     * @dev Modifier for checking whether the caller is an orchestrator.
+     */
+    modifier onlyOrchestrator() {
+        require(hasRole(ORCHESTRATOR_ROLE, msg.sender), "Orchestrators: access denied");
         _;
     }
 
@@ -86,28 +88,51 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-currentRewardsNonce}.
      */
-    function currentRewardsNonce() external override view returns (uint256) {
+    function currentRewardsNonce() external view override returns (uint256) {
         return rewardsNonce.current();
     }
 
     /**
      * @dev See {IOracles-currentValidatorsNonce}.
      */
-    function currentValidatorsNonce() external override view returns (uint256) {
+    function currentValidatorsNonce() external view override returns (uint256) {
         return validatorsNonce.current();
     }
 
     /**
      * @dev See {IOracles-currentValidatorsNonce}.
      */
-    function currentUnstakeNonce() external override view returns (uint256) {
+    function currentUnstakeNonce() external view override returns (uint256) {
         return unstakeNonce.current();
+    }
+
+    function isOrchestrator(address account) external view override returns (bool) {
+        return hasRole(ORCHESTRATOR_ROLE, account);
+    }
+
+    function addOrchestrator(address account) external override {
+        require(account != address(0), "Orchestrators: invalid orchestrator address");
+        require(!hasRole(ORCHESTRATOR_ROLE, account), "Oracles: orchestrator already exists");
+        grantRole(ORCHESTRATOR_ROLE, account);
+        emit OrchestratorAdded(account);
+    }
+
+    /**
+     * @dev See {IOracles-removeOrchestator}.
+     */
+    function removeOrchestrator(address account) external override {
+        require(
+            hasRole(ORCHESTRATOR_ROLE, account),
+            "Orchestrators: Account isn't an orchestrator"
+        );
+        revokeRole(ORCHESTRATOR_ROLE, account);
+        emit OrchestratorRemoved(account);
     }
 
     /**
      * @dev See {IOracles-isOracle}.
      */
-    function isOracle(address account) external override view returns (bool) {
+    function isOracle(address account) external view override returns (bool) {
         return hasRole(ORACLE_ROLE, account);
     }
 
@@ -116,6 +141,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      */
     function addOracle(address account) external override {
         require(account != address(0), "Oracles: invalid oracle address");
+        require(!hasRole(ORACLE_ROLE, account), "Oracles: oracle already exists");
         grantRole(ORACLE_ROLE, account);
         oracleCount++;
         emit OracleAdded(account);
@@ -125,6 +151,7 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      * @dev See {IOracles-removeOracle}.
      */
     function removeOracle(address account) external override {
+        require(hasRole(ORACLE_ROLE, account), "Oracles: oracle do not exists");
         revokeRole(ORACLE_ROLE, account);
         oracleCount--;
         emit OracleRemoved(account);
@@ -133,28 +160,30 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     /**
      * @dev See {IOracles-isMerkleRootVoting}.
      */
-    function isMerkleRootVoting() public override view returns (bool) {
+    function isMerkleRootVoting() public view override returns (bool) {
         uint256 lastRewardBlockNumber = rewards.lastUpdateBlockNumber();
-        return merkleDistributor.lastUpdateBlockNumber() < lastRewardBlockNumber && lastRewardBlockNumber != block.number;
+        return
+            merkleDistributor.lastUpdateBlockNumber() < lastRewardBlockNumber &&
+            lastRewardBlockNumber != block.number;
     }
 
     /**
-    * @dev Function for checking whether the number of signatures is enough to update the value.
-    * @param signaturesCount - number of signatures.
-    */
+     * @dev Function for checking whether the number of signatures is enough to update the value.
+     * @param signaturesCount - number of signatures.
+     */
     function isEnoughSignatures(uint256 signaturesCount) internal view returns (bool) {
         return oracleCount >= signaturesCount && signaturesCount * 3 > oracleCount * 2;
     }
 
     /**
      * @dev See {IOracles-submitRewards}.
-    */
+     */
     function submitRewards(
         uint256 totalRewards,
         uint256 activatedValidators,
         uint256 exitedValidators,
         bytes[] calldata signatures
-    ) external override onlyOracle whenNotPaused {
+    ) external override onlyOrchestrator whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
 
         // calculate candidate ID hash
@@ -169,7 +198,14 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         // increment nonce for future signatures
         rewardsNonce.increment();
 
-        emit RewardsVoteSubmitted(msg.sender, signedOracles, nonce, totalRewards, activatedValidators, exitedValidators);
+        emit RewardsVoteSubmitted(
+            msg.sender,
+            signedOracles,
+            nonce,
+            totalRewards,
+            activatedValidators,
+            exitedValidators
+        );
 
         // update total rewards
         rewards.updateTotalRewards(totalRewards);
@@ -189,25 +225,25 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
 
     /**
      * @dev See {IOracles-submitMerkleRoot}.
-    */
+     */
     function submitMerkleRoot(
         bytes32 merkleRoot,
         string calldata merkleProofs,
         bytes[] calldata signatures
-    ) external override onlyOracle whenNotPaused {
+    ) external override onlyOrchestrator whenNotPaused {
         require(isMerkleRootVoting(), "Oracles: too early");
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
 
         // calculate candidate ID hash
         uint256 nonce = rewardsNonce.current();
         bytes32 candidateId = ECDSAUpgradeable.toEthSignedMessageHash(
-        keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
+            keccak256(abi.encode(nonce, merkleProofs, merkleRoot))
         );
 
         // check signatures and calculate number of submitted oracle votes
         address[] memory signedOracles = _verifySignatures(candidateId, signatures);
 
-            // increment nonce for future signatures
+        // increment nonce for future signatures
         rewardsNonce.increment();
 
         emit MerkleRootVoteSubmitted(msg.sender, signedOracles, nonce, merkleRoot, merkleProofs);
@@ -217,16 +253,14 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     }
 
     /**
-    * @dev See {IOracles-registerValidators}.
-    */
+     * @dev See {IOracles-registerValidators}.
+     */
     function registerValidators(
         IPoolValidators.DepositData[] calldata depositData,
         bytes32[][] calldata merkleProofs,
         bytes32 validatorsDepositRoot,
         bytes[] calldata signatures
-    )
-    external override onlyOracle whenNotPaused
-    {
+    ) external override onlyOrchestrator whenNotPaused {
         require(
             pool.validatorRegistration().get_deposit_root() == validatorsDepositRoot,
             "Oracles: invalid validators deposit root"
@@ -256,11 +290,12 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         emit RegisterValidatorsVoteSubmitted(msg.sender, signedOracles, nonce);
     }
 
-
     /**
-     * @dev See {IOracles-setUnstakeProcessing}.
-    */
-    function setUnstakeProcessing(bytes[] calldata signatures) external override onlyOracle whenNotPaused {
+     * @dev See {IOracles-beginUnstake}.
+     */
+    function beginUnstake(
+        bytes[] calldata signatures
+    ) external override onlyOrchestrator whenNotPaused {
         require(isEnoughSignatures(signatures.length), "Oracles: invalid number of signatures");
 
         // calculate candidate ID hash
@@ -289,8 +324,11 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
      *
      * @dev Verifies the signatures provided by the oracles and returns an array of addresses
      * that represent the oracles who signed the candidateId.
-    */
-    function _verifySignatures(bytes32 candidateId, bytes[] calldata signatures) internal returns (address[] memory) {
+     */
+    function _verifySignatures(
+        bytes32 candidateId,
+        bytes[] calldata signatures
+    ) internal returns (address[] memory) {
         address[] memory signedOracles = new address[](signatures.length);
         for (uint256 i = 0; i < signatures.length; i++) {
             bytes memory signature = signatures[i];

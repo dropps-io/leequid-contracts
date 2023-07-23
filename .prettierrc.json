@@ -1,3 +1,6 @@
 {
-  "singleQuote": true
+  "printWidth": 99,
+  "singleQuote": false,
+  "useTabs": false,
+  "endOfLine": "lf"
 }

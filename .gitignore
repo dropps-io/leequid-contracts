@@ -35,7 +35,9 @@ build
 # artifacts
 cache
 artifacts
-.husky
 
 .env
 local_addresses.json
+
+.vs
+.env.test
