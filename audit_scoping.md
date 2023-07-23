@@ -122,10 +122,10 @@ Fork modifications:
 - Removed usage of SafeMath library
 - ERC20 usages changed to LSP7
 
-![infra.png](docs%2Finfra.png)
+![infra.png](docs%2Fdiagrams%2Finfra.png)
 
-![stake_happy_path.png](docs%2Fstake_happy_path.png)
+![stake_happy_path.png](docs%2Fdiagrams%2Fstake_happy_path.png)
 
-![submit_rewards_happy_path.png](docs%2Fsubmit_rewards_happy_path.png)
+![submit_rewards_happy_path.png](docs%2Fdiagrams%2Fsubmit_rewards_happy_path.png)
 
-![unstake_happy_path.png](docs%2Funstake_happy_path.png)
+![unstake_happy_path.png](docs%2Fdiagrams%2Funstake_happy_path.png)
