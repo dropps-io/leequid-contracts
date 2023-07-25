@@ -1,6 +1,8 @@
 # Audit Scoping
 
 Link: https://github.com/dropps-io/leequid-contracts
+Stakewise doc: https://docs.stakewise.io/smart-contracts
+Docs: https://github.com/dropps-io/leequid-contracts/tree/master/docs
 
 The LEEQUID smart contracts are forked from [StakeWise V2 smart contracts](https://github.com/stakewise/contracts) (already audited multiple time) and adapted to use [LSP7](https://github.com/lukso-network/LIPs/blob/main/LSPs/LSP-7-DigitalAsset.md) instead of ERC20.
 
@@ -38,6 +40,8 @@ For the reason that validators withdrawals are not possible yet, the feature wil
 - [ ] [MerkleDrop.sol](./contracts/merkles/MerkleDrop.sol)
 
 ## Contracts
+
+![contracts_infra.png](docs%2Fdiagrams%2Fcontracts_infra.png)
 
 ### Oracles 
 

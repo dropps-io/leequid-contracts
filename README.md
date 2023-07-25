@@ -18,6 +18,8 @@ All audit reports are presented in the [audits folder](https://github.com/stakew
 You can find the documentation for every contract in the `contracts` directory. For integration, check the `contracts/interfaces` directory.
 The StakeWise documentation is also available on the [StakeWise official documentation page](https://docs.stakewise.io/smart-contracts).
 
+![contracts_infra.png](docs%2Fdiagrams%2Fcontracts_infra.png)
+
 #### Pool
 
 The Pool contract is an entry point for deposits into the StakeWise Pool. This contract stores LYX collected from the users before it is sent to the LYXE Validator Registration Contract.
