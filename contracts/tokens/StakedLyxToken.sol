@@ -361,6 +361,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             }
         }
 
+        emit UnstakeMatched(amountMatched, totalPendingUnstake);
         return amountMatched;
     }
 
