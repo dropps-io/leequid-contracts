@@ -68,6 +68,32 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "orchestrator",
+        "type": "address"
+      }
+    ],
+    "name": "OrchestratorAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "orchestrator",
+        "type": "address"
+      }
+    ],
+    "name": "OrchestratorRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "sender",
         "type": "address"
       },
@@ -182,6 +208,32 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "addOrchestrator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "signatures",
+        "type": "bytes[]"
+      }
+    ],
+    "name": "beginUnstake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "currentRewardsNonce",
     "outputs": [
@@ -242,6 +294,25 @@
       }
     ],
     "name": "isOracle",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "isOrchestrator",
     "outputs": [
       {
         "internalType": "bool",
@@ -323,12 +394,12 @@
   {
     "inputs": [
       {
-        "internalType": "bytes[]",
-        "name": "signatures",
-        "type": "bytes[]"
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
       }
     ],
-    "name": "setUnstakeProcessing",
+    "name": "removeOrchestrator",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
