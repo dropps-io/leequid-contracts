@@ -4,7 +4,7 @@ const depositDataMerkleRoot = "0x56a58f0e8386d48b41a9092de0a3c2c6fe117ee04608923
 const oraclesCronTimeoutInMs = 1000 * 30; // 30 seconds
 const oraclesRegisterValidatorsTimeoutInMs = 1000 * 30; // 30 seconds
 const unstakeBlockOffset = 24;
-const consensusMockPort = 3333;
+const beaconMockPort = 3500;
 
 module.exports = {
   oraclesAddresses,
@@ -13,5 +13,5 @@ module.exports = {
   oraclesCronTimeoutInMs,
   orchestratorAddress,
   unstakeBlockOffset,
-  consensusMockPort,
+  beaconMockPort,
 };

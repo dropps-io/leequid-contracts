@@ -3,7 +3,7 @@ const fs = require("fs");
 const { getAccounts } = require("./utils/get-accounts");
 
 async function deployLocalContracts(mute) {
-  const { admin, protocolFeeRecipient } = {
+  const { admin, protocolFeeRecipient, operator } = {
     ...(await getAccounts()),
   };
 
@@ -127,6 +127,8 @@ async function deployLocalContracts(mute) {
   if (!mute) console.log("Initializing MerkleDistributor...");
   await merkleDistributor.initialize(admin.address, rewards.address, oracles.address);
   if (!mute) console.log("MerkleDistributor initialized");
+
+  if (!mute) console.log("Operator address is ", operator.address);
 
   fs.writeFileSync(
     "local_addresses.json",

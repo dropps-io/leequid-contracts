@@ -1,11 +1,11 @@
 const http = require("http");
-const { consensusMockPort } = require("../config");
+const { beaconMockPort } = require("../config");
 
-const setValidatorMock = (mockData) => {
+const setValidatorsMock = (mockData) => {
   const options = {
     hostname: "localhost",
-    port: consensusMockPort,
-    path: "/set-mock/validator",
+    port: beaconMockPort,
+    path: "/set-mock/validators",
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -18,11 +18,11 @@ const setValidatorMock = (mockData) => {
   req.end();
 };
 
-const setValidatorWithdrawalCredentialsMock = (mockData) => {
+const setFinalityCheckpointsMock = (mockData) => {
   const options = {
     hostname: "localhost",
-    port: consensusMockPort,
-    path: "/set-mock/validator/withdrawalCredentials",
+    port: beaconMockPort,
+    path: "/set-mock/finality_checkpoints",
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -35,4 +35,42 @@ const setValidatorWithdrawalCredentialsMock = (mockData) => {
   req.end();
 };
 
-module.exports = { setValidatorMock, setValidatorWithdrawalCredentialsMock };
+const setExpectedWithdrawalsMock = (mockData, state) => {
+  const options = {
+    hostname: "localhost",
+    port: beaconMockPort,
+    path: "/set-mock/expected_withdrawals/" + state,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+
+  const req = http.request(options, () => {});
+
+  req.write(JSON.stringify(mockData));
+  req.end();
+};
+
+const resetMocks = () => {
+  const options = {
+    hostname: "localhost",
+    port: beaconMockPort,
+    path: "/reset",
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+
+  const req = http.request(options, () => {});
+
+  req.end();
+};
+
+module.exports = {
+  setExpectedWithdrawalsMock,
+  setFinalityCheckpointsMock,
+  setValidatorsMock,
+  resetMocks,
+};
