@@ -41,7 +41,6 @@ const unstakingHappyPath = async () => {
 
     // Equivalent to 12 hours
     await incrementBlocks(unstakeBlockOffset / 2);
-
     await sleep(oraclesCronTimeoutInMs);
 
     await setValidatorsMock(
@@ -178,4 +177,8 @@ const unstakingHappyPath = async () => {
   }
 };
 
-beforeTest().then(() => unstakingHappyPath().finally(() => afterTest()));
+if (require.main === module) {
+  beforeTest().then(() => unstakingHappyPath().finally(() => afterTest()));
+}
+
+module.exports = { unstakingHappyPath };

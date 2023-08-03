@@ -50,4 +50,8 @@ const stakingHappyPath = async () => {
   }
 };
 
-beforeTest().then(() => stakingHappyPath().finally(() => afterTest()));
+if (require.main === module) {
+  beforeTest().then(() => stakingHappyPath().finally(() => afterTest()));
+}
+
+module.exports = { stakingHappyPath };
