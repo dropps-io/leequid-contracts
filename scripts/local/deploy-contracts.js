@@ -61,6 +61,18 @@ async function deployLocalContracts(mute) {
   await oracles.deployed();
   if (!mute) console.log("Oracles deployed to:", oracles.address);
 
+  if (!mute) console.log("deploying SwapV1Mock...");
+  const SwapV1Mock = await ethers.getContractFactory("SwapV1Mock");
+  const swapV1Mock = await SwapV1Mock.deploy(args);
+  await swapV1Mock.deployed();
+  if (!mute) console.log("SwapV1Mock deployed to:", oracles.address);
+
+  if (!mute) console.log("Setup SwapV1Mock...");
+  await swapV1Mock.setup(stakedLyxToken.address, args);
+  if (!mute) console.log("SwapV1Mock setup");
+
+  // Initialize the SwapV1Mock contract
+
   // Initialize the Oracles contract
   if (!mute) console.log("Initializing Oracles...");
   await oracles.initialize(
@@ -72,7 +84,6 @@ async function deployLocalContracts(mute) {
     merkleDistributor.address,
     args
   );
-  if (!mute) console.log("Oracles initialized");
 
   const withdrawalCredentials = "0x010000000000000000000000" + rewards.address.slice(2);
 
@@ -141,6 +152,7 @@ async function deployLocalContracts(mute) {
       pool: pool.address,
       poolValidators: poolValidators.address,
       peesEscrow: feesEscrow.address,
+      swapV1Mock: swapV1Mock.address,
     })
   );
 }

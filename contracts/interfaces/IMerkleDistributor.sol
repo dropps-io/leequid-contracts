@@ -85,11 +85,10 @@ interface IMerkleDistributor {
     function lastUpdateBlockNumber() external view returns (uint256);
 
     /**
-    * @dev Function for upgrading the MerkleDistributor contract. The `initialize` function must be defined
-    * if deploying contract for the first time that will initialize the state variables above.
+    * @dev Function for setting a new Oracles contract address. Can only be called by the admin.
     * @param _oracles - address of the Oracles contract.
     */
-    function upgrade(address _oracles) external;
+    function setOracles(address _oracles) external;
 
     /**
     * @dev Function for checking the claimed bit map.

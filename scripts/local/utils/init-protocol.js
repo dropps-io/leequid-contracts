@@ -5,7 +5,7 @@ const { ethers } = require("hardhat");
 
 const initProtocol = async (mute) => {
   const { admin, operator } = await getAccounts();
-  const { poolValidators, oracles } = await getContracts();
+  const { poolValidators, oracles, swapV1Mock, stakedLyxToken } = await getContracts();
 
   await poolValidators
     .connect(admin)
@@ -21,6 +21,8 @@ const initProtocol = async (mute) => {
     await oracles.connect(admin).addOracle(oracleAddress);
 
   await oracles.connect(admin).addOrchestrator(orchestratorAddress);
+
+  await stakedLyxToken.connect(admin).toggleRewards(swapV1Mock.address, true);
 
   await admin.sendTransaction({ to: orchestratorAddress, value: ethers.utils.parseEther("1") });
 };
