@@ -26,17 +26,15 @@ const validatorsPenalizedIntegration = async (debug = false) => {
     logMessage("user1 staked 1600 LYX, ⌛ waiting for oracles to register 50 validators", debug);
     await sleep(oraclesCronTimeoutInMs + 1000);
 
-    await setValidatorsMock(
-      new Array(50).fill({
+    await setValidatorsMock([
+      {
+        amount: 50,
+        withdrawalAddress: rewards.address,
+        balance: "31980000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "31980000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      })
-    );
+      },
+    ]);
 
     await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("96"));
     logMessage(
@@ -61,24 +59,20 @@ const validatorsPenalizedIntegration = async (debug = false) => {
     );
 
     await setValidatorsMock([
-      ...new Array(47).fill({
+      {
+        amount: 47,
+        withdrawalAddress: rewards.address,
+        balance: "31980000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "31980000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
-      ...new Array(3).fill({
-        status: "withdrawal_done",
-        validator: {
-          slashed: false,
-          effective_balance: "0",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
+      },
+      {
+        amount: 3,
+        withdrawalAddress: rewards.address,
+        balance: "0",
+        slashed: false,
+        status: "active_ongoing",
+      },
     ]);
 
     logMessage(
