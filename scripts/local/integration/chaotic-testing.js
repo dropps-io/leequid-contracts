@@ -32,17 +32,15 @@ const chaoticStakingTest = async (debug = false) => {
       pool.connect(user5).stake({ value: ethers.utils.parseEther("150") }),
     ]);
 
-    await setValidatorsMock(
-      Array(18).fill({
+    await setValidatorsMock([
+      {
+        amount: 18,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      })
-    );
+      },
+    ]);
     await incrementBlocks(unstakeBlockOffset);
     await sleep(oraclesCronTimeoutInMs + 1000); // Simulating the real-world delay
 
@@ -72,24 +70,20 @@ const chaoticStakingTest = async (debug = false) => {
     await incrementBlocks(3);
 
     await setValidatorsMock([
-      ...Array(13).fill({
+      {
+        amount: 13,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
-      ...Array(5).fill({
+      },
+      {
+        amount: 5,
+        withdrawalAddress: rewards.address,
+        balance: "0",
+        slashed: false,
         status: "withdrawal_done",
-        validator: {
-          slashed: false,
-          effective_balance: "0",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
+      },
     ]);
     await sleep(oraclesCronTimeoutInMs + 1000); // Simulating the real-world delay
 
@@ -130,24 +124,20 @@ const chaoticStakingTest = async (debug = false) => {
     await incrementBlocks(3);
 
     await setValidatorsMock([
-      ...Array(7).fill({
+      {
+        amount: 7,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
-      ...Array(11).fill({
+      },
+      {
+        amount: 11,
+        withdrawalAddress: rewards.address,
+        balance: "0",
+        slashed: false,
         status: "withdrawal_done",
-        validator: {
-          slashed: false,
-          effective_balance: "0",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
+      },
     ]);
 
     await sleep(oraclesCronTimeoutInMs + 1000); // Simulating the real-world delay

@@ -229,6 +229,9 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     function updateTotalRewards(uint256 newTotalRewards) external override {
         require(msg.sender == oracles, "Rewards: access denied");
 
+        uint256 totalDeposits = stakedLyxToken.totalDeposits();
+        if (totalDeposits == 0) return;
+
         uint256 feesCollected = feesEscrow.transferToRewards();
         uint256 periodRewards = newTotalRewards + feesCollected.toUint128() - totalRewards;
         if (periodRewards == 0) {
@@ -240,7 +243,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         // calculate protocol reward and new reward per token amount
         uint256 protocolReward = periodRewards * protocolFee / 1e4;
         uint256 prevRewardPerToken = rewardPerToken;
-        uint256 newRewardPerToken = prevRewardPerToken + ((periodRewards - protocolReward) * 1e18) / stakedLyxToken.totalDeposits();
+        uint256 newRewardPerToken = prevRewardPerToken + ((periodRewards - protocolReward) * 1e18) / totalDeposits;
         uint128 newRewardPerToken128 = newRewardPerToken.toUint128();
 
         // store previous distributor rewards for period reward calculation

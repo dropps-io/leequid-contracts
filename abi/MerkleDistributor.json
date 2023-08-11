@@ -720,6 +720,19 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_oracles",
+        "type": "address"
+      }
+    ],
+    "name": "setOracles",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes4",
         "name": "interfaceId",
         "type": "bytes4"
@@ -739,19 +752,6 @@
   {
     "inputs": [],
     "name": "unpause",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_oracles",
-        "type": "address"
-      }
-    ],
-    "name": "upgrade",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

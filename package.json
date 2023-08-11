@@ -80,6 +80,7 @@
   "dependencies": {
     "@erc725/smart-contracts": "^5.0.0",
     "js-sha3": "^0.8.0",
-    "merkletreejs": "^0.3.10"
+    "merkletreejs": "^0.3.10",
+    "prompts": "^2.4.2"
   }
 }

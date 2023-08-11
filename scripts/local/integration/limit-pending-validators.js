@@ -24,17 +24,15 @@ const limitPendingValidatorsIntegration = async (debug = false) => {
     logMessage("user5 staked 3200 LYX, ⌛ waiting for oracles to register 100 validators", debug);
     await sleep(oraclesCronTimeoutInMs + 1000);
 
-    await setValidatorsMock(
-      new Array(100).fill({
+    await setValidatorsMock([
+      {
+        amount: 100,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      })
-    );
+      },
+    ]);
 
     logMessage("⌛ waiting for oracles to submit 100 activated validators", debug);
     await sleep(oraclesCronTimeoutInMs + 1000);
@@ -84,24 +82,20 @@ const limitPendingValidatorsIntegration = async (debug = false) => {
     await sleep(oraclesCronTimeoutInMs + 1000);
 
     await setValidatorsMock([
-      ...new Array(104).fill({
+      {
+        amount: 104,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
-      ...new Array(36).fill({
+      },
+      {
+        amount: 36,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "pending",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
+      },
     ]);
 
     logMessage("⌛ waiting for oracles to submit a total of 104 activated validators", debug);
@@ -116,24 +110,20 @@ const limitPendingValidatorsIntegration = async (debug = false) => {
     expect(canActivate140).to.equal(false);
 
     await setValidatorsMock([
-      ...new Array(105).fill({
+      {
+        amount: 105,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
-      ...new Array(35).fill({
+      },
+      {
+        amount: 35,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "pending",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
+      },
     ]);
 
     logMessage("⌛ waiting for oracles to submit a total of 105 activated validators", debug);
@@ -157,28 +147,24 @@ const limitPendingValidatorsIntegration = async (debug = false) => {
     expect(user2Activation125).to.equal(ethers.utils.parseEther("0"));
 
     await setValidatorsMock([
-      ...new Array(120).fill({
+      {
+        amount: 120,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
-      ...new Array(20).fill({
+      },
+      {
+        amount: 20,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "pending",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      }),
+      },
     ]);
 
     logMessage("⌛ waiting for oracles to submit a total of 120 activated validators", debug);
-    await sleep(oraclesCronTimeoutInMs + 1000);
+    await sleep(oraclesCronTimeoutInMs + 3000);
 
     activatedValidators = await pool.activatedValidators();
     expect(activatedValidators).to.equal(120);

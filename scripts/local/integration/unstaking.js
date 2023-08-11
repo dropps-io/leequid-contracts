@@ -43,17 +43,15 @@ const unstakingHappyPath = async () => {
     await incrementBlocks(unstakeBlockOffset / 2);
     await sleep(oraclesCronTimeoutInMs);
 
-    await setValidatorsMock(
-      new Array(8).fill({
+    await setValidatorsMock([
+      {
+        amount: 8,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      })
-    );
+      },
+    ]);
 
     await sleep(oraclesCronTimeoutInMs);
 
@@ -105,17 +103,15 @@ const unstakingHappyPath = async () => {
       (currentBlock + 2).toString()
     );
 
-    await setValidatorsMock(
-      new Array(8).fill({
+    await setValidatorsMock([
+      {
+        amount: 8,
+        withdrawalAddress: rewards.address,
+        balance: "0",
+        slashed: false,
         status: "withdrawal_done",
-        validator: {
-          slashed: false,
-          effective_balance: "0",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      })
-    );
+      },
+    ]);
 
     await incrementBlocks(5);
 

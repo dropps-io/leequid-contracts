@@ -49,17 +49,15 @@ const merkleDistributionHappyPath = async (debug) => {
       .approve(swapV1Mock.address, ethers.utils.parseEther("3200"));
     logMessage("Balances & approvals initiated", debug);
 
-    await setValidatorsMock(
-      Array(500).fill({
+    await setValidatorsMock([
+      {
+        amount: 500,
+        withdrawalAddress: rewards.address,
+        balance: "32000000000",
+        slashed: false,
         status: "active_ongoing",
-        validator: {
-          slashed: false,
-          effective_balance: "32000000000",
-          withdrawal_credentials:
-            "0x010000000000000000000000" + rewards.address.slice(2).toLowerCase(),
-        },
-      })
-    );
+      },
+    ]);
 
     logMessage("⌛ wait for oracles to register validators", debug);
     await sleep(oraclesCronTimeoutInMs * 2);
