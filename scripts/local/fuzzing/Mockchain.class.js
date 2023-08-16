@@ -11,7 +11,11 @@ const { getAccounts } = require("../utils/get-accounts");
 const { generateRandomEthAddress } = require("../utils/random-address");
 
 class MockChain {
-  constructor() {
+  isRunning() {
+    return this.intervalId !== null;
+  }
+
+  async initialize() {
     this.intervalId = null;
     this.processedUnstakeEvents = [];
     this.registeredValidators = 0;
@@ -20,13 +24,7 @@ class MockChain {
     this.totalWithdrawals = BigInt(0);
     this.rewardsEnabled = true;
     this.latestProcessedBlock = 0;
-  }
 
-  isRunning() {
-    return this.intervalId !== null;
-  }
-
-  async initialize() {
     await beforeTest();
     console.log(`MockChain initialized`);
   }

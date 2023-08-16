@@ -67,7 +67,7 @@ async function stakingConfig() {
         { title: `Adding Liquidity: ${users.addingLiquidity}`, value: "toggleAddingLiquidity" },
         { title: `Cash out: ${users.cashingOut}`, value: "toggleCashout" },
         { title: `Compound: ${users.compouding}`, value: "toggleCompound" },
-        { title: `Adding Liquidity: ${users.addingLiquidity}`, value: "toggleAddingLiquidity" },
+        { title: `Transfers: ${users.transfersAllowed}`, value: "toggleTransfers" },
         { title: "Set properties", value: "set" },
         { title: "Back", value: "back" },
       ],
@@ -83,9 +83,11 @@ async function stakingConfig() {
     } else if (action === "toggleAddingLiquidity") {
       users.addingLiquidityEnable(!users.addingLiquidity);
     } else if (action === "toggleCashout") {
-      users.cashingOut = !users.cashingOut;
+      users.cashoutEnable(!users.cashingOut);
     } else if (action === "toggleCompound") {
-      users.compouding = !users.compouding;
+      users.compoudingEnable(!users.compouding);
+    } else if (action === "toggleTransfers") {
+      users.transfersEnable(!users.transfersAllowed);
     } else if (action === "set") {
       await setProperties();
     } else if (action === "back") {
