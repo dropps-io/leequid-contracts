@@ -26,6 +26,8 @@ const oraclesDownIntegration = async () => {
     let poolBalance = await ethers.provider.getBalance(pool.address);
     expect(poolBalance).to.equal(ethers.utils.parseEther("0"));
 
+    await oracles.connect(admin).addOracle(user2.address);
+
     await pool.connect(user2).stake({ value: ethers.utils.parseEther("32") });
 
     await sleep(oraclesCronTimeoutInMs + 1000);

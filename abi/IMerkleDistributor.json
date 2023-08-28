@@ -355,7 +355,7 @@
         "type": "address"
       }
     ],
-    "name": "upgrade",
+    "name": "setOracles",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
