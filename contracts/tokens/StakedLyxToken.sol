@@ -2,15 +2,10 @@
 pragma solidity ^0.8.20;
 
 // interfaces
-import { ILSP1UniversalReceiver } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/ILSP1UniversalReceiver.sol";
 import { ILSP7DigitalAsset } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 
 // libraries
-import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { GasLib } from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
-
-// modules
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
@@ -21,15 +16,11 @@ import {LSP7AmountExceedsAuthorizedAmount,
         LSP7CannotUseAddressZeroAsOperator,
         LSP7TokenOwnerCannotBeOperator,
         LSP7CannotSendWithAddressZero,
-        LSP7AmountExceedsBalance,
-        LSP7NotifyTokenReceiverContractMissingLSP1Interface,
-        LSP7NotifyTokenReceiverIsEOA
+        LSP7AmountExceedsBalance
 } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
-import { _INTERFACEID_LSP1 } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
 import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
-import { _TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
 import { IRewards } from "../interfaces/IRewards.sol";
 import { IPool } from "../interfaces/IPool.sol";
@@ -478,16 +469,12 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         address operator = msg.sender;
 
-        _beforeTokenTransfer(address(0), to, amount);
-
         // tokens being minted
         _totalDeposits += amount;
 
         _deposits[to] += amount;
 
         emit Transfer(operator, address(0), to, amount, allowNonLSP1Recipient, data);
-
-        _notifyTokenReceiver(address(0), to, amount, allowNonLSP1Recipient, data);
     }
 
     /**
@@ -534,74 +521,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         address operator = msg.sender;
 
-        _beforeTokenTransfer(from, to, amount);
-
         _deposits[from] -= amount;
         _deposits[to] += amount;
 
         emit Transfer(operator, from, to, amount, allowNonLSP1Recipient, data);
-
-        _notifyTokenSender(from, to, amount, data);
-        _notifyTokenReceiver(from, to, amount, allowNonLSP1Recipient, data);
-    }
-
-    /**
-     * @dev Hook that is called before any token transfer. This includes minting
-     * and burning.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s `amount` tokens will be
-     * transferred to `to`.
-     * - When `from` is zero, `amount` tokens will be minted for `to`.
-     * - When `to` is zero, ``from``'s `amount` tokens will be burned.
-     * - `from` and `to` are never both zero.
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
-
-    /**
-     * @dev An attempt is made to notify the token sender about the `amount` tokens changing owners using
-     * LSP1 interface.
-     */
-    function _notifyTokenSender(
-        address from,
-        address to,
-        uint256 amount,
-        bytes memory data
-    ) internal virtual {
-        if (ERC165Checker.supportsERC165InterfaceUnchecked(from, _INTERFACEID_LSP1)) {
-            bytes memory packedData = abi.encodePacked(from, to, amount, data);
-            ILSP1UniversalReceiver(from).universalReceiver(_TYPEID_LSP7_TOKENSSENDER, packedData);
-        }
-    }
-
-    /**
-     * @dev An attempt is made to notify the token receiver about the `amount` tokens changing owners
-     * using LSP1 interface. When allowNonLSP1Recipient is FALSE the token receiver MUST support LSP1.
-     *
-     * The receiver may revert when the token being sent is not wanted.
-     */
-    function _notifyTokenReceiver(
-        address from,
-        address to,
-        uint256 amount,
-        bool allowNonLSP1Recipient,
-        bytes memory data
-    ) internal virtual {
-        if (ERC165Checker.supportsERC165InterfaceUnchecked(to, _INTERFACEID_LSP1)) {
-            bytes memory packedData = abi.encodePacked(from, to, amount, data);
-            ILSP1UniversalReceiver(to).universalReceiver(_TYPEID_LSP7_TOKENSRECIPIENT, packedData);
-        } else if (!allowNonLSP1Recipient) {
-            if (to.code.length > 0) {
-                revert LSP7NotifyTokenReceiverContractMissingLSP1Interface(to);
-            } else {
-                revert LSP7NotifyTokenReceiverIsEOA(to);
-            }
-        }
     }
 
     // --- Methods for ERC20 compatibility ---
