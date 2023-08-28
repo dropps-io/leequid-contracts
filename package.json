@@ -2,12 +2,13 @@
   "name": "leequid",
   "version": "0.1.0",
   "private": true,
-  "author": "Dmitri Tsumak <dmitri@stakewise.io>",
+  "author": "Dmitri Tsumak <dmitri@stakewise.io>, Samuel VIDEAU <samuel@dropps.io>",
   "license": "GNU GPLv3",
   "description": "Leequid smart contracts",
   "keywords": [
     "Leequid",
     "StakeWise",
+    "Lukso",
     "Solidity",
     "DeFi"
   ],
@@ -47,7 +48,7 @@
   },
   "devDependencies": {
     "@codechecks/client": "^0.1.12",
-    "@lukso/lsp-smart-contracts": "^0.8.2",
+    "@lukso/lsp-smart-contracts": "^0.10.3",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
     "@nomiclabs/hardhat-ethers": "^2.0.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",

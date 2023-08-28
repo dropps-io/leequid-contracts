@@ -3,10 +3,6 @@ pragma solidity ^0.8.20;
 
 // interfaces
 import { ILSP7DigitalAsset } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
-
-// libraries
-import { GasLib } from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
-
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // errors
@@ -228,7 +224,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256[] memory amount,
         bool[] memory allowNonLSP1Recipient,
         bytes[] memory data
-    ) public override {
+    ) public virtual {
         uint256 fromLength = from.length;
         if (
             fromLength != to.length ||
@@ -239,9 +235,19 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             revert LSP7InvalidTransferBatch();
         }
 
-        for (uint256 i = 0; i < fromLength; i = GasLib.uncheckedIncrement(i)) {
+        for (uint256 i = 0; i < fromLength; ) {
             // using the public transfer function to handle updates to operator authorized amounts
-            transfer(from[i], to[i], amount[i], allowNonLSP1Recipient[i], data[i]);
+            transfer(
+                from[i],
+                to[i],
+                amount[i],
+                allowNonLSP1Recipient[i],
+                data[i]
+            );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
