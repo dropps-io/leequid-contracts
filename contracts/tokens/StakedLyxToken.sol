@@ -306,7 +306,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         _deposits[account] -= amount;
         _totalDeposits -= amount;
-        totalPendingUnstake = totalPendingUnstake + uint128(amount);
+        totalPendingUnstake = totalPendingUnstake + amount;
 
         unstakeRequestCount += 1;
         _unstakeRequests[unstakeRequestCount] = UnstakeRequest({
