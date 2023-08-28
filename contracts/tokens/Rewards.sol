@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 pragma solidity ^0.8.20;
 
-// interfaces
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 // libraries
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
@@ -23,8 +20,6 @@ import { IPool } from "../interfaces/IPool.sol";
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
 contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
-    using SafeCast for uint256;
-
     // @dev Address of the StakedLyxToken contract.
     IStakedLyxToken private stakedLyxToken;
 
@@ -159,7 +154,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         } else {
             uint256 periodRewardPerToken = uint256(newRewardPerToken) - cp.rewardPerToken;
             checkpoints[account] = Checkpoint({
-                reward: _calculateNewReward(cp.reward, stakedLyxAmount, periodRewardPerToken).toUint128(),
+                reward: uint128(_calculateNewReward(cp.reward, stakedLyxAmount, periodRewardPerToken)),
                 rewardPerToken: newRewardPerToken
             });
         }
@@ -184,7 +179,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
 
         uint128 _rewardPerToken = rewardPerToken;
         checkpoints[account] = Checkpoint({
-            reward: _balanceOf(account, _rewardPerToken).toUint128(),
+            reward: uint128(_balanceOf(account, _rewardPerToken)),
             rewardPerToken: _rewardPerToken
         });
 
@@ -233,7 +228,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         if (totalDeposits == 0) return;
 
         uint256 feesCollected = feesEscrow.transferToRewards();
-        uint256 periodRewards = newTotalRewards + feesCollected.toUint128() - totalRewards;
+        uint256 periodRewards = newTotalRewards + uint128(feesCollected) - totalRewards;
         if (periodRewards == 0) {
             lastUpdateBlockNumber = block.number;
             emit RewardsUpdated(0, newTotalRewards, feesCollected, rewardPerToken, 0, 0);
@@ -244,14 +239,14 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         uint256 protocolReward = periodRewards * protocolFee / 1e4;
         uint256 prevRewardPerToken = rewardPerToken;
         uint256 newRewardPerToken = prevRewardPerToken + ((periodRewards - protocolReward) * 1e18) / totalDeposits;
-        uint128 newRewardPerToken128 = newRewardPerToken.toUint128();
+        uint128 newRewardPerToken128 = uint128(newRewardPerToken);
 
         // store previous distributor rewards for period reward calculation
         uint256 prevDistributorBalance = _balanceOf(address(0), prevRewardPerToken);
 
         // update total rewards and new reward per token
-        (totalRewards, rewardPerToken) = (newTotalRewards.toUint128(), newRewardPerToken128);
-        totalFeesCollected = totalFeesCollected + feesCollected.toUint128();
+        (totalRewards, rewardPerToken) = (uint128(newTotalRewards), newRewardPerToken128);
+        totalFeesCollected = totalFeesCollected + uint128(feesCollected);
 
         uint256 newDistributorBalance = _balanceOf(address(0), newRewardPerToken);
         address _protocolFeeRecipient = protocolFeeRecipient;
@@ -261,7 +256,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         } else if (protocolReward > 0) {
             // update fee recipient's checkpoint and add its period reward
             checkpoints[_protocolFeeRecipient] = Checkpoint({
-                reward: (_balanceOf(_protocolFeeRecipient, newRewardPerToken) + protocolReward).toUint128(),
+                reward: uint128(_balanceOf(_protocolFeeRecipient, newRewardPerToken) + protocolReward),
                 rewardPerToken: newRewardPerToken128
             });
         }
@@ -269,7 +264,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         // update distributor's checkpoint
         if (newDistributorBalance != prevDistributorBalance) {
             checkpoints[address(0)] = Checkpoint({
-                reward: newDistributorBalance.toUint128(),
+                reward: uint128(newDistributorBalance),
                 rewardPerToken: newRewardPerToken128
             });
         }
@@ -295,11 +290,11 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         // update checkpoints, transfer amount from distributor to account
         uint128 _rewardPerToken = rewardPerToken;
         checkpoints[address(0)] = Checkpoint({
-            reward: (_balanceOf(address(0), _rewardPerToken) - amount).toUint128(),
+            reward: uint128(_balanceOf(address(0), _rewardPerToken) - amount),
             rewardPerToken: _rewardPerToken
         });
         checkpoints[account] = Checkpoint({
-            reward: (_balanceOf(account, _rewardPerToken) + amount).toUint128(),
+            reward: uint128(_balanceOf(account, _rewardPerToken) + amount),
             rewardPerToken: _rewardPerToken
         });
     }
@@ -359,11 +354,11 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         uint128 _rewardPerToken = rewardPerToken;
         // Update the state before the transfer
         checkpoints[account] = Checkpoint({
-            reward: (accountBalance - amount).toUint128(),
+            reward: uint128(accountBalance - amount),
             rewardPerToken: _rewardPerToken
         });
 
-        totalCashedOut = (totalCashedOut + amount).toUint128();
+        totalCashedOut = uint128(totalCashedOut + amount);
 
         emit RewardsCashedOut(account, amount);
     }
