@@ -10,7 +10,9 @@ class AutonomousUser {
     addingLiquidity = true,
     cashingOut = true,
     compounding = true,
-    chancesOfMalicious = 0.01
+    transfersAllowed = true,
+    chancesOfMalicious = 0.01,
+    otherUsers = []
   ) {
     this.wallet = Wallet.createRandom();
     this.wallet = this.wallet.connect(ethers.provider);
@@ -18,15 +20,17 @@ class AutonomousUser {
     this.merkleDistributions = {};
     this.isLiquidityProvider = false;
     this.staking = staking;
-    this.unstaking = unstaking;
     this.cashingOut = cashingOut;
     this.compouding = compounding;
     this.unstaking = unstaking;
+    this.transfersAllowed = transfersAllowed;
     this.addingLiquidity = addingLiquidity;
     this.maliciousChances = chancesOfMalicious;
+    this.otherUsers = otherUsers;
 
     this.totalStaked = BigInt(0);
     this.totalUnstaked = BigInt(0);
+    this.totalTransfered = BigInt(0);
     this.unstakeRequests = [];
     this.pendingActivation = [];
   }
@@ -110,10 +114,11 @@ class AutonomousUser {
         this.compoundRewards(this.randomBigNumber(rewardsAmount, !isMalicious), isMalicious),
       async () => this.fetchAndClaimMerkleRewards(isMalicious),
       async () => this.activateStakes(isMalicious),
+      async () => this.transfer(this.randomBigNumber(balanceSLYX, !isMalicious), isMalicious),
     ];
 
     // Default ratios for actions (you can modify these as per your needs)
-    let ratios = [10, 1, 5, 1, 5, 5, 5, 1000];
+    let ratios = [10, 1, 5, 1, 5, 5, 5, 1000, 1];
 
     if (!isMalicious) {
       if (balanceLYX.isZero() || !this.staking) ratios[0] = 0;
@@ -124,6 +129,8 @@ class AutonomousUser {
       if (rewardsAmount.isZero() || !this.compouding) ratios[5] = 0;
       if (!this.isLiquidityProvider) ratios[6] = 0;
       if (this.pendingActivation.length === 0) ratios[7] = 0;
+      if (balanceLYX.isZero() || !this.transfersAllowed || this.otherUsers.length === 0)
+        ratios[8] = 0;
     } else {
       actions.push(async () => this.claimUnstake([Math.ceil(Math.random() * 1000)], true));
       ratios.push(5);
@@ -235,11 +242,34 @@ class AutonomousUser {
     }
   }
 
+  async transfer(amount, isMalicious) {
+    const { stakedLyxToken } = await getContracts();
+    if (this.otherUsers.length === 0) return;
+
+    const user = this.otherUsers[Math.floor(Math.random() * this.otherUsers.length)];
+
+    try {
+      await stakedLyxToken.connect(this.wallet).transferFrom(this.getAddress(), user, amount);
+      console.log(
+        `${isMalicious ? "😈" : ""} ✅ ${this.getAddress()} transferred ${ethers.utils
+          .formatEther(amount)
+          .toString()} to ${user}`
+      );
+    } catch (e) {
+      console.warn(
+        `${isMalicious ? "😈" : ""} ❌ ${this.getAddress()} failed to transfer ${ethers.utils
+          .formatEther(amount)
+          .toString()} to ${user}`
+      );
+      if (!isMalicious) console.error(e);
+    }
+  }
+
   async addLiquidity(amount, isMalicious) {
     const { stakedLyxToken, swapV1Mock } = await getContracts();
 
     try {
-      await stakedLyxToken.connect(this.wallet).approve(swapV1Mock.address, amount);
+      await stakedLyxToken.connect(this.wallet).authorizeOperator(swapV1Mock.address, amount);
       await swapV1Mock.connect(this.wallet).addLiquidity(amount);
       console.log(
         `${isMalicious ? "😈" : ""} ✅ ${this.getAddress()} added ${ethers.utils

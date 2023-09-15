@@ -16,7 +16,6 @@ The Rewards contract is now used to receive the rewards (it is the withdrawal cr
 to keep track of the rewards, and allow the stakers to claim their rewards (cash out or compound) directly in LYX.
 
 A unstake mechanism (validator exiting) was also added to the protocol.
-For the reason that validators withdrawals are not possible yet, the feature will be activated later.
 
 ## Dependencies
 

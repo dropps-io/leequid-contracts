@@ -18,6 +18,7 @@ class Users {
     this.addingLiquidity = true;
     this.cashingOut = true;
     this.compouding = true;
+    this.transfersAllowed = true;
   }
 
   start() {
@@ -59,7 +60,9 @@ class Users {
       this.addingLiquidity,
       this.cashingOut,
       this.compouding,
-      this.chancesOfMalicious
+      this.transfersAllowed,
+      this.chancesOfMalicious,
+      this.users.map((user) => user.getAddress())
     );
     await chain.sendTransaction({
       to: newUser.getAddress(),
@@ -106,6 +109,27 @@ class Users {
     this.unstaking = enable;
     for (const user of this.users) {
       user.unstaking = enable;
+    }
+  }
+
+  cashoutEnable(enable = true) {
+    this.cashingOut = enable;
+    for (const user of this.users) {
+      user.cashingOut = enable;
+    }
+  }
+
+  compoudingEnable(enable = true) {
+    this.compouding = enable;
+    for (const user of this.users) {
+      user.compouding = enable;
+    }
+  }
+
+  transfersEnable(enable = true) {
+    this.transfersAllowed = enable;
+    for (const user of this.users) {
+      user.transfersAllowed = enable;
     }
   }
 
