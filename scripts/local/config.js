@@ -4,7 +4,7 @@ const oraclesAddresses = [
   "0x3e232dec5E872b116044b2059406aC0Ba57E0a63",
   "0x8cEfB05ebFa2d64baa2B06390257c77B287C3a71",
 ];
-const orchestratorAddress = "0xB4e765E6A65e4e84c0a2247E5A893e50A4fC05F1";
+const orchestratorAddress = "0xEb7A67d9460365862f0ce2e6A5309657E5f58444";
 const depositDataMerkleRoot = "0x56a58f0e8386d48b41a9092de0a3c2c6fe117ee046089234ea38bd6013192da6";
 const oraclesCronTimeoutInMs = 1000 * 30; // 30 seconds
 const oraclesRegisterValidatorsTimeoutInMs = 1000 * 30; // 30 seconds
