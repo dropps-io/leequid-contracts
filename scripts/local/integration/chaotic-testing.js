@@ -41,7 +41,7 @@ const chaoticStakingTest = async (debug = false) => {
         status: "active_ongoing",
       },
     ]);
-    await incrementBlocks(unstakeBlockOffset);
+    await incrementBlocks(unstakeBlockOffset, debug);
     await sleep(oraclesCronTimeoutInMs + 1000); // Simulating the real-world delay
 
     logMessage("Multiple unstake operations", debug);
@@ -51,7 +51,7 @@ const chaoticStakingTest = async (debug = false) => {
       stakedLyxToken.connect(user3).unstake(ethers.utils.parseEther("50")),
     ]);
 
-    await incrementBlocks(unstakeBlockOffset);
+    await incrementBlocks(unstakeBlockOffset, debug);
     await sleep(oraclesCronTimeoutInMs + 1000); // Simulating the real-world delay
 
     let currentBlock = await ethers.provider.getBlockNumber();
