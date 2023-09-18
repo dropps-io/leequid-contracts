@@ -17,6 +17,7 @@ import {LSP7AmountExceedsAuthorizedAmount,
 
 // constants
 import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
+import { _INTERFACEID_LSP7 } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
 import { IRewards } from "../interfaces/IRewards.sol";
 import { IPool } from "../interfaces/IPool.sol";
@@ -95,7 +96,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     // --- Token queries
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable, IERC165, ERC725YCore) returns (bool) {
-        return super.supportsInterface(interfaceId);
+        return
+            interfaceId == _INTERFACEID_LSP7 ||
+            super.supportsInterface(interfaceId);
     }
 
     function decimals() public pure override returns (uint8) {

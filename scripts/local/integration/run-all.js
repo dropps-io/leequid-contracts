@@ -8,6 +8,7 @@ const { limitPendingValidatorsIntegration } = require("./limit-pending-validator
 const { merkleDistributionHappyPath } = require("./merkle-distribution");
 const { chaoticStakingTest } = require("./chaotic-testing");
 const { afterTest } = require("./utils/after-test");
+const { rewardsSubmissionHappyPath } = require("./rewards-submission");
 
 async function runAll() {
   await beforeTest();
@@ -22,6 +23,8 @@ async function runAll() {
   await validatorsPenalizedIntegration();
   await beforeTest();
   await limitPendingValidatorsIntegration();
+  await beforeTest();
+  await rewardsSubmissionHappyPath();
   await beforeTest();
   await merkleDistributionHappyPath();
   await beforeTest();
