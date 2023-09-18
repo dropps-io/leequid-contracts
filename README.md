@@ -66,7 +66,7 @@ Oracles contract stores accounts responsible for submitting or updating values b
 
 ## Testing locally
 
-See [Local Tests](./docs/local_tests.md) for more information.
+See [Local Tests](./docs/local_tests.md) & [Integration Tests](./docs/integration_tests.md) for more information.
 
 ## Contributing
 
