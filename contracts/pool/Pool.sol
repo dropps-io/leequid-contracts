@@ -148,11 +148,6 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     /**
-    * @dev See {IPool-receiveFees}.
-    */
-    function receiveFees() external payable override {}
-
-    /**
     * @dev Function for staking ETH using transfer.
     */
     receive() external payable {
