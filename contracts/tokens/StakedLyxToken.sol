@@ -291,7 +291,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
      */
     function unstake(
         uint256 amount
-    ) external override nonReentrant {
+    ) external override nonReentrant whenNotPaused {
         address account = msg.sender;
         require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
         require(amount > 0, "StakedLyxToken: amount must be greater than zero");
@@ -502,7 +502,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 amount,
         bool allowNonLSP1Recipient,
         bytes memory data
-    ) internal virtual {
+    ) internal virtual whenNotPaused {
         require(block.number > rewards.lastUpdateBlockNumber(), "StakedLyxToken: cannot transfer during rewards update");
         if (from == address(0) || to == address(0)) {
             revert LSP7CannotSendWithAddressZero();
