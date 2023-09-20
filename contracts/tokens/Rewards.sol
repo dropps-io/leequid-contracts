@@ -302,7 +302,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     /**
      * @dev See {IRewards-claimUnstake}.
      */
-    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant {
+    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant whenNotPaused {
         require(unstakeRequestIndexes.length > 0, "Rewards: no unstake indexes provided");
         address payable account = payable(msg.sender);
 
@@ -346,7 +346,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
      * @param account - The account to cash out rewards for.
      * @param amount - The amount of rewards to cash out.
      */
-    function _cashOutAccountRewards(address account, uint256 amount) internal {
+    function _cashOutAccountRewards(address account, uint256 amount) internal whenNotPaused {
         uint256 accountBalance = balanceOf(account);
         require(accountBalance >= amount, "Rewards: insufficient reward balance");
         require(address(this).balance >= amount, "Rewards: insufficient contract balance");

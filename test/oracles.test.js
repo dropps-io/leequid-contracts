@@ -124,6 +124,44 @@ describe("Oracles contract", function () {
       });
     });
 
+    it("Should revert if contract paused", async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = getTestDepositData(operator.address);
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentValidatorsNonce();
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      await oracles.connect(admin).pause();
+      // Call registerValidators with the signatures
+      await expect(
+        oracles
+          .connect(orchestrator)
+          .registerValidators(
+            depositData,
+            merkle.depositDataMerkleProofNodes,
+            validatorsDepositRoot,
+            signatures
+          )
+      ).to.be.revertedWith("Pausable: paused");
+    });
+
     it("Should register validators with enough signatures", async function () {
       const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
       const depositData = getTestDepositData(operator.address);
@@ -443,6 +481,26 @@ describe("Oracles contract", function () {
       );
     });
 
+    it("Should revert if contract paused", async function () {
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators,
+        exitedValidators
+      );
+
+      await oracles.connect(admin).pause();
+      // Call submitRewards with the signatures
+      await expect(
+        oracles
+          .connect(orchestrator)
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
+      ).to.be.revertedWith("Pausable: paused");
+    });
+
     it("Should submit rewards with enough signatures", async function () {
       // Calculate the nonce and the message to sign
       const nonce = await oracles.currentRewardsNonce();
@@ -643,6 +701,29 @@ describe("Oracles contract", function () {
           0,
           signatures
         );
+    });
+
+    it("Should revert if contract paused", async function () {
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
+      const nonce = await oracles.currentRewardsNonce();
+
+      const signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await oracles.connect(admin).pause();
+      await expect(
+        oracles
+          .connect(orchestrator)
+          .submitMerkleRoot(
+            merkle.depositDataMerkleRoot,
+            merkle.depositDataMerkleProofsString,
+            signatures
+          )
+      ).to.be.revertedWith("Pausable: paused");
     });
 
     it("Should submit merkle root with enough signatures", async function () {
@@ -871,7 +952,7 @@ describe("Oracles contract", function () {
       await pool.connect(user2).stake({ value: ethers.utils.parseEther("100") });
     });
 
-    it("Should not increase nonce and emit UnstakeReady event if 32LYX or more to unstake", async function () {
+    it("Should begin unstake and emit UnstakeReady event if 32LYX or more to unstake", async function () {
       await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
 
       const nonce = await oracles.currentUnstakeNonce();
@@ -889,6 +970,22 @@ describe("Oracles contract", function () {
 
       expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
       expect(unstakeProcessing).to.equal(true);
+    });
+
+    it("Should revert if contract paused", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString()
+      );
+
+      await oracles.connect(admin).pause();
+      await expect(oracles.connect(orchestrator).beginUnstake(signatures)).to.be.revertedWith(
+        "Pausable: paused"
+      );
     });
 
     it("Should revert if contract already processing unstake", async function () {
