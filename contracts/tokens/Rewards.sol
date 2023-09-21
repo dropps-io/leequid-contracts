@@ -62,6 +62,10 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     // @dev Address of the Pool contract.
     IPool private pool;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _stakedLyxToken,

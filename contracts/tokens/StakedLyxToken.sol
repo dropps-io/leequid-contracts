@@ -75,6 +75,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     // @dev The principal amount of the distributor.
     uint256 public override distributorPrincipal;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         IPool _pool,
