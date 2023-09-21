@@ -64,16 +64,19 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     mapping(address => mapping(address => uint256)) internal _operatorAuthorizedAmount;
 
     // @dev Address of the Pool contract.
-    IPool private pool;
+    IPool internal pool;
 
     // @dev Address of the Oracles contract.
-    address private oracles;
+    address internal oracles;
 
     // @dev Address of the Rewards contract.
-    IRewards private rewards;
+    IRewards internal rewards;
 
     // @dev The principal amount of the distributor.
     uint256 public override distributorPrincipal;
+
+    // @dev Validators Exited Threshold - The number of validators that need to exit before we can set unstake processing to true.
+    uint256 internal validatorsExitedThreshold;
 
     constructor() {
         _disableInitializers();
@@ -300,7 +303,6 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 amount
     ) external override nonReentrant whenNotPaused {
         address account = msg.sender;
-        require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
         require(amount > 0, "StakedLyxToken: amount must be greater than zero");
         require(_deposits[account] >= amount, "StakedLyxToken: insufficient balance");
 
@@ -378,7 +380,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(totalPendingUnstake >= VALIDATOR_TOTAL_DEPOSIT, "StakedLyxToken: insufficient pending unstake");
 
         unstakeProcessing = true;
-        emit UnstakeReady((totalPendingUnstake - (totalPendingUnstake % VALIDATOR_TOTAL_DEPOSIT)) / VALIDATOR_TOTAL_DEPOSIT);
+        uint256 validatorsToUnstake = (totalPendingUnstake - (totalPendingUnstake % VALIDATOR_TOTAL_DEPOSIT)) / VALIDATOR_TOTAL_DEPOSIT;
+        validatorsExitedThreshold = pool.exitedValidators() + validatorsToUnstake;
+        emit UnstakeReady(validatorsToUnstake);
     }
 
     /**
@@ -419,8 +423,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         }
 
         totalUnstaked += unstakeAmount;
+
         // If less pending unstake under VALIDATOR_TOTAL_DEPOSIT, it means the unstake is completed
-        if (totalPendingUnstake < VALIDATOR_TOTAL_DEPOSIT) {
+        if (pool.exitedValidators() + exitedValidators >= validatorsExitedThreshold) {
             unstakeProcessing = false;
         }
 
