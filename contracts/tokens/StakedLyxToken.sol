@@ -391,30 +391,34 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 unstakeAmount = exitedValidators * VALIDATOR_TOTAL_DEPOSIT;
 
         if (unstakeAmount > totalPendingUnstake) {
-            pool.receiveWithoutActivation{value: unstakeAmount - totalPendingUnstake}();
+            rewards.sendToPoolWithoutActivation(unstakeAmount - totalPendingUnstake);
             unstakeAmount = totalPendingUnstake;
+            totalPendingUnstake = 0;
+            unstakeRequestCurrentIndex = unstakeRequestCount;
+            _unstakeRequests[unstakeRequestCount].amountFilled = _unstakeRequests[unstakeRequestCount].amount;
         }
+        else {
+            totalPendingUnstake -= unstakeAmount;
+            uint256 amountToFill = unstakeAmount;
 
-        totalPendingUnstake -= unstakeAmount;
-        totalUnstaked += unstakeAmount;
-        uint256 amountToFill = unstakeAmount;
-
-        for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
-            UnstakeRequest storage request = _unstakeRequests[i];
-            if (amountToFill > (request.amount - request.amountFilled)) {
-                amountToFill -= (request.amount - request.amountFilled);
-                continue;
-            } else {
-                if (amountToFill == (request.amount - request.amountFilled) && i < unstakeRequestCount) {
-                    unstakeRequestCurrentIndex = i + 1;
+            for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
+                UnstakeRequest storage request = _unstakeRequests[i];
+                if (amountToFill > (request.amount - request.amountFilled)) {
+                    amountToFill -= (request.amount - request.amountFilled);
+                    continue;
                 } else {
-                    request.amountFilled += uint128(amountToFill);
-                    unstakeRequestCurrentIndex = i;
+                    if (amountToFill == (request.amount - request.amountFilled) && i < unstakeRequestCount) {
+                        unstakeRequestCurrentIndex = i + 1;
+                    } else {
+                        request.amountFilled += uint128(amountToFill);
+                        unstakeRequestCurrentIndex = i;
+                    }
+                    break;
                 }
-                break;
             }
         }
 
+        totalUnstaked += unstakeAmount;
         // If less pending unstake under VALIDATOR_TOTAL_DEPOSIT, it means the unstake is completed
         if (totalPendingUnstake < VALIDATOR_TOTAL_DEPOSIT) {
             unstakeProcessing = false;
