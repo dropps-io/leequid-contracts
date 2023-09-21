@@ -192,6 +192,16 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     }
 
     /**
+    * @dev See {IRewards-sendToPoolWithoutActivation}.
+    */
+    function sendToPoolWithoutActivation(uint256 amount) external override {
+        require(msg.sender == address(stakedLyxToken), "Rewards: access denied");
+        require(address(this).balance >= amount, "Rewards: insufficient contract balance");
+
+        pool.receiveWithoutActivation{value : amount}();
+    }
+
+    /**
     * @dev See {IRewards-setProtocolFeeRecipient}.
     */
     function setProtocolFeeRecipient(address recipient) external override onlyAdmin {

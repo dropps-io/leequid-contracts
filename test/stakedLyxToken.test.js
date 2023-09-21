@@ -491,6 +491,34 @@ describe("StakedLyxToken contract", function () {
       expect(unstakeProcessing).to.equal(false);
     });
 
+    it("should process the unstakes well and return the amount for the pool when too many unstakes", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
+      await stakedLyxToken.connect(user2).unstake(ethers.utils.parseEther("8"));
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
+
+      const transaction = {
+        to: rewards.address,
+        value: ethers.utils.parseEther("64"),
+        gasLimit: "30000000",
+      };
+      await chain.sendTransaction(transaction);
+      await stakedLyxToken.connect(admin).unstakeProcessed(2);
+
+      const unstakeRequest = await stakedLyxToken.unstakeRequest(2);
+      const totalPendingUnstake = await stakedLyxToken.totalPendingUnstake();
+      const totalUnstaked = await stakedLyxToken.totalUnstaked();
+      const currentUnstakeIndex = await stakedLyxToken.unstakeRequestCurrentIndex();
+      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
+      const poolBalance = await ethers.provider.getBalance(pool.address);
+
+      expect(poolBalance).to.equal(ethers.utils.parseEther("24"));
+      expect(unstakeRequest.amountFilled).to.equal(ethers.utils.parseEther("8"));
+      expect(totalPendingUnstake).to.equal(ethers.utils.parseEther("0"));
+      expect(totalUnstaked).to.equal(ethers.utils.parseEther("40"));
+      expect(unstakeProcessing).to.equal(false);
+      expect(currentUnstakeIndex).to.equal(2);
+    });
+
     it("should emit the UnstakeProcessed event", async function () {
       await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
       await stakedLyxToken.connect(admin).setUnstakeProcessing();
