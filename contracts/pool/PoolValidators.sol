@@ -32,6 +32,10 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
     // @dev Address of the Oracles contract.
     address private oracles;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
     * @dev See {IPoolValidators-initialize}.
     */

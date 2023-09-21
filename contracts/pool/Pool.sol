@@ -56,6 +56,10 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     // @dev Pending validators percent limit. If it's not exceeded tokens can be minted immediately.
     uint256 public override pendingValidatorsLimit;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _stakedLyxToken,

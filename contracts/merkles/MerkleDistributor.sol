@@ -33,6 +33,10 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
     // This is a packed array of booleans.
     mapping (bytes32 => mapping (uint256 => uint256)) private _claimedBitMap;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _rewards,
