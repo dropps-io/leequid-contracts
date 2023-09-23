@@ -153,6 +153,7 @@ async function deployLocalContracts(mute) {
       poolValidators: poolValidators.address,
       peesEscrow: feesEscrow.address,
       swapV1Mock: swapV1Mock.address,
+      operator: operator.address,
     })
   );
 }
