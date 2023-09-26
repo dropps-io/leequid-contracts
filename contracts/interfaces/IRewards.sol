@@ -134,6 +134,13 @@ interface IRewards {
     function setRewardsDisabled(address account, bool isDisabled) external;
 
     /**
+    * @dev Function to send LYX to the pool contract without activating it.
+    * Can only be called by the `StakedEthToken` contract.
+    * @param amount - amount of LYX to send to the pool without activation
+    */
+    function sendToPoolWithoutActivation(uint256 amount) external;
+
+    /**
     * @dev Function for retrieving account's current checkpoint.
     * @param account - address of the account to retrieve the checkpoint for.
     */
