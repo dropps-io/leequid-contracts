@@ -7,12 +7,12 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 
 // errors
 import {LSP7AmountExceedsAuthorizedAmount,
-        LSP7CannotSendToSelf,
-        LSP7InvalidTransferBatch,
-        LSP7CannotUseAddressZeroAsOperator,
-        LSP7TokenOwnerCannotBeOperator,
-        LSP7CannotSendWithAddressZero,
-        LSP7AmountExceedsBalance
+LSP7CannotSendToSelf,
+LSP7InvalidTransferBatch,
+LSP7CannotUseAddressZeroAsOperator,
+LSP7TokenOwnerCannotBeOperator,
+LSP7CannotSendWithAddressZero,
+LSP7AmountExceedsBalance
 } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
@@ -303,7 +303,6 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 amount
     ) external override nonReentrant whenNotPaused {
         address account = msg.sender;
-        require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
         require(amount > 0, "StakedLyxToken: amount must be greater than zero");
         require(_deposits[account] >= amount, "StakedLyxToken: insufficient balance");
 
@@ -381,7 +380,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(totalPendingUnstake >= VALIDATOR_TOTAL_DEPOSIT, "StakedLyxToken: insufficient pending unstake");
 
         unstakeProcessing = true;
-        emit UnstakeReady((totalPendingUnstake - (totalPendingUnstake % VALIDATOR_TOTAL_DEPOSIT)) / VALIDATOR_TOTAL_DEPOSIT);
+        uint256 validatorsToUnstake = (totalPendingUnstake - (totalPendingUnstake % VALIDATOR_TOTAL_DEPOSIT)) / VALIDATOR_TOTAL_DEPOSIT;
+        validatorsExitedThreshold = pool.exitedValidators() + validatorsToUnstake;
+        emit UnstakeReady(validatorsToUnstake);
     }
 
     /**
@@ -422,6 +423,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         }
 
         totalUnstaked += unstakeAmount;
+
         // If less pending unstake under VALIDATOR_TOTAL_DEPOSIT, it means the unstake is completed
         if (pool.exitedValidators() + exitedValidators >= validatorsExitedThreshold) {
             unstakeProcessing = false;
