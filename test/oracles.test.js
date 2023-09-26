@@ -21,7 +21,7 @@ describe("Oracles contract", function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin, oracle1, oracle2, oracle3, oracle4, operator, user1, user2, user3, user4;
+  let admin, oracle1, oracle2, oracle3, oracle4, operator, user1, user2, user3, user4, proxyOwner;
   let orchestrator;
 
   before(async function () {
@@ -45,34 +45,74 @@ describe("Oracles contract", function () {
       user3,
       user4,
       orchestrator,
+      proxyOwner,
     ] = await ethers.getSigners();
   });
 
   beforeEach(async function () {
-    oracles = await Oracles.deploy();
-    rewards = await Rewards.deploy();
-    stakedLyxToken = await StakedLyxToken.deploy();
-    pool = await Pool.deploy();
-    poolValidators = await PoolValidators.deploy();
-    merkleDistributor = await MerkleDistributor.deploy();
+    const AdminUpgradeabilityProxy = await ethers.getContractFactory("AdminUpgradeabilityProxy");
+
+    const oraclesImplementation = await Oracles.deploy();
+    const rewardsImplementation = await Rewards.deploy();
+    const stakedLyxTokenImplementation = await StakedLyxToken.deploy();
+    const poolImplementation = await Pool.deploy();
+    const poolValidatorsImplementation = await PoolValidators.deploy();
+    const merkleDistributorImplementation = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewards.address);
-    await oracles.deployed();
+    await oraclesImplementation.deployed();
+    await rewardsImplementation.deployed();
+    await stakedLyxTokenImplementation.deployed();
+    await poolImplementation.deployed();
+    await poolValidatorsImplementation.deployed();
+    await merkleDistributorImplementation.deployed();
+
+    const rewardsProxy = await AdminUpgradeabilityProxy.deploy(
+      rewardsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const stakedLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
+      stakedLyxTokenImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const oraclesProxy = await AdminUpgradeabilityProxy.deploy(
+      oraclesImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolProxy = await AdminUpgradeabilityProxy.deploy(
+      poolImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolValidatorsProxy = await AdminUpgradeabilityProxy.deploy(
+      poolValidatorsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
+      merkleDistributorImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+
+    oracles = Oracles.attach(oraclesProxy.address);
+    rewards = Rewards.attach(rewardsProxy.address);
+    stakedLyxToken = StakedLyxToken.attach(stakedLyxTokenProxy.address);
+    pool = Pool.attach(poolProxy.address);
+    poolValidators = PoolValidators.attach(poolValidatorsProxy.address);
+    merkleDistributor = MerkleDistributor.attach(merkleDistributorProxy.address);
+
     await rewards.deployed();
     await stakedLyxToken.deployed();
+    await oracles.deployed();
     await pool.deployed();
     await poolValidators.deployed();
     await merkleDistributor.deployed();
-    await feesEscrow.deployed();
 
-    await oracles.initialize(
-      admin.address,
-      rewards.address,
-      stakedLyxToken.address,
-      pool.address,
-      poolValidators.address,
-      merkleDistributor.address
-    );
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
+    await feesEscrow.deployed();
 
     await rewards.initialize(
       admin.address,
@@ -83,6 +123,15 @@ describe("Oracles contract", function () {
       merkleDistributor.address,
       feesEscrow.address,
       pool.address
+    );
+
+    await oracles.initialize(
+      admin.address,
+      rewards.address,
+      stakedLyxToken.address,
+      pool.address,
+      poolValidators.address,
+      merkleDistributor.address
     );
 
     await stakedLyxToken

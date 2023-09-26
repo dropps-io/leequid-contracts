@@ -56,6 +56,10 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     // @dev Pending validators percent limit. If it's not exceeded tokens can be minted immediately.
     uint256 public override pendingValidatorsLimit;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _stakedLyxToken,
@@ -129,8 +133,11 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
         emit ExitedValidatorsUpdated(exitedValidators, msg.sender);
     }
 
+    /**
+    * @dev See {IPool-receiveWithoutActivation}.
+    */
     function receiveWithoutActivation() external payable override {
-        require(msg.sender == address(stakedLyxToken) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
+        require(msg.sender == address(rewards) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
     }
 
     /**

@@ -13,7 +13,7 @@ describe("StakedLyxToken contract", function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin, operator, user1, user2, chain;
+  let admin, operator, user1, user2, chain, proxyOwner;
 
   before(async function () {
     Oracles = await ethers.getContractFactory("Oracles");
@@ -24,24 +24,66 @@ describe("StakedLyxToken contract", function () {
     MerkleDistributor = await ethers.getContractFactory("MerkleDistributor");
     FeesEscrow = await ethers.getContractFactory("FeesEscrow");
     DepositContract = await ethers.getContractFactory("DepositContract");
-    [admin, operator, user1, user2, chain] = await ethers.getSigners();
+    [admin, operator, user1, user2, chain, proxyOwner] = await ethers.getSigners();
   });
 
   beforeEach(async function () {
-    oracles = await Oracles.deploy();
-    rewards = await Rewards.deploy();
-    stakedLyxToken = await StakedLyxToken.deploy();
-    pool = await Pool.deploy();
-    poolValidators = await PoolValidators.deploy();
-    merkleDistributor = await MerkleDistributor.deploy();
+    const AdminUpgradeabilityProxy = await ethers.getContractFactory("AdminUpgradeabilityProxy");
+
+    const oraclesImplementation = await Oracles.deploy();
+    const rewardsImplementation = await Rewards.deploy();
+    const stakedLyxTokenImplementation = await StakedLyxToken.deploy();
+    const poolImplementation = await Pool.deploy();
+    const poolValidatorsImplementation = await PoolValidators.deploy();
+    const merkleDistributorImplementation = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewards.address);
-    await oracles.deployed();
+
+    const rewardsProxy = await AdminUpgradeabilityProxy.deploy(
+      rewardsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const stakedLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
+      stakedLyxTokenImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const oraclesProxy = await AdminUpgradeabilityProxy.deploy(
+      oraclesImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolProxy = await AdminUpgradeabilityProxy.deploy(
+      poolImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolValidatorsProxy = await AdminUpgradeabilityProxy.deploy(
+      poolValidatorsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
+      merkleDistributorImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+
+    oracles = Oracles.attach(oraclesProxy.address);
+    rewards = Rewards.attach(rewardsProxy.address);
+    stakedLyxToken = StakedLyxToken.attach(stakedLyxTokenProxy.address);
+    pool = Pool.attach(poolProxy.address);
+    poolValidators = PoolValidators.attach(poolValidatorsProxy.address);
+    merkleDistributor = MerkleDistributor.attach(merkleDistributorProxy.address);
+
     await rewards.deployed();
     await stakedLyxToken.deployed();
+    await oracles.deployed();
     await pool.deployed();
     await poolValidators.deployed();
     await merkleDistributor.deployed();
+
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
     await feesEscrow.deployed();
 
     await oracles.initialize(
@@ -447,6 +489,34 @@ describe("StakedLyxToken contract", function () {
       expect(totalPendingUnstake).to.equal(ethers.utils.parseEther("0"));
       expect(totalUnstaked).to.equal(ethers.utils.parseEther("32"));
       expect(unstakeProcessing).to.equal(false);
+    });
+
+    it("should process the unstakes well and return the amount for the pool when too many unstakes", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
+      await stakedLyxToken.connect(user2).unstake(ethers.utils.parseEther("8"));
+      await stakedLyxToken.connect(admin).setUnstakeProcessing();
+
+      const transaction = {
+        to: rewards.address,
+        value: ethers.utils.parseEther("64"),
+        gasLimit: "30000000",
+      };
+      await chain.sendTransaction(transaction);
+      await stakedLyxToken.connect(admin).unstakeProcessed(2);
+
+      const unstakeRequest = await stakedLyxToken.unstakeRequest(2);
+      const totalPendingUnstake = await stakedLyxToken.totalPendingUnstake();
+      const totalUnstaked = await stakedLyxToken.totalUnstaked();
+      const currentUnstakeIndex = await stakedLyxToken.unstakeRequestCurrentIndex();
+      const unstakeProcessing = await stakedLyxToken.unstakeProcessing();
+      const poolBalance = await ethers.provider.getBalance(pool.address);
+
+      expect(poolBalance).to.equal(ethers.utils.parseEther("24"));
+      expect(unstakeRequest.amountFilled).to.equal(ethers.utils.parseEther("8"));
+      expect(totalPendingUnstake).to.equal(ethers.utils.parseEther("0"));
+      expect(totalUnstaked).to.equal(ethers.utils.parseEther("40"));
+      expect(unstakeProcessing).to.equal(false);
+      expect(currentUnstakeIndex).to.equal(2);
     });
 
     it("should emit the UnstakeProcessed event", async function () {
