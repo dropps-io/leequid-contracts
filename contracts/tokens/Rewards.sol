@@ -62,6 +62,10 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     // @dev Address of the Pool contract.
     IPool private pool;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _stakedLyxToken,
@@ -185,6 +189,16 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
 
         rewardsDisabled[account] = isDisabled;
         emit RewardsToggled(account, isDisabled);
+    }
+
+    /**
+    * @dev See {IRewards-sendToPoolWithoutActivation}.
+    */
+    function sendToPoolWithoutActivation(uint256 amount) external override {
+        require(msg.sender == address(stakedLyxToken), "Rewards: access denied");
+        require(address(this).balance >= amount, "Rewards: insufficient contract balance");
+
+        pool.receiveWithoutActivation{value : amount}();
     }
 
     /**

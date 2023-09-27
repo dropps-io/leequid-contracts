@@ -14,7 +14,7 @@ describe("Rewards contract", function () {
   let Oracles, oracles;
   let PoolValidators, poolValidators;
   let DepositContract, beaconDepositMock;
-  let chain, admin, user1, user2, user3, user4;
+  let chain, admin, user1, user2, user3, user4, proxyOwner;
 
   before(async function () {
     Rewards = await ethers.getContractFactory("Rewards");
@@ -25,25 +25,68 @@ describe("Rewards contract", function () {
     Oracles = await ethers.getContractFactory("Oracles");
     PoolValidators = await ethers.getContractFactory("PoolValidators");
     DepositContract = await ethers.getContractFactory("DepositContract");
-    [chain, admin, oracles, operator, user1, user2, user3, user4] = await ethers.getSigners();
+    [chain, admin, oracles, operator, user1, user2, user3, user4, proxyOwner] =
+      await ethers.getSigners();
   });
 
   beforeEach(async function () {
-    rewards = await Rewards.deploy();
-    stakedLyxToken = await StakedLyxToken.deploy();
-    pool = await Pool.deploy();
-    poolValidators = await PoolValidators.deploy();
-    merkleDistributor = await MerkleDistributor.deploy();
-    oracles = await Oracles.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewards.address);
+    const AdminUpgradeabilityProxy = await ethers.getContractFactory("AdminUpgradeabilityProxy");
+
+    const rewardsImplementation = await Rewards.deploy();
+    const stakedLyxTokenImplementation = await StakedLyxToken.deploy();
+    const poolImplementation = await Pool.deploy();
+    const poolValidatorsImplementation = await PoolValidators.deploy();
+    const merkleDistributorImplementation = await MerkleDistributor.deploy();
+    const oraclesImplementation = await Oracles.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    await oracles.deployed();
+
+    const rewardsProxy = await AdminUpgradeabilityProxy.deploy(
+      rewardsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const stakedLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
+      stakedLyxTokenImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const oraclesProxy = await AdminUpgradeabilityProxy.deploy(
+      oraclesImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolProxy = await AdminUpgradeabilityProxy.deploy(
+      poolImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolValidatorsProxy = await AdminUpgradeabilityProxy.deploy(
+      poolValidatorsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
+      merkleDistributorImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+
+    oracles = Oracles.attach(oraclesProxy.address);
+    rewards = Rewards.attach(rewardsProxy.address);
+    stakedLyxToken = StakedLyxToken.attach(stakedLyxTokenProxy.address);
+    pool = Pool.attach(poolProxy.address);
+    poolValidators = PoolValidators.attach(poolValidatorsProxy.address);
+    merkleDistributor = MerkleDistributor.attach(merkleDistributorProxy.address);
+
     await rewards.deployed();
     await stakedLyxToken.deployed();
-    await pool.deployed();
-    await merkleDistributor.deployed();
-    await feesEscrow.deployed();
     await oracles.deployed();
+    await pool.deployed();
+    await poolValidators.deployed();
+    await merkleDistributor.deployed();
+
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
+    await feesEscrow.deployed();
 
     await oracles.initialize(
       admin.address,
