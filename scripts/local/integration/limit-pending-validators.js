@@ -8,7 +8,8 @@ const { ethers, expect } = require("hardhat");
 const { sleep } = require("../utils/sleep");
 const { oraclesCronTimeoutInMs } = require("../config");
 const { logMessage } = require("../utils/logging");
-const { setValidatorsMock, setFinalityCheckpointsMock } = require("../utils/set-consensus-mock");
+const { setValidatorsMock } = require("../utils/set-consensus-mock");
+const { incrementBlocks } = require("../utils/increment-blocks");
 
 const limitPendingValidatorsIntegration = async (debug = false) => {
   const { user1, user2, user3, user4, user5, admin } = await getAccounts();
@@ -17,8 +18,8 @@ const limitPendingValidatorsIntegration = async (debug = false) => {
   try {
     console.log("⌛ Max pending validators - Integration test...");
 
-    // Node is synced
-    await setFinalityCheckpointsMock({ finalized: { epoch: "100" } });
+    // Sync node
+    await incrementBlocks(1, debug);
 
     await pool.connect(user5).stake({ value: ethers.utils.parseEther((32 * 100).toString()) });
     logMessage("user5 staked 3200 LYX, ⌛ waiting for oracles to register 100 validators", debug);

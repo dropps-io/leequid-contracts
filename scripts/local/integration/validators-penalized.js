@@ -9,11 +9,7 @@ const { sleep } = require("../utils/sleep");
 const { oraclesCronTimeoutInMs, unstakeBlockOffset } = require("../config");
 const { logMessage } = require("../utils/logging");
 const { incrementBlocks } = require("../utils/increment-blocks");
-const {
-  setValidatorsMock,
-  setFinalityCheckpointsMock,
-  setExpectedWithdrawalsMock,
-} = require("../utils/set-consensus-mock");
+const { setValidatorsMock, setExpectedWithdrawalsMock } = require("../utils/set-consensus-mock");
 
 const validatorsPenalizedIntegration = async (debug = false) => {
   const { user1 } = await getAccounts();
@@ -41,11 +37,10 @@ const validatorsPenalizedIntegration = async (debug = false) => {
       "User1 requested to unstake 96LYX, ⌛ waiting for oracles to start processing the unstake",
       debug
     );
-    await incrementBlocks(unstakeBlockOffset);
+    await incrementBlocks(unstakeBlockOffset, debug);
     await sleep(oraclesCronTimeoutInMs + 1000);
 
     const currentBlock = await ethers.provider.getBlockNumber();
-    await setFinalityCheckpointsMock({ finalized: { epoch: "100" } });
     await setExpectedWithdrawalsMock(
       [
         { amount: "31980000000", address: rewards.address.toLowerCase() },

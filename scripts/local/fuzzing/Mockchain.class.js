@@ -3,7 +3,7 @@ const { getContracts } = require("../utils/get-contracts");
 const { formatEther, parseEther, parseUnits } = require("ethers/lib/utils");
 const { beforeTest } = require("../integration/utils/before-test");
 const {
-  setFinalityCheckpointsMock,
+  setSyncingStatusMock,
   setValidatorsMock,
   setExpectedWithdrawalsMock,
 } = require("../utils/set-consensus-mock");
@@ -54,7 +54,7 @@ class MockChain {
     let validatorsToExit = 0;
 
     if (blockNumber % 20 === 0) {
-      await setFinalityCheckpointsMock({ finalized: { epoch: "30000" } });
+      await setSyncingStatusMock({ finalized: { epoch: "30000" } });
       validatorsToExit = await this.fetchValidatorsToExit();
     }
 

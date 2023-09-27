@@ -5,11 +5,7 @@ const { sleep } = require("../utils/sleep");
 const { beforeTest } = require("./utils/before-test");
 const { incrementBlocks } = require("../utils/increment-blocks");
 const { oraclesCronTimeoutInMs } = require("../config");
-const {
-  setValidatorsMock,
-  setFinalityCheckpointsMock,
-  setExpectedWithdrawalsMock,
-} = require("../utils/set-consensus-mock");
+const { setValidatorsMock, setExpectedWithdrawalsMock } = require("../utils/set-consensus-mock");
 const { parseUnits } = require("ethers/lib/utils");
 const { afterTest } = require("./utils/after-test");
 const { logMessage } = require("../utils/logging");
@@ -61,9 +57,7 @@ const merkleDistributionHappyPath = async (debug) => {
 
     logMessage("⌛ wait for oracles to register validators", debug);
     await sleep(oraclesCronTimeoutInMs * 2);
-
-    await setFinalityCheckpointsMock({ finalized: { epoch: "100" } });
-    logMessage("Simulate finality checkpoint change", debug);
+    await incrementBlocks(1, debug);
 
     await swapV1Mock.connect(user1).addLiquidity(ethers.utils.parseEther("2000"));
     logMessage("User1 added 2000 as liquidity", debug);

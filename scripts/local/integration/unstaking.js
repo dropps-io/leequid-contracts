@@ -5,11 +5,7 @@ const { sleep } = require("../utils/sleep");
 const { beforeTest } = require("./utils/before-test");
 const { incrementBlocks } = require("../utils/increment-blocks");
 const { oraclesCronTimeoutInMs, unstakeBlockOffset } = require("../config");
-const {
-  setValidatorsMock,
-  setFinalityCheckpointsMock,
-  setExpectedWithdrawalsMock,
-} = require("../utils/set-consensus-mock");
+const { setValidatorsMock, setExpectedWithdrawalsMock } = require("../utils/set-consensus-mock");
 const { parseUnits } = require("ethers/lib/utils");
 const { afterTest } = require("./utils/after-test");
 const { logMessage } = require("../utils/logging");
@@ -25,10 +21,7 @@ const unstakingHappyPath = async (debug = true) => {
     await pool.connect(user2).stake({ value: ethers.utils.parseEther("200") });
 
     logMessage("User1 and User2 successfully staked.", debug);
-
-    await setFinalityCheckpointsMock({ finalized: { epoch: "100" } });
-
-    logMessage("Finality checkpoints mock set.", debug);
+    await incrementBlocks(1, debug);
 
     let totalPendingUnstake = await stakedLyxToken.totalPendingUnstake();
 

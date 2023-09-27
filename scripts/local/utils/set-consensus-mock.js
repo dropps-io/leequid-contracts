@@ -18,11 +18,11 @@ const setValidatorsMock = (mockData) => {
   req.end();
 };
 
-const setFinalityCheckpointsMock = (mockData) => {
+const setSyncingStatusMock = (mockData) => {
   const options = {
     hostname: "localhost",
     port: beaconMockPort,
-    path: "/set-mock/finality_checkpoints",
+    path: "/set-mock/syncing_status",
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -70,7 +70,7 @@ const resetMocks = () => {
 
 module.exports = {
   setExpectedWithdrawalsMock,
-  setFinalityCheckpointsMock,
+  setSyncingStatusMock,
   setValidatorsMock,
   resetMocks,
 };

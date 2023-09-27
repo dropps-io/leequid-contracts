@@ -7,6 +7,7 @@ const { afterTest } = require("./utils/after-test");
 const { ethers, expect } = require("hardhat");
 const { sleep } = require("../utils/sleep");
 const { oraclesCronTimeoutInMs } = require("../config");
+const { incrementBlocks } = require("../utils/increment-blocks");
 
 const oraclesDownIntegration = async () => {
   const { user1, user2, admin } = await getAccounts();
@@ -14,6 +15,7 @@ const oraclesDownIntegration = async () => {
 
   try {
     console.log("⌛ Oracles down - Integration test...");
+    await incrementBlocks(1);
 
     // Adding one address to oracles without running it
     await oracles.connect(admin).addOracle(user1.address);

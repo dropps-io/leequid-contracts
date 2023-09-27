@@ -3,7 +3,9 @@ const fs = require("fs");
 const { getAccounts } = require("./utils/get-accounts");
 
 async function deployLocalContracts(mute) {
-  const { admin, protocolFeeRecipient, operator } = {
+  const AdminUpgradeabilityProxy = await ethers.getContractFactory("AdminUpgradeabilityProxy");
+
+  const { admin, protocolFeeRecipient, operator, proxyOwner } = {
     ...(await getAccounts()),
   };
 
@@ -21,31 +23,71 @@ async function deployLocalContracts(mute) {
 
   if (!mute) console.log("deploying Rewards...");
   const Rewards = await ethers.getContractFactory("Rewards");
-  const rewards = await Rewards.deploy(args);
+  const rewardsImplementation = await Rewards.deploy(args);
+  let rewards = await AdminUpgradeabilityProxy.deploy(
+    rewardsImplementation.address,
+    proxyOwner.address,
+    "0x",
+    args
+  );
+  rewards = Rewards.attach(rewards.address);
+
   await rewards.deployed();
   if (!mute) console.log("Rewards deployed to:", rewards.address);
 
   if (!mute) console.log("deploying StakedLyxToken...");
   const StakedLyxToken = await ethers.getContractFactory("StakedLyxToken");
-  const stakedLyxToken = await StakedLyxToken.deploy(args);
-  await rewards.deployed();
+  const stakedLyxTokenImplementation = await StakedLyxToken.deploy(args);
+  let stakedLyxToken = await AdminUpgradeabilityProxy.deploy(
+    stakedLyxTokenImplementation.address,
+    proxyOwner.address,
+    "0x",
+    args
+  );
+  stakedLyxToken = StakedLyxToken.attach(stakedLyxToken.address);
+
+  await stakedLyxToken.deployed();
   if (!mute) console.log("StakedLyxToken deployed to:", stakedLyxToken.address);
 
   if (!mute) console.log("deploying Pool...");
   const Pool = await ethers.getContractFactory("Pool");
-  const pool = await Pool.deploy(args);
+  const poolImplementation = await Pool.deploy(args);
+  let pool = await AdminUpgradeabilityProxy.deploy(
+    poolImplementation.address,
+    proxyOwner.address,
+    "0x",
+    args
+  );
+  pool = Pool.attach(pool.address);
+
   await pool.deployed();
   if (!mute) console.log("Pool deployed to:", pool.address);
 
   if (!mute) console.log("deploying PoolValidators...");
   const PoolValidators = await ethers.getContractFactory("PoolValidators");
-  const poolValidators = await PoolValidators.deploy(args);
+  const poolValidatorsImplementation = await PoolValidators.deploy(args);
+  let poolValidators = await AdminUpgradeabilityProxy.deploy(
+    poolValidatorsImplementation.address,
+    proxyOwner.address,
+    "0x",
+    args
+  );
+  poolValidators = PoolValidators.attach(poolValidators.address);
+
   await poolValidators.deployed();
   if (!mute) console.log("PoolValidators deployed to:", poolValidators.address);
 
   if (!mute) console.log("deploying MerkleDistributor...");
   const MerkleDistributor = await ethers.getContractFactory("MerkleDistributor");
-  const merkleDistributor = await MerkleDistributor.deploy(args);
+  const merkleDistributorImplementation = await MerkleDistributor.deploy(args);
+  let merkleDistributor = await AdminUpgradeabilityProxy.deploy(
+    merkleDistributorImplementation.address,
+    proxyOwner.address,
+    "0x",
+    args
+  );
+  merkleDistributor = MerkleDistributor.attach(merkleDistributor.address);
+
   await merkleDistributor.deployed();
   if (!mute) console.log("MerkleDistributor deployed to:", merkleDistributor.address);
 
@@ -57,7 +99,15 @@ async function deployLocalContracts(mute) {
 
   if (!mute) console.log("deploying Oracles...");
   const Oracles = await ethers.getContractFactory("Oracles");
-  const oracles = await Oracles.deploy(args);
+  const oraclesImplementation = await Oracles.deploy(args);
+  let oracles = await AdminUpgradeabilityProxy.deploy(
+    oraclesImplementation.address,
+    proxyOwner.address,
+    "0x",
+    args
+  );
+  oracles = Oracles.attach(oracles.address);
+
   await oracles.deployed();
   if (!mute) console.log("Oracles deployed to:", oracles.address);
 

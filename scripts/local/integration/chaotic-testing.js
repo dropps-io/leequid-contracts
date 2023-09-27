@@ -2,11 +2,7 @@ const { beforeTest } = require("./utils/before-test");
 const { afterTest } = require("./utils/after-test");
 const { sleep } = require("../utils/sleep");
 const { incrementBlocks } = require("../utils/increment-blocks");
-const {
-  setValidatorsMock,
-  setFinalityCheckpointsMock,
-  setExpectedWithdrawalsMock,
-} = require("../utils/set-consensus-mock");
+const { setValidatorsMock, setExpectedWithdrawalsMock } = require("../utils/set-consensus-mock");
 const { getAccounts } = require("../utils/get-accounts");
 const { getContracts } = require("../utils/get-contracts");
 const { ethers } = require("hardhat");
@@ -20,8 +16,7 @@ const chaoticStakingTest = async (debug = false) => {
   console.log("⌛ Chaotic Staking Test - Integration test...");
 
   try {
-    logMessage("Simulate finality checkpoint change", debug);
-    await setFinalityCheckpointsMock({ finalized: { epoch: "100" } });
+    await incrementBlocks(1, debug);
 
     logMessage("Multiple users stake concurrently", debug);
     await Promise.all([

@@ -5,20 +5,14 @@ const { sleep } = require("../utils/sleep");
 const { beforeTest } = require("./utils/before-test");
 const { incrementBlocks } = require("../utils/increment-blocks");
 const { oraclesCronTimeoutInMs } = require("../config");
-const {
-  setValidatorsMock,
-  setExpectedWithdrawalsMock,
-  setFinalityCheckpointsMock,
-} = require("../utils/set-consensus-mock");
+const { setValidatorsMock, setExpectedWithdrawalsMock } = require("../utils/set-consensus-mock");
 const { parseUnits } = require("ethers/lib/utils");
 const { afterTest } = require("./utils/after-test");
 const { logMessage } = require("../utils/logging");
-const { retry } = require("../utils/retry");
 
 const rewardsSubmissionHappyPath = async (debug) => {
   const { user1, user2, user3, user4, user5, admin } = await getAccounts();
-  const { stakedLyxToken, pool, rewards, swapV1Mock, merkleDistributor, oracles } =
-    await getContracts();
+  const { stakedLyxToken, pool, rewards } = await getContracts();
 
   console.log("⌛ Rewards Submission - Integration test...");
 
@@ -26,8 +20,8 @@ const rewardsSubmissionHappyPath = async (debug) => {
     await rewards.connect(admin).setProtocolFee(0);
     logMessage("Protocol fee set to 0", debug);
 
-    await setFinalityCheckpointsMock({ finalized: { epoch: "100" } });
-    logMessage("Simulate finality checkpoint change", debug);
+    await incrementBlocks(1, debug);
+    logMessage("Set syncing status to true", debug);
 
     // Step 1
     logMessage(`user1 stakes 2000`, debug);
