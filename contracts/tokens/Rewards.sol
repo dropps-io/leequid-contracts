@@ -337,6 +337,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
 
         // Transfer Ether after updating the state
         recipient.transfer(amount);
+        emit RewardsCashedOut(recipient, amount);
     }
 
     /**
@@ -349,6 +350,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
 
         // Stake the rewards to the pool
         pool.stakeOnBehalf{value : amount}(recipient);
+        emit RewardsCompounded(recipient, amount);
     }
 
 
@@ -373,7 +375,5 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         });
 
         totalCashedOut = uint128(totalCashedOut + amount);
-
-        emit RewardsCashedOut(account, amount);
     }
 }

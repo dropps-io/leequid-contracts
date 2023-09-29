@@ -62,6 +62,8 @@ interface IRewards {
 
     event RewardsCashedOut(address indexed account, uint256 amount);
 
+    event RewardsCompounded(address indexed account, uint256 amount);
+
     /**
     * @dev Function for getting the address of the merkle distributor.
     */
