@@ -42,16 +42,21 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     CountersUpgradeable.Counter private unstakeNonce;
 
     // @dev Address of the Rewards & StakedLyxToken contracts.
+    /// #if_updated {:msg "rewards does not change after initialization"} msg.sig == this.initialize.selector;
     IRewards private rewards;
+    /// #if_updated {:msg "stakedLyxToken does not change after initialization"} msg.sig == this.initialize.selector;
     IStakedLyxToken private stakedLyxToken;
 
     // @dev Address of the Pool contract.
+    /// #if_updated {:msg "pool does not change after initialization"} msg.sig == this.initialize.selector;
     IPool private pool;
 
     // @dev Address of the PoolValidators contract.
+    /// #if_updated {:msg "poolValidators does not change after initialization"} msg.sig == this.initialize.selector;
     IPoolValidators private poolValidators;
 
     // @dev Address of the MerkleDistributor contract.
+    /// #if_updated {:msg "merkleDistributor does not change after initialization"} msg.sig == this.initialize.selector;
     IMerkleDistributor private merkleDistributor;
 
     /**

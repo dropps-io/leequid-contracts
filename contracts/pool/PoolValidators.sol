@@ -27,9 +27,11 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
     mapping(address => Operator) private operators;
 
     // @dev Address of the Pool contract.
+    /// #if_updated {:msg "pool does not change after initialization"} msg.sig == this.initialize.selector;
     IPool private pool;
 
     // @dev Address of the Oracles contract.
+    /// #if_updated {:msg "oracles does not change after initialization"} msg.sig == this.initialize.selector;
     address private oracles;
 
     /**

@@ -17,31 +17,40 @@ import {IPool} from "../interfaces/IPool.sol";
 
 @dev Pool contract accumulates deposits from the users, mints tokens and registers validators.
 */
+/// #invariant {:msg "pendingValidatorsLimit is less than 1e4"} pendingValidatorsLimit < 1e4;
 contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     // @dev Validator deposit amount.
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
 
     // @dev Total activated validators.
+    /// #if_updated {:msg "only admin or oracles can set activatedValidators"} msg.sender == oracles || hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     uint256 public override activatedValidators;
 
     // @dev Total exited validators.
+    /// #if_updated {:msg "only admin or oracles can set exitedValidators"} msg.sender == oracles || hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     uint256 public override exitedValidators;
 
     // @dev Pool validator withdrawal credentials.
+    /// #if_updated {:msg "withdrawalCredentials does not change after initialization"} msg.sig == this.initialize.selector;
     bytes32 public override withdrawalCredentials;
 
     // @dev Address of the ETH2 Deposit Contract (deployed by Lukso).
+    /// #if_updated {:msg "validatorRegistration does not change after initialization"} msg.sig == this.initialize.selector;
     IDepositContract public override validatorRegistration;
 
     // @dev Address of the StakedLyxToken contract.
+    /// #if_updated {:msg "stakedLyxToken does not change after initialization"} msg.sig == this.initialize.selector;
     IStakedLyxToken private stakedLyxToken;
 
+    /// #if_updated {:msg "rewards does not change after initialization"} msg.sig == this.initialize.selector;
     IRewards private rewards;
 
     // @dev Address of the PoolValidators contract.
+    /// #if_updated {:msg "validators does not change after initialization"} msg.sig == this.initialize.selector;
     IPoolValidators private validators;
 
     // @dev Address of the Oracles contract.
+    /// #if_updated {:msg "oracles does not change after initialization"} msg.sig == this.initialize.selector;
     address private oracles;
 
     // @dev Maps senders to the validator index that it will be activated in.
@@ -51,9 +60,11 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     uint256 public override pendingValidators;
 
     // @dev Amount of deposited ETH that is not considered for the activation period.
+    /// #if_updated {:msg "only admin can set minActivatingDeposit"} hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     uint256 public override minActivatingDeposit;
 
     // @dev Pending validators percent limit. If it's not exceeded tokens can be minted immediately.
+    /// #if_updated {:msg "only admin can set pendingValidatorsLimit"} hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     uint256 public override pendingValidatorsLimit;
 
     function initialize(

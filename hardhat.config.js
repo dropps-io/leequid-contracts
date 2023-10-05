@@ -85,6 +85,7 @@ module.exports = {
   },
   networks: {
     hardhat: {
+      allowUnlimitedContractSize: true,
       accounts: {
         accountsBalance: '1000000000000000000000000',
       },

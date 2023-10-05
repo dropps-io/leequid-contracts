@@ -43,6 +43,9 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
  *
  * @dev StakedLyxToken contract stores pool staked tokens.
  */
+/// #invariant {:msg "unstakeRequestCurrentIndex <= unstakeRequestCount"} unstakeRequestCurrentIndex <= unstakeRequestCount;
+/// #invariant {:msg "unstake request at index 0 is never used"} _unstakeRequests[0].amount == 0;
+/// #invariant {:msg "all unstake requests have a positive amount and all requests with an index greater than unstakeRequestCurrentIndex must be unclaimed"} forall(uint256 i in 1...unstakeRequestCount) (let rqst := _unstakeRequests[i] in 0 < rqst.amount && (unstakeRequestCurrentIndex < i ==> !rqst.claimed));
 contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken, ReentrancyGuardUpgradeable {
     // @dev Validator deposit amount.
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
@@ -51,15 +54,18 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     uint256 internal _totalDeposits;
 
     // @dev Total Unstaked - total amount of tokens that were unstaked from the staking node and submitted for claiming.
+    /// #if_updated {:msg "totalUnstaked does not decrease"} old(totalUnstaked) <= totalUnstaked;
     uint256 public override totalUnstaked;
 
     // @dev Total Pending Unstake - total amount of tokens pending to be unstaked. When unstaked, the amount unstaked is deducted
     uint256 public override totalPendingUnstake;
 
     // @dev Unstake Request Count - Used as an index to keep track of unstake requests.
+    /// #if_updated {:msg "unstakeRequestCount increases"} old(unstakeRequestCount) < unstakeRequestCount;
     uint256 public unstakeRequestCount;
 
     // @dev Unstake Request Current Index - Used as an index to keep track of the current unstake request being processed. The previous indexes were all processed.
+    /// #if_updated {:msg "unstakeRequestCurrentIndex does not decrease"} old(unstakeRequestCurrentIndex) <= unstakeRequestCurrentIndex;
     uint256 public unstakeRequestCurrentIndex;
 
     // @dev Unstake Processing - Boolean used to pause unstake requests. When true, no unstake requests can be made, and no unstake requests can be matched.
@@ -76,12 +82,15 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     mapping(address => mapping(address => uint256)) internal _operatorAuthorizedAmount;
 
     // @dev Address of the Pool contract.
+    /// #if_updated {:msg "pool does not change after initialization"} msg.sig == StakedLyxToken.initialize.selector;
     IPool private pool;
 
     // @dev Address of the Oracles contract.
+    /// #if_updated {:msg "oracles does not change after initialization"} msg.sig == StakedLyxToken.initialize.selector;
     address private oracles;
 
     // @dev Address of the Rewards contract.
+    /// #if_updated {:msg "rewards does not change after initialization"} msg.sig == StakedLyxToken.initialize.selector;
     IRewards private rewards;
 
     // @dev The principal amount of the distributor.
@@ -209,6 +218,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
     // --- Transfer functionality
 
+    /// #if_succeeds {:msg "sender and recipient are not the same"} old(from != to);
+    /// #if_succeeds {:msg "balance of the sender is decreased by amount"} _deposits[from] == old(_deposits[from] - amount);
+    /// #if_succeeds {:msg "balance of the recipient is increased by amount"} _deposits[to] == old(_deposits[to] + amount);
     function transfer(
         address from,
         address to,
@@ -440,6 +452,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     /**
      * @dev See {IStakedLyxToken-mint}.
      */
+    /// #if_succeeds {:msg "sender must be the pool"} old(msg.sender == address(pool));
+    /// #if_succeeds {:msg "recipient cannot be 0x0"} old(to != address(0x0));
+    /// #if_succeeds {:msg "amount is added to deposits"} _deposits[to] == old(_deposits[to] + amount);
+    /// #if_succeeds {:msg "amount is added to the total deposits"} _totalDeposits == old(_totalDeposits + amount);
     function mint(address to,
         uint256 amount,
         bool allowNonLSP1Recipient,

@@ -12,7 +12,6 @@
     "DeFi"
   ],
   "scripts": {
-    "prepare": "husky install",
     "compile": "hardhat compile",
     "format": "prettier --write \"**/*.js\" \"*.json\"",
     "lint": "solhint --max-warnings 0 \"contracts/**/*.sol\" && eslint \"**/*.js\"",
@@ -23,11 +22,6 @@
     "node-fork": "npx hardhat node --fork https://rpc.testnet.lukso.network",
     "deploy-locally": "yarn compile --optimizer && npx hardhat run scripts/local/deploy.js --no-compile --network local",
     "local-console": "npx hardhat console --network local"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
   },
   "lint-staged": {
     "*.js": [
@@ -70,7 +64,6 @@
     "hardhat-abi-exporter": "^2.3.1",
     "hardhat-contract-sizer": "^2.8.0",
     "hardhat-gas-reporter": "^1.0.9",
-    "husky": "^7.0.4",
     "lint-staged": "12.1.2",
     "prettier": "^2.5.1",
     "solhint": "^3.4.1",

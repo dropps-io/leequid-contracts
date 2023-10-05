@@ -22,49 +22,60 @@ import { IPool } from "../interfaces/IPool.sol";
  *
  * This contract implement the core logic of the functions for the {ILSP7DigitalAsset} interface.
  */
+/// #invariant {:msg "protocolFee is less than 1e4"} protocolFee < 1e4;
 contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeCast for uint256;
 
     // @dev Address of the StakedLyxToken contract.
+    /// #if_updated {:msg "stakedLyxToken does not change after initialization"} msg.sig == Rewards.initialize.selector;
     IStakedLyxToken private stakedLyxToken;
 
     // @dev Address of the Oracles contract.
+    /// #if_updated {:msg "oracles does not change after initialization"} msg.sig == Rewards.initialize.selector;
     address private oracles;
 
     // @dev Maps account address to its reward checkpoint.
     mapping(address => Checkpoint) public override checkpoints;
 
     // @dev Address where protocol fee will be paid.
+    /// #if_updated {:msg "protocolFeeRecipient is set during initialization and can only be changed by the admin"} msg.sig == Rewards.initialize.selector || hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     address public override protocolFeeRecipient;
 
     // @dev Protocol percentage fee.
+    /// #if_updated {:msg "protocolFee is set during initialization and can only be changed by the admin"} msg.sig == Rewards.initialize.selector || hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     uint256 public override protocolFee;
 
     // @dev Total amount of rewards.
     uint128 public override totalRewards;
 
     // @dev Total amount of rewards.
+    /// #if_updated {:msg "totalFeesCollected does not decrease"} old(totalFeesCollected) <= totalFeesCollected;
     uint128 public override totalFeesCollected;
 
     // @dev Total amount of cashed out rewards.
+    /// #if_updated {:msg "totalCashedOut does not decrease"} old(totalFeesCollected) <= totalFeesCollected;
     uint128 public override totalCashedOut;
 
     // @dev Reward per token for user reward calculation.
     uint128 public override rewardPerToken;
 
     // @dev Last rewards update block number by oracles.
+    /// #if_updated {:msg "lastUpdateBlockNumber does not decrease"} old(lastUpdateBlockNumber) <= lastUpdateBlockNumber;
     uint256 public override lastUpdateBlockNumber;
 
     // @dev Address of the MerkleDistributor contract.
+    /// #if_updated {:msg "merkleDistributor does not change after initialization"} msg.sig == Rewards.initialize.selector;
     address public override merkleDistributor;
 
     // @dev Maps account address to whether rewards are distributed through the merkle distributor.
     mapping(address => bool) public override rewardsDisabled;
 
     // @dev Address of the FeesEscrow contract.
+    /// #if_updated {:msg "feesEscrow does not change after initialization"} msg.sig == Rewards.initialize.selector;
     IFeesEscrow private feesEscrow;
 
     // @dev Address of the Pool contract.
+    /// #if_updated {:msg "pool does not change after initialization"} msg.sig == Rewards.initialize.selector;
     IPool private pool;
 
     function initialize(
