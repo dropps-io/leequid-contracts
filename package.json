@@ -18,6 +18,7 @@
     "lint:fix": "eslint --fix \"**/*.js\"",
     "linter": "solhint 'contracts/**/*.sol'",
     "test": "hardhat test",
+    "fuzz": "diligence-fuzzing/start-campaign.sh",
     "node": "npx hardhat node",
     "node-fork": "npx hardhat node --fork https://rpc.testnet.lukso.network",
     "deploy-locally": "yarn compile --optimizer && npx hardhat run scripts/local/deploy.js --no-compile --network local",
