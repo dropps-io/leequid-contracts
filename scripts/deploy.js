@@ -1,15 +1,16 @@
 const { ethers } = require("hardhat");
 
 async function main() {
+  const currentGasPrice = await ethers.provider.getGasPrice();
   const args = {
-    gasPrice: "0xB2D05E00", // 3 Gwei
+    gasPrice: currentGasPrice.toHexString(),
   };
 
-  const admin = "0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab";
-  const protocolFeeRecipient = "0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab";
+  const admin = "ADMIN_ADDRESS";
+  const protocolFeeRecipient = "PROTOCOL_FEE_RECIPIENT_ADDRESS";
   const protocolFee = 0.1;
 
-  const beaconDepositContract = "0x5Cc0ca9b4fe325Fa4c443475AE6C6d5f00d1631D"; // Lukso testnet
+  const beaconDepositContract = "0xCAfe00000000000000000000000000000000CAfe"; // Lukso testnet
 
   console.log("deploying Rewards...");
   const Rewards = await ethers.getContractFactory("Rewards");

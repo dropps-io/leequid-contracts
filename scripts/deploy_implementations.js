@@ -1,8 +1,9 @@
 const { ethers } = require("hardhat");
 
 async function main() {
+  const currentGasPrice = await ethers.provider.getGasPrice();
   const args = {
-    gasPrice: "0x1DCD65000", // 8 Gwei
+    gasPrice: currentGasPrice.toHexString(),
   };
 
   console.log("deploying Rewards...");

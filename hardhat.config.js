@@ -77,8 +77,16 @@ module.exports = {
         network: "luksoTestnet",
         chainId: 4201,
         urls: {
-          apiURL: "https://explorer.execution.testnet.lukso.network/api",
+          apiURL: "https://api.explorer.execution.testnet.lukso.network/api",
           browserURL: "https://explorer.execution.testnet.lukso.network/",
+        },
+      },
+      {
+        network: "luksoMainnet",
+        chainId: 42,
+        urls: {
+          apiURL: "https://api.explorer.execution.mainnet.lukso.network/api",
+          browserURL: "https://explorer.execution.mainnet.lukso.network/",
         },
       },
     ],
@@ -95,6 +103,12 @@ module.exports = {
     luksoTestnet: {
       url: `https://rpc.testnet.lukso.network`, // Replace this with the RPC URL for your custom network
       chainId: 4201, // The chain ID of the custom network (replace with the correct value)
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : undefined,
+      // You can also set other network-specific configurations, such as gas and block gas limit
+    },
+    luksoMainnet: {
+      url: `https://rpc.mainnet.lukso.network`, // Replace this with the RPC URL for your custom network
+      chainId: 42, // The chain ID of the custom network (replace with the correct value)
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : undefined,
       // You can also set other network-specific configurations, such as gas and block gas limit
     },

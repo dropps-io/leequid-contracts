@@ -1,6 +1,11 @@
 const { getAccounts } = require("../utils/get-accounts");
 const { getContracts } = require("../utils/get-contracts");
-const { depositDataMerkleRoot, oraclesAddresses, orchestratorAddress } = require("../config");
+const {
+  depositDataMerkleRoot,
+  oraclesAddresses,
+  orchestratorAddress,
+  depositDataMerkleProofs,
+} = require("../config");
 const { ethers } = require("hardhat");
 
 const initProtocol = async (mute) => {
@@ -9,7 +14,7 @@ const initProtocol = async (mute) => {
 
   await poolValidators
     .connect(admin)
-    .addOperator(operator.address, depositDataMerkleRoot, "0x0000000");
+    .addOperator(operator.address, depositDataMerkleRoot, depositDataMerkleProofs);
 
   if (!mute) console.log("Operator address: ", operator.address);
 

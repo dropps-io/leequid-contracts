@@ -283,6 +283,8 @@ async function submitAndVerifyDistribution(
   const merkleEvents = await merkleDistributor.queryFilter("MerkleRootUpdated", currentBlock + 6);
   const merkleUpdatedEvent = merkleEvents[merkleEvents.length - 1].args;
 
+  logMessage(`Distribution received at ${merkleUpdatedEvent.merkleProofs}`, debug);
+
   const res = await fetch(
     merkleUpdatedEvent.merkleProofs.replace("ipfs://", "https://ipfs.io/ipfs/")
   );

@@ -1,13 +1,14 @@
 const { ethers } = require("hardhat");
 
 async function main() {
+  const currentGasPrice = await ethers.provider.getGasPrice();
   const args = {
-    gasPrice: "0x1DCD65000", // 8 Gwei
+    gasPrice: currentGasPrice.toHexString(),
   };
 
-  const admin = "0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab";
-  const proxyAdmin = "0x0C92EC41A0Aba4F33B69dA6a931A7F74C309d143";
-  const protocolFeeRecipient = "0xD692Ba892a902810a2EE3fA41C1D8DcD652D47Ab";
+  const admin = "ADMIN_ADDRESS";
+  const proxyAdmin = "PROXY_ADMIN_ADDRESS";
+  const protocolFeeRecipient = "PROTOCOL_FEE_RECIPIENT_ADDRESS";
   const protocolFee = 0.1;
 
   const beaconDepositContract = "0xCAfe00000000000000000000000000000000CAfe"; // Lukso testnet
@@ -40,6 +41,7 @@ async function main() {
     "0x",
     args
   );
+
   console.log("StakedLyxToken deployed to:", stakedLyxTokenProxy.address);
   console.log("StakedLyxToken implementation deployed to:", stakedLyxToken.address);
 
@@ -163,7 +165,7 @@ async function main() {
     withdrawalCredentials,
     beaconDepositContract,
     ethers.utils.parseEther("9999999999999999999999999999999"),
-    "500",
+    "1000",
     args
   );
   console.log("Pool initialized");
