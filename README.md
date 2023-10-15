@@ -15,8 +15,7 @@ All audit reports are presented in the [audits folder](https://github.com/stakew
 
 ## Documentation
 
-You can find the documentation for every contract in the `contracts` directory. For integration, check the `contracts/interfaces` directory.
-The StakeWise documentation is also available on the [StakeWise official documentation page](https://docs.stakewise.io/smart-contracts).
+Refer to the [official LEEQUID documentation](https://docs.leequid.io) for a detailed description of the protocol.
 
 ![contracts_infra.png](docs%2Fdiagrams%2Fcontracts_infra.png)
 
