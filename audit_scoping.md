@@ -1,8 +1,9 @@
 # Audit Scoping
 
-Link: https://github.com/dropps-io/leequid-contracts
-Stakewise doc: https://docs.stakewise.io/smart-contracts
-Docs: https://github.com/dropps-io/leequid-contracts/tree/master/docs
+Link: https://github.com/dropps-io/leequid-contracts  
+Stakewise doc: https://docs.stakewise.io/smart-contracts  
+Repository Docs: https://github.com/dropps-io/leequid-contracts/tree/master/docs  
+Official Docs: https://docs.leequid.io  
 
 The LEEQUID smart contracts are forked from [StakeWise V2 smart contracts](https://github.com/stakewise/contracts) (already audited multiple time) and adapted to use [LSP7](https://github.com/lukso-network/LIPs/blob/main/LSPs/LSP-7-DigitalAsset.md) instead of ERC20.
 
@@ -10,8 +11,8 @@ The LEEQUID smart contracts are forked from [StakeWise V2 smart contracts](https
 
 As the StakeWise protocol V2 was deployed 2 years ago, rewards withdrawals were not yet possible, 
 so the rewards were not going back to the protocol, explaining the utility of a dual token system.  
-As now, rewards withdrawals are possible, the dual token system is not needed anymore, 
-and that's why we only used the sLYX token in our fork (Rewards contract is not a token anymore).
+As of now, reward withdrawal is enabled and so the dual token system is not needed anymore.  
+That's why we only used the sLYX token in our fork (Rewards contract is not a token anymore).
 The Rewards contract is now used to receive the rewards (it is the withdrawal credential of the validators), 
 to keep track of the rewards, and allow the stakers to claim their rewards (cash out or compound) directly in LYX.
 
