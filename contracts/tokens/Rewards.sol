@@ -366,6 +366,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         uint256 accountBalance = balanceOf(account);
         require(accountBalance >= amount, "Rewards: insufficient reward balance");
         require(address(this).balance >= amount, "Rewards: insufficient contract balance");
+        require(block.number > lastUpdateBlockNumber, "Rewards: cannot cashout during rewards update");
 
         uint128 _rewardPerToken = rewardPerToken;
         // Update the state before the transfer
