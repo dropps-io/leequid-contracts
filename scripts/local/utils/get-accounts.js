@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers } = require("hardhat");
 
 const getAccounts = async () => {
   const accounts = await ethers.getSigners();
@@ -9,8 +9,10 @@ const getAccounts = async () => {
     user1,
     user2,
     user3,
-    oracle1,
-    oracle2,
+    user4,
+    user5,
+    chain,
+    proxyOwner,
   ] = accounts;
   return {
     admin,
@@ -19,8 +21,10 @@ const getAccounts = async () => {
     user1,
     user2,
     user3,
-    oracle1,
-    oracle2,
+    user4,
+    user5,
+    chain,
+    proxyOwner,
   };
 };
 

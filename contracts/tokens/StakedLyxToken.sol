@@ -2,34 +2,22 @@
 pragma solidity ^0.8.20;
 
 // interfaces
-import { ILSP1UniversalReceiver } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/ILSP1UniversalReceiver.sol";
 import { ILSP7DigitalAsset } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
-
-// libraries
-import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import { GasLib } from "@lukso/lsp-smart-contracts/contracts/Utils/GasLib.sol";
-
-// modules
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // errors
 import {LSP7AmountExceedsAuthorizedAmount,
-        LSP7CannotSendToSelf,
-        LSP7InvalidTransferBatch,
-        LSP7CannotUseAddressZeroAsOperator,
-        LSP7TokenOwnerCannotBeOperator,
-        LSP7CannotSendWithAddressZero,
-        LSP7AmountExceedsBalance,
-        LSP7NotifyTokenReceiverContractMissingLSP1Interface,
-        LSP7NotifyTokenReceiverIsEOA
+LSP7CannotSendToSelf,
+LSP7InvalidTransferBatch,
+LSP7CannotUseAddressZeroAsOperator,
+LSP7TokenOwnerCannotBeOperator,
+LSP7CannotSendWithAddressZero,
+LSP7AmountExceedsBalance
 } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Errors.sol";
 
 // constants
-import { _INTERFACEID_LSP1 } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Constants.sol";
 import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
-import { _TYPEID_LSP7_TOKENSSENDER, _TYPEID_LSP7_TOKENSRECIPIENT } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
+import { _INTERFACEID_LSP7 } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
 import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
 import { IRewards } from "../interfaces/IRewards.sol";
 import { IPool } from "../interfaces/IPool.sol";
@@ -83,18 +71,25 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
     // @dev Address of the Pool contract.
     /// #if_updated {:msg "pool does not change after initialization"} msg.sig == StakedLyxToken.initialize.selector;
-    IPool private pool;
+    IPool internal pool;
 
     // @dev Address of the Oracles contract.
     /// #if_updated {:msg "oracles does not change after initialization"} msg.sig == StakedLyxToken.initialize.selector;
-    address private oracles;
+    address internal oracles;
 
     // @dev Address of the Rewards contract.
     /// #if_updated {:msg "rewards does not change after initialization"} msg.sig == StakedLyxToken.initialize.selector;
-    IRewards private rewards;
+    IRewards internal rewards;
 
     // @dev The principal amount of the distributor.
     uint256 public override distributorPrincipal;
+
+    // @dev Validators Exited Threshold - The number of validators that need to exit before we can set unstake processing to true.
+    uint256 internal validatorsExitedThreshold;
+
+    constructor() {
+        _disableInitializers();
+    }
 
     function initialize(
         address _admin,
@@ -117,7 +112,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     // --- Token queries
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControlUpgradeable, IERC165, ERC725YCore) returns (bool) {
-        return super.supportsInterface(interfaceId);
+        return
+            interfaceId == _INTERFACEID_LSP7 ||
+            super.supportsInterface(interfaceId);
     }
 
     function decimals() public pure override returns (uint8) {
@@ -249,7 +246,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256[] memory amount,
         bool[] memory allowNonLSP1Recipient,
         bytes[] memory data
-    ) public override {
+    ) public virtual {
         uint256 fromLength = from.length;
         if (
             fromLength != to.length ||
@@ -260,9 +257,19 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             revert LSP7InvalidTransferBatch();
         }
 
-        for (uint256 i = 0; i < fromLength; i = GasLib.uncheckedIncrement(i)) {
+        for (uint256 i = 0; i < fromLength; ) {
             // using the public transfer function to handle updates to operator authorized amounts
-            transfer(from[i], to[i], amount[i], allowNonLSP1Recipient[i], data[i]);
+            transfer(
+                from[i],
+                to[i],
+                amount[i],
+                allowNonLSP1Recipient[i],
+                data[i]
+            );
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -306,9 +313,8 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
      */
     function unstake(
         uint256 amount
-    ) external override nonReentrant {
+    ) external override nonReentrant whenNotPaused {
         address account = msg.sender;
-        require(!unstakeProcessing, "StakedLyxToken: unstaking in progress");
         require(amount > 0, "StakedLyxToken: amount must be greater than zero");
         require(_deposits[account] >= amount, "StakedLyxToken: insufficient balance");
 
@@ -321,7 +327,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         _deposits[account] -= amount;
         _totalDeposits -= amount;
-        totalPendingUnstake = totalPendingUnstake + uint128(amount);
+        totalPendingUnstake = totalPendingUnstake + amount;
 
         unstakeRequestCount += 1;
         _unstakeRequests[unstakeRequestCount] = UnstakeRequest({
@@ -373,6 +379,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             }
         }
 
+        emit UnstakeMatched(amountMatched, totalPendingUnstake);
         return amountMatched;
     }
 
@@ -385,7 +392,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(totalPendingUnstake >= VALIDATOR_TOTAL_DEPOSIT, "StakedLyxToken: insufficient pending unstake");
 
         unstakeProcessing = true;
-        emit UnstakeReady((totalPendingUnstake - (totalPendingUnstake % VALIDATOR_TOTAL_DEPOSIT)) / VALIDATOR_TOTAL_DEPOSIT);
+        uint256 validatorsToUnstake = (totalPendingUnstake - (totalPendingUnstake % VALIDATOR_TOTAL_DEPOSIT)) / VALIDATOR_TOTAL_DEPOSIT;
+        validatorsExitedThreshold = pool.exitedValidators() + validatorsToUnstake;
+        emit UnstakeReady(validatorsToUnstake);
     }
 
     /**
@@ -398,32 +407,37 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 unstakeAmount = exitedValidators * VALIDATOR_TOTAL_DEPOSIT;
 
         if (unstakeAmount > totalPendingUnstake) {
-            pool.receiveWithoutActivation{value: unstakeAmount - totalPendingUnstake}();
+            rewards.sendToPoolWithoutActivation(unstakeAmount - totalPendingUnstake);
             unstakeAmount = totalPendingUnstake;
+            totalPendingUnstake = 0;
+            unstakeRequestCurrentIndex = unstakeRequestCount;
+            _unstakeRequests[unstakeRequestCount].amountFilled = _unstakeRequests[unstakeRequestCount].amount;
         }
+        else {
+            totalPendingUnstake -= unstakeAmount;
+            uint256 amountToFill = unstakeAmount;
 
-        totalPendingUnstake -= unstakeAmount;
-        totalUnstaked += unstakeAmount;
-        uint256 amountToFill = unstakeAmount;
-
-        for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
-            UnstakeRequest storage request = _unstakeRequests[i];
-            if (amountToFill > (request.amount - request.amountFilled)) {
-                amountToFill -= (request.amount - request.amountFilled);
-                continue;
-            } else {
-                if (amountToFill == (request.amount - request.amountFilled) && i < unstakeRequestCount) {
-                    unstakeRequestCurrentIndex = i + 1;
+            for (uint256 i = unstakeRequestCurrentIndex; i <= unstakeRequestCount; i++) {
+                UnstakeRequest storage request = _unstakeRequests[i];
+                if (amountToFill > (request.amount - request.amountFilled)) {
+                    amountToFill -= (request.amount - request.amountFilled);
+                    continue;
                 } else {
-                    request.amountFilled += uint128(amountToFill);
-                    unstakeRequestCurrentIndex = i;
+                    if (amountToFill == (request.amount - request.amountFilled) && i < unstakeRequestCount) {
+                        unstakeRequestCurrentIndex = i + 1;
+                    } else {
+                        request.amountFilled += uint128(amountToFill);
+                        unstakeRequestCurrentIndex = i;
+                    }
+                    break;
                 }
-                break;
             }
         }
 
+        totalUnstaked += unstakeAmount;
+
         // If less pending unstake under VALIDATOR_TOTAL_DEPOSIT, it means the unstake is completed
-        if (totalPendingUnstake < VALIDATOR_TOTAL_DEPOSIT) {
+        if (pool.exitedValidators() + exitedValidators >= validatorsExitedThreshold) {
             unstakeProcessing = false;
         }
 
@@ -493,16 +507,12 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         address operator = msg.sender;
 
-        _beforeTokenTransfer(address(0), to, amount);
-
         // tokens being minted
         _totalDeposits += amount;
 
         _deposits[to] += amount;
 
         emit Transfer(operator, address(0), to, amount, allowNonLSP1Recipient, data);
-
-        _notifyTokenReceiver(address(0), to, amount, allowNonLSP1Recipient, data);
     }
 
     /**
@@ -524,7 +534,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 amount,
         bool allowNonLSP1Recipient,
         bytes memory data
-    ) internal virtual {
+    ) internal virtual whenNotPaused {
         require(block.number > rewards.lastUpdateBlockNumber(), "StakedLyxToken: cannot transfer during rewards update");
         if (from == address(0) || to == address(0)) {
             revert LSP7CannotSendWithAddressZero();
@@ -549,74 +559,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         address operator = msg.sender;
 
-        _beforeTokenTransfer(from, to, amount);
-
         _deposits[from] -= amount;
         _deposits[to] += amount;
 
         emit Transfer(operator, from, to, amount, allowNonLSP1Recipient, data);
-
-        _notifyTokenSender(from, to, amount, data);
-        _notifyTokenReceiver(from, to, amount, allowNonLSP1Recipient, data);
-    }
-
-    /**
-     * @dev Hook that is called before any token transfer. This includes minting
-     * and burning.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s `amount` tokens will be
-     * transferred to `to`.
-     * - When `from` is zero, `amount` tokens will be minted for `to`.
-     * - When `to` is zero, ``from``'s `amount` tokens will be burned.
-     * - `from` and `to` are never both zero.
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
-
-    /**
-     * @dev An attempt is made to notify the token sender about the `amount` tokens changing owners using
-     * LSP1 interface.
-     */
-    function _notifyTokenSender(
-        address from,
-        address to,
-        uint256 amount,
-        bytes memory data
-    ) internal virtual {
-        if (ERC165Checker.supportsERC165InterfaceUnchecked(from, _INTERFACEID_LSP1)) {
-            bytes memory packedData = abi.encodePacked(from, to, amount, data);
-            ILSP1UniversalReceiver(from).universalReceiver(_TYPEID_LSP7_TOKENSSENDER, packedData);
-        }
-    }
-
-    /**
-     * @dev An attempt is made to notify the token receiver about the `amount` tokens changing owners
-     * using LSP1 interface. When allowNonLSP1Recipient is FALSE the token receiver MUST support LSP1.
-     *
-     * The receiver may revert when the token being sent is not wanted.
-     */
-    function _notifyTokenReceiver(
-        address from,
-        address to,
-        uint256 amount,
-        bool allowNonLSP1Recipient,
-        bytes memory data
-    ) internal virtual {
-        if (ERC165Checker.supportsERC165InterfaceUnchecked(to, _INTERFACEID_LSP1)) {
-            bytes memory packedData = abi.encodePacked(from, to, amount, data);
-            ILSP1UniversalReceiver(to).universalReceiver(_TYPEID_LSP7_TOKENSRECIPIENT, packedData);
-        } else if (!allowNonLSP1Recipient) {
-            if (to.code.length > 0) {
-                revert LSP7NotifyTokenReceiverContractMissingLSP1Interface(to);
-            } else {
-                revert LSP7NotifyTokenReceiverIsEOA(to);
-            }
-        }
     }
 
     // --- Methods for ERC20 compatibility ---

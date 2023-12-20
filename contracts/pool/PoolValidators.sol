@@ -34,6 +34,10 @@ contract PoolValidators is IPoolValidators, OwnablePausableUpgradeable, Reentran
     /// #if_updated {:msg "oracles does not change after initialization"} msg.sig == this.initialize.selector;
     address private oracles;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
     * @dev See {IPoolValidators-initialize}.
     */

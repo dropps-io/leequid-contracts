@@ -62,6 +62,8 @@ interface IRewards {
 
     event RewardsCashedOut(address indexed account, uint256 amount);
 
+    event RewardsCompounded(address indexed account, uint256 amount);
+
     /**
     * @dev Function for getting the address of the merkle distributor.
     */
@@ -132,6 +134,13 @@ interface IRewards {
     * @param isDisabled - whether the rewards will be disabled.
     */
     function setRewardsDisabled(address account, bool isDisabled) external;
+
+    /**
+    * @dev Function to send LYX to the pool contract without activating it.
+    * Can only be called by the `StakedEthToken` contract.
+    * @param amount - amount of LYX to send to the pool without activation
+    */
+    function sendToPoolWithoutActivation(uint256 amount) external;
 
     /**
     * @dev Function for retrieving account's current checkpoint.

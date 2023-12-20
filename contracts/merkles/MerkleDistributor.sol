@@ -37,6 +37,10 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
     // This is a packed array of booleans.
     mapping (bytes32 => mapping (uint256 => uint256)) private _claimedBitMap;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _rewards,
@@ -48,13 +52,10 @@ contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
     }
 
     /**
-     * @dev See {IMerkleDistributor-upgrade}.
+     * @dev See {IMerkleDistributor-setOracles}.
      */
-    function upgrade(address _oracles) external override onlyAdmin whenPaused {
-        require(
-            _oracles != address(0) && address(oracles) == 0x2f1C5E86B13a74f5A6E7B4b35DD77fe29Aa47514,
-            "MerkleDistributor: invalid Oracles address"
-        );
+    function setOracles(address _oracles) external override onlyAdmin {
+        require(_oracles != address(0), "MerkleDistributor: invalid Oracles address");
         oracles = IOracles(_oracles);
     }
 

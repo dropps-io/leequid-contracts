@@ -67,6 +67,10 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     /// #if_updated {:msg "only admin can set pendingValidatorsLimit"} hasRole(DEFAULT_ADMIN_ROLE, msg.sender);
     uint256 public override pendingValidatorsLimit;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _stakedLyxToken,
@@ -140,8 +144,11 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
         emit ExitedValidatorsUpdated(exitedValidators, msg.sender);
     }
 
+    /**
+    * @dev See {IPool-receiveWithoutActivation}.
+    */
     function receiveWithoutActivation() external payable override {
-        require(msg.sender == address(stakedLyxToken) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
+        require(msg.sender == address(rewards) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Pool: access denied");
     }
 
     /**
@@ -157,11 +164,6 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
     function stakeOnBehalf(address recipient) external payable override nonReentrant {
         _stake(recipient, msg.value);
     }
-
-    /**
-    * @dev See {IPool-receiveFees}.
-    */
-    function receiveFees() external payable override {}
 
     /**
     * @dev Function for staking ETH using transfer.

@@ -19,7 +19,7 @@ describe("Pool contract", function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin, oracle, operator, user1, user2;
+  let admin, oracle, operator, user1, user2, proxyOwner;
   let orchestrator;
 
   before(async function () {
@@ -31,24 +31,66 @@ describe("Pool contract", function () {
     MerkleDistributor = await ethers.getContractFactory("MerkleDistributor");
     FeesEscrow = await ethers.getContractFactory("FeesEscrow");
     DepositContract = await ethers.getContractFactory("DepositContract");
-    [admin, oracle, operator, user1, user2, orchestrator] = await ethers.getSigners();
+    [admin, oracle, operator, user1, user2, orchestrator, proxyOwner] = await ethers.getSigners();
   });
 
   beforeEach(async function () {
-    oracles = await Oracles.deploy();
-    rewards = await Rewards.deploy();
-    stakedLyxToken = await StakedLyxToken.deploy();
-    pool = await Pool.deploy();
-    poolValidators = await PoolValidators.deploy();
-    merkleDistributor = await MerkleDistributor.deploy();
+    const AdminUpgradeabilityProxy = await ethers.getContractFactory("AdminUpgradeabilityProxy");
+
+    const oraclesImplementation = await Oracles.deploy();
+    const rewardsImplementation = await Rewards.deploy();
+    const stakedLyxTokenImplementation = await StakedLyxToken.deploy();
+    const poolImplementation = await Pool.deploy();
+    const poolValidatorsImplementation = await PoolValidators.deploy();
+    const merkleDistributorImplementation = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewards.address);
-    await oracles.deployed();
+
+    const rewardsProxy = await AdminUpgradeabilityProxy.deploy(
+      rewardsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const stakedLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
+      stakedLyxTokenImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const oraclesProxy = await AdminUpgradeabilityProxy.deploy(
+      oraclesImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolProxy = await AdminUpgradeabilityProxy.deploy(
+      poolImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolValidatorsProxy = await AdminUpgradeabilityProxy.deploy(
+      poolValidatorsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
+      merkleDistributorImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+
+    oracles = Oracles.attach(oraclesProxy.address);
+    rewards = Rewards.attach(rewardsProxy.address);
+    stakedLyxToken = StakedLyxToken.attach(stakedLyxTokenProxy.address);
+    pool = Pool.attach(poolProxy.address);
+    poolValidators = PoolValidators.attach(poolValidatorsProxy.address);
+    merkleDistributor = MerkleDistributor.attach(merkleDistributorProxy.address);
+
     await rewards.deployed();
     await stakedLyxToken.deployed();
+    await oracles.deployed();
     await pool.deployed();
     await poolValidators.deployed();
     await merkleDistributor.deployed();
+
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
     await feesEscrow.deployed();
 
     await oracles.initialize(
@@ -134,6 +176,13 @@ describe("Pool contract", function () {
   });
 
   describe("stake", function () {
+    it("should revert if contract paused", async function () {
+      await pool.connect(admin).pause();
+      await expect(
+        pool.connect(user1).stake({ value: ethers.utils.parseEther("1") })
+      ).to.be.revertedWith("Pausable: paused");
+    });
+
     it("should be able to stake by calling the stake method", async function () {
       const balanceBefore = await ethers.provider.getBalance(user1.address);
       await pool.connect(user1).stake({ value: ethers.utils.parseEther("1") });
@@ -207,6 +256,48 @@ describe("Pool contract", function () {
     it("should revert when activating invalid validator index", async function () {
       await expect(pool.connect(user2).activate(user2.address, 1)).to.revertedWith(
         "Pool: invalid validator index"
+      );
+    });
+
+    it("should be able to activate pending deposits", async function () {
+      // pending activation as 32LYX is 50% of 64LYX (current amount staked)
+      await pool.connect(user1).stake({
+        value: ethers.utils.parseEther("32"),
+      });
+
+      //32LYX deposited so we create a new validator
+      const depositData = [getTestDepositData(operator.address)[2]];
+      // So it mints directly when stake more than minActivatingDeposit
+
+      await registerValidators(
+        depositData,
+        oracles,
+        poolValidators,
+        beaconDepositMock,
+        [oracle],
+        admin,
+        operator,
+        orchestrator
+      );
+
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle],
+        nonce.toString(),
+        ethers.utils.parseEther("100"),
+        3,
+        0
+      );
+
+      // Once the rewards are submitted with the new number of validators, the activatedValidators value is updated
+      // Meaning the new maxIndex increased so we can activate our deposit
+      await oracles
+        .connect(orchestrator)
+        .submitRewards(ethers.utils.parseEther("100"), 3, 0, signatures);
+
+      await pool.connect(admin).pause();
+      await expect(pool.connect(user1).activate(user1.address, 3)).to.be.revertedWith(
+        "Pausable: paused"
       );
     });
 

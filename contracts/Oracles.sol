@@ -67,6 +67,10 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _rewards,

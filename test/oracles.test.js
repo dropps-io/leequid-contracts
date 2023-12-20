@@ -21,7 +21,7 @@ describe("Oracles contract", function () {
   let MerkleDistributor, merkleDistributor;
   let FeesEscrow, feesEscrow;
   let DepositContract, beaconDepositMock;
-  let admin, oracle1, oracle2, oracle3, oracle4, operator, user1, user2, user3, user4;
+  let admin, oracle1, oracle2, oracle3, oracle4, operator, user1, user2, user3, user4, proxyOwner;
   let orchestrator;
 
   before(async function () {
@@ -45,34 +45,74 @@ describe("Oracles contract", function () {
       user3,
       user4,
       orchestrator,
+      proxyOwner,
     ] = await ethers.getSigners();
   });
 
   beforeEach(async function () {
-    oracles = await Oracles.deploy();
-    rewards = await Rewards.deploy();
-    stakedLyxToken = await StakedLyxToken.deploy();
-    pool = await Pool.deploy();
-    poolValidators = await PoolValidators.deploy();
-    merkleDistributor = await MerkleDistributor.deploy();
+    const AdminUpgradeabilityProxy = await ethers.getContractFactory("AdminUpgradeabilityProxy");
+
+    const oraclesImplementation = await Oracles.deploy();
+    const rewardsImplementation = await Rewards.deploy();
+    const stakedLyxTokenImplementation = await StakedLyxToken.deploy();
+    const poolImplementation = await Pool.deploy();
+    const poolValidatorsImplementation = await PoolValidators.deploy();
+    const merkleDistributorImplementation = await MerkleDistributor.deploy();
     beaconDepositMock = await DepositContract.deploy();
-    feesEscrow = await FeesEscrow.deploy(rewards.address);
-    await oracles.deployed();
+    await oraclesImplementation.deployed();
+    await rewardsImplementation.deployed();
+    await stakedLyxTokenImplementation.deployed();
+    await poolImplementation.deployed();
+    await poolValidatorsImplementation.deployed();
+    await merkleDistributorImplementation.deployed();
+
+    const rewardsProxy = await AdminUpgradeabilityProxy.deploy(
+      rewardsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const stakedLyxTokenProxy = await AdminUpgradeabilityProxy.deploy(
+      stakedLyxTokenImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const oraclesProxy = await AdminUpgradeabilityProxy.deploy(
+      oraclesImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolProxy = await AdminUpgradeabilityProxy.deploy(
+      poolImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const poolValidatorsProxy = await AdminUpgradeabilityProxy.deploy(
+      poolValidatorsImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+    const merkleDistributorProxy = await AdminUpgradeabilityProxy.deploy(
+      merkleDistributorImplementation.address,
+      proxyOwner.address,
+      "0x"
+    );
+
+    oracles = Oracles.attach(oraclesProxy.address);
+    rewards = Rewards.attach(rewardsProxy.address);
+    stakedLyxToken = StakedLyxToken.attach(stakedLyxTokenProxy.address);
+    pool = Pool.attach(poolProxy.address);
+    poolValidators = PoolValidators.attach(poolValidatorsProxy.address);
+    merkleDistributor = MerkleDistributor.attach(merkleDistributorProxy.address);
+
     await rewards.deployed();
     await stakedLyxToken.deployed();
+    await oracles.deployed();
     await pool.deployed();
     await poolValidators.deployed();
     await merkleDistributor.deployed();
-    await feesEscrow.deployed();
 
-    await oracles.initialize(
-      admin.address,
-      rewards.address,
-      stakedLyxToken.address,
-      pool.address,
-      poolValidators.address,
-      merkleDistributor.address
-    );
+    feesEscrow = await FeesEscrow.deploy(rewards.address);
+    await feesEscrow.deployed();
 
     await rewards.initialize(
       admin.address,
@@ -83,6 +123,15 @@ describe("Oracles contract", function () {
       merkleDistributor.address,
       feesEscrow.address,
       pool.address
+    );
+
+    await oracles.initialize(
+      admin.address,
+      rewards.address,
+      stakedLyxToken.address,
+      pool.address,
+      poolValidators.address,
+      merkleDistributor.address
     );
 
     await stakedLyxToken
@@ -122,6 +171,44 @@ describe("Oracles contract", function () {
         to: pool.address,
         value: ethers.utils.parseEther("100"),
       });
+    });
+
+    it("Should revert if contract paused", async function () {
+      const validatorsDepositRoot = await beaconDepositMock.get_deposit_root();
+      const depositData = getTestDepositData(operator.address);
+      const merkle = generateDepositDataMerkle(depositData);
+
+      await poolValidators
+        .connect(admin)
+        .addOperator(
+          operator.address,
+          merkle.depositDataMerkleRoot,
+          merkle.depositDataMerkleProofsString
+        );
+
+      await poolValidators.connect(operator).commitOperator();
+
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentValidatorsNonce();
+      const signatures = await generateSignaturesForRegisterValidators(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        depositData,
+        validatorsDepositRoot
+      );
+
+      await oracles.connect(admin).pause();
+      // Call registerValidators with the signatures
+      await expect(
+        oracles
+          .connect(orchestrator)
+          .registerValidators(
+            depositData,
+            merkle.depositDataMerkleProofNodes,
+            validatorsDepositRoot,
+            signatures
+          )
+      ).to.be.revertedWith("Pausable: paused");
     });
 
     it("Should register validators with enough signatures", async function () {
@@ -443,6 +530,26 @@ describe("Oracles contract", function () {
       );
     });
 
+    it("Should revert if contract paused", async function () {
+      // Calculate the nonce and the message to sign
+      const nonce = await oracles.currentRewardsNonce();
+      const signatures = await generateSignaturesForSubmitRewards(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        totalRewardsWei,
+        activatedValidators,
+        exitedValidators
+      );
+
+      await oracles.connect(admin).pause();
+      // Call submitRewards with the signatures
+      await expect(
+        oracles
+          .connect(orchestrator)
+          .submitRewards(totalRewardsWei, activatedValidators, exitedValidators, signatures)
+      ).to.be.revertedWith("Pausable: paused");
+    });
+
     it("Should submit rewards with enough signatures", async function () {
       // Calculate the nonce and the message to sign
       const nonce = await oracles.currentRewardsNonce();
@@ -643,6 +750,29 @@ describe("Oracles contract", function () {
           0,
           signatures
         );
+    });
+
+    it("Should revert if contract paused", async function () {
+      const merkle = generateDepositDataMerkle(getTestDepositData(operator.address));
+      const nonce = await oracles.currentRewardsNonce();
+
+      const signatures = await generateSignaturesForSubmitMerkleRoot(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString(),
+        merkle.depositDataMerkleRoot,
+        merkle.depositDataMerkleProofsString
+      );
+
+      await oracles.connect(admin).pause();
+      await expect(
+        oracles
+          .connect(orchestrator)
+          .submitMerkleRoot(
+            merkle.depositDataMerkleRoot,
+            merkle.depositDataMerkleProofsString,
+            signatures
+          )
+      ).to.be.revertedWith("Pausable: paused");
     });
 
     it("Should submit merkle root with enough signatures", async function () {
@@ -871,7 +1001,7 @@ describe("Oracles contract", function () {
       await pool.connect(user2).stake({ value: ethers.utils.parseEther("100") });
     });
 
-    it("Should not increase nonce and emit UnstakeReady event if 32LYX or more to unstake", async function () {
+    it("Should begin unstake and emit UnstakeReady event if 32LYX or more to unstake", async function () {
       await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
 
       const nonce = await oracles.currentUnstakeNonce();
@@ -889,6 +1019,22 @@ describe("Oracles contract", function () {
 
       expect((await oracles.currentUnstakeNonce()).toNumber()).to.equal(nonce.add(1).toNumber());
       expect(unstakeProcessing).to.equal(true);
+    });
+
+    it("Should revert if contract paused", async function () {
+      await stakedLyxToken.connect(user1).unstake(ethers.utils.parseEther("32"));
+
+      const nonce = await oracles.currentUnstakeNonce();
+
+      const signatures = await generateSignaturesForSetUnstakeProcessing(
+        [oracle1, oracle2, oracle3, oracle4],
+        nonce.toString()
+      );
+
+      await oracles.connect(admin).pause();
+      await expect(oracles.connect(orchestrator).beginUnstake(signatures)).to.be.revertedWith(
+        "Pausable: paused"
+      );
     });
 
     it("Should revert if contract already processing unstake", async function () {

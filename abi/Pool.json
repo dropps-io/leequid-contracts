@@ -461,6 +461,19 @@
   },
   {
     "inputs": [],
+    "name": "effectiveValidators",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "exitedValidators",
     "outputs": [
       {
@@ -686,6 +699,13 @@
   {
     "inputs": [],
     "name": "receiveFees",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "receiveWithoutActivation",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
