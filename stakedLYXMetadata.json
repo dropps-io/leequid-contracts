@@ -1,0 +1,33 @@
+{
+  "LSP4Metadata": {
+    "name": "StakedLYX",
+    "description": "StakedLYX is a token that represents the staked LYX tokens in the LEEQUID protocol.",
+    "links": [
+      {
+        "title": "LEEQUID",
+        "url": "https://leequid.io"
+      },
+      {
+        "title": "Twitter",
+        "url": "https://twitter.com/leequid_io"
+      }
+    ],
+    "icon": [
+      {
+        "width": 2000,
+        "height": 2000,
+        "url": "ipfs://QmT2d8tm7eAaS669L1YCx1SttNDxKTFgUSZs2NewK8uSsH",
+        "verification": {
+          "method": "keccak256(bytes)",
+          "data": "0x187aab8a6f6d05b483452886e4f49d5f23b9bbf63ddb94a5f2749d021145f0a9"
+        }
+      }
+    ],
+    "images": [
+
+    ],
+    "assets": [
+
+    ]
+  }
+}
