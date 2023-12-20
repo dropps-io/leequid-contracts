@@ -19,7 +19,7 @@ nohup npx hardhat node > /dev/null 2>&1 &
 sleep 30
 
 # Run your deploy script
-npx hardhat run scripts/local/deploy.js --no-compile --network local
+npx hardhat run scripts/local/deploy-contracts.js --no-compile --network local
 
 # Run the fuzz command
 fuzz -c .fuzz.yml run --no-prompts

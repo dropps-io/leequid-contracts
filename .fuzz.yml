@@ -11,6 +11,12 @@ fuzz:
     - '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707'
     - '0x0165878A594ca255338adfa4d48449f69242Eb8F'
     - '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853'
+    - '0x8a791620dd6260079bf849dc5567adc3f2fdc318'
+    - '0xb7f8bc63bbcad18155201308c8f3540b07f84f5e'
+    - '0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0'
+    - '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0'
+    - '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9'
+    - '0x0165878a594ca255338adfa4d48449f69242eb8f'
   number_of_cores: 1
   time_limit: 4h
   project: Dropps
