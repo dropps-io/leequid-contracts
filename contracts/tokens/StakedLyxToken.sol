@@ -1,9 +1,20 @@
 // SPDX-License-Identifier: CC0-1.0
 pragma solidity ^0.8.20;
 
+// libraries
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { LSP1Utils } from "@lukso/lsp-smart-contracts/contracts/LSP1UniversalReceiver/LSP1Utils.sol";
+import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { ERC725YCore } from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+
 // interfaces
 import { ILSP7DigitalAsset } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
+import { IRewards } from "../interfaces/IRewards.sol";
+import { IPool } from "../interfaces/IPool.sol";
 
 // errors
 import {LSP7AmountExceedsAuthorizedAmount,
@@ -17,14 +28,8 @@ LSP7AmountExceedsBalance
 
 // constants
 import { LSP4DigitalAssetMetadataInitAbstract } from "@lukso/lsp-smart-contracts/contracts/LSP4DigitalAssetMetadata/LSP4DigitalAssetMetadataInitAbstract.sol";
-import { _INTERFACEID_LSP7 } from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
-import { IStakedLyxToken } from "../interfaces/IStakedLyxToken.sol";
-import { IRewards } from "../interfaces/IRewards.sol";
-import { IPool } from "../interfaces/IPool.sol";
-import { OwnablePausableUpgradeable } from "../presets/OwnablePausableUpgradeable.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { ERC725YCore } from "@erc725/smart-contracts/contracts/ERC725YCore.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { _INTERFACEID_LSP7,_TYPEID_LSP7_TOKENOPERATOR} from "@lukso/lsp-smart-contracts/contracts/LSP7DigitalAsset/LSP7Constants.sol";
+
 
 /**
  * @title StakedLyxToken
@@ -32,6 +37,10 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
  * @dev StakedLyxToken contract stores pool staked tokens.
  */
 contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataInitAbstract, IStakedLyxToken, ReentrancyGuardUpgradeable {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    // --- Storage
+
     // @dev Validator deposit amount.
     uint256 public constant override VALIDATOR_TOTAL_DEPOSIT = 32 ether;
 
@@ -78,6 +87,10 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     // @dev Validators Exited Threshold - The number of validators that need to exit before we can set unstake processing to true.
     uint256 internal validatorsExitedThreshold;
 
+    // Mapping an `address` to its authorized operator addresses.
+    mapping(address => EnumerableSet.AddressSet) internal _operators;
+
+
     constructor() {
         _disableInitializers();
     }
@@ -93,7 +106,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         require(_admin != address(0), "StakedLyxToken: admin address cannot be zero");
         require(address(_rewards) != address(0), "StakedLyxToken: rewards address cannot be zero");
 
-        LSP4DigitalAssetMetadataInitAbstract._initialize("StakedLyxToken", "sLYX", _admin);
+        LSP4DigitalAssetMetadataInitAbstract._initialize("StakedLyxToken", "sLYX", _admin, 0);
         __OwnablePausableUpgradeable_init_unchained(_admin);
         pool = _pool;
         oracles = _oracles;
@@ -187,12 +200,50 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
     // --- Operator functionality
 
-    function authorizeOperator(address operator, uint256 amount) public override {
-        _updateOperator(msg.sender, operator, amount);
+    function authorizeOperator(
+        address operator,
+        uint256 amount,
+        bytes memory operatorNotificationData
+    ) public virtual override {
+        _updateOperator(
+            msg.sender,
+            operator,
+            amount,
+            true,
+            operatorNotificationData
+        );
+
+        bytes memory lsp1Data = abi.encode(
+            msg.sender,
+            amount,
+            operatorNotificationData
+        );
+
+        _notifyTokenOperator(operator, lsp1Data);
     }
 
-    function revokeOperator(address operator) public override {
-        _updateOperator(msg.sender, operator, 0);
+    function revokeOperator(
+        address operator,
+        bool notify,
+        bytes memory operatorNotificationData
+    ) public virtual override {
+        _updateOperator(
+            msg.sender,
+            operator,
+            0,
+            notify,
+            operatorNotificationData
+        );
+
+        if (notify) {
+            bytes memory lsp1Data = abi.encode(
+                msg.sender,
+                0,
+                operatorNotificationData
+            );
+
+            _notifyTokenOperator(operator, lsp1Data);
+        }
     }
 
     function authorizedAmountFor(address operator, address tokenOwner) public view override returns (uint256)
@@ -204,56 +255,54 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         }
     }
 
+    function getOperatorsOf(
+        address tokenOwner
+    ) public view virtual override returns (address[] memory) {
+        return _operators[tokenOwner].values();
+    }
+
     // --- Transfer functionality
 
     function transfer(
         address from,
         address to,
         uint256 amount,
-        bool allowNonLSP1Recipient,
+        bool force,
         bytes memory data
-    ) public override {
+    ) public virtual override {
         if (from == to) revert LSP7CannotSendToSelf();
 
-        address operator = msg.sender;
-        if (operator != from) {
-            uint256 operatorAmount = _operatorAuthorizedAmount[from][operator];
-            if (amount > operatorAmount) {
-                revert LSP7AmountExceedsAuthorizedAmount(from, operatorAmount, operator, amount);
-            }
-
-            _updateOperator(from, operator, operatorAmount - amount);
+        if (msg.sender != from) {
+            _spendAllowance({
+                operator: msg.sender,
+                tokenOwner: from,
+                amountToSpend: amount
+            });
         }
 
-        _transfer(from, to, amount, allowNonLSP1Recipient, data);
+        _transfer(from, to, amount, force, data);
     }
 
     function transferBatch(
         address[] memory from,
         address[] memory to,
         uint256[] memory amount,
-        bool[] memory allowNonLSP1Recipient,
+        bool[] memory force,
         bytes[] memory data
-    ) public virtual {
+    ) public virtual override {
         uint256 fromLength = from.length;
         if (
             fromLength != to.length ||
             fromLength != amount.length ||
-            fromLength != allowNonLSP1Recipient.length ||
+            fromLength != force.length ||
             fromLength != data.length
         ) {
             revert LSP7InvalidTransferBatch();
         }
 
-        for (uint256 i = 0; i < fromLength; ) {
+        for (uint256 i; i < fromLength; ) {
             // using the public transfer function to handle updates to operator authorized amounts
-            transfer(
-                from[i],
-                to[i],
-                amount[i],
-                allowNonLSP1Recipient[i],
-                data[i]
-            );
+            transfer(from[i], to[i], amount[i], force[i], data[i]);
 
             unchecked {
                 ++i;
@@ -262,22 +311,30 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     }
 
     /**
-     * @dev Changes token `amount` the `operator` has access to from `tokenOwner` tokens. If the
-     * amount is zero then the operator is being revoked, otherwise the operator amount is being
-     * modified.
+     * @dev Changes token `amount` the `operator` has access to from `tokenOwner` tokens.
+     * If the amount is zero the operator is removed from the list of operators, otherwise he is added to the list of operators.
+     * If the amount is zero then the operator is being revoked, otherwise the operator amount is being modified.
      *
-     * See {authorizedAmountFor}.
+     * @param tokenOwner The address that will give `operator` an allowance for on its balance.
+     * @param operator The address to grant an allowance to spend.
+     * @param allowance The maximum amount of token that `operator` can spend from the `tokenOwner`'s balance.
+     * @param notified Boolean indicating whether the operator has been notified about the change of allowance
+     * @param operatorNotificationData The data to send to the universalReceiver function of the operator in case of notifying
      *
-     * Emits either {AuthorizedOperator} or {RevokedOperator} event.
+     * @custom:events
+     * - {OperatorRevoked} event when operator's allowance is set to `0`.
+     * - {OperatorAuthorizationChanged} event when operator's allowance is set to any other amount.
      *
-     * Requirements
-     *
+     * @custom:requirements
      * - `operator` cannot be the zero address.
+     * - `operator` cannot be the same address as `tokenOwner`.
      */
     function _updateOperator(
         address tokenOwner,
         address operator,
-        uint256 amount
+        uint256 allowance,
+        bool notified,
+        bytes memory operatorNotificationData
     ) internal virtual {
         if (operator == address(0)) {
             revert LSP7CannotUseAddressZeroAsOperator();
@@ -287,12 +344,24 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             revert LSP7TokenOwnerCannotBeOperator();
         }
 
-        _operatorAuthorizedAmount[tokenOwner][operator] = amount;
+        _operatorAuthorizedAmount[tokenOwner][operator] = allowance;
 
-        if (amount != 0) {
-            emit AuthorizedOperator(operator, tokenOwner, amount);
+        if (allowance != 0) {
+            _operators[tokenOwner].add(operator);
+            emit OperatorAuthorizationChanged(
+                operator,
+                tokenOwner,
+                allowance,
+                operatorNotificationData
+            );
         } else {
-            emit RevokedOperator(operator, tokenOwner);
+            _operators[tokenOwner].remove(operator);
+            emit OperatorRevoked(
+                operator,
+                tokenOwner,
+                notified,
+                operatorNotificationData
+            );
         }
     }
 
@@ -456,7 +525,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
      */
     function mint(address to,
         uint256 amount,
-        bool allowNonLSP1Recipient,
+        bool force,
         bytes memory data) external override {
         require(msg.sender == address(pool), "StakedLyxToken: access denied");
 
@@ -467,7 +536,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
             distributorPrincipal = distributorPrincipal + amount;
         }
 
-        _mint(to, amount, allowNonLSP1Recipient, data);
+        _mint(to, amount, force, data);
     }
 
     /**
@@ -482,7 +551,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     function _mint(
         address to,
         uint256 amount,
-        bool allowNonLSP1Recipient,
+        bool force,
         bytes memory data
     ) internal virtual {
         if (to == address(0)) {
@@ -496,7 +565,14 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
 
         _deposits[to] += amount;
 
-        emit Transfer(operator, address(0), to, amount, allowNonLSP1Recipient, data);
+        emit Transfer({
+            operator: msg.sender,
+            from: address(0),
+            to: to,
+            amount: amount,
+            force: force,
+            data: data
+        });
     }
 
     /**
@@ -516,7 +592,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         address from,
         address to,
         uint256 amount,
-        bool allowNonLSP1Recipient,
+        bool force,
         bytes memory data
     ) internal virtual whenNotPaused {
         require(block.number > rewards.lastUpdateBlockNumber(), "StakedLyxToken: cannot transfer during rewards update");
@@ -546,7 +622,69 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         _deposits[from] -= amount;
         _deposits[to] += amount;
 
-        emit Transfer(operator, from, to, amount, allowNonLSP1Recipient, data);
+        emit Transfer(operator, from, to, amount, force, data);
+    }
+
+    /**
+     * @dev Spend `amountToSpend` from the `operator`'s authorized on behalf of the `tokenOwner`.
+     *
+     * @param operator The address of the operator to decrease the allowance of.
+     * @param tokenOwner The address that granted an allowance on its balance to `operator`.
+     * @param amountToSpend The amount of tokens to substract in allowance of `operator`.
+     *
+     * @custom:events
+     * - {OperatorRevoked} event when operator's allowance is set to `0`.
+     * - {OperatorAuthorizationChanged} event when operator's allowance is set to any other amount.
+     *
+     * @custom:requirements
+     * - The `amountToSpend` MUST be at least the allowance granted to `operator` (accessible via {`authorizedAmountFor}`)
+     * - `operator` cannot be the zero address.
+     * - `operator` cannot be the same address as `tokenOwner`.
+     */
+    function _spendAllowance(
+        address operator,
+        address tokenOwner,
+        uint256 amountToSpend
+    ) internal virtual {
+        uint256 authorizedAmount = _operatorAuthorizedAmount[tokenOwner][
+                    operator
+            ];
+
+        if (amountToSpend > authorizedAmount) {
+            revert LSP7AmountExceedsAuthorizedAmount(
+                tokenOwner,
+                authorizedAmount,
+                operator,
+                amountToSpend
+            );
+        }
+
+        _updateOperator({
+            tokenOwner: tokenOwner,
+            operator: operator,
+            allowance: authorizedAmount - amountToSpend,
+            notified: false,
+            operatorNotificationData: ""
+        });
+    }
+
+    /**
+     * @dev Attempt to notify the operator `operator` about the `amount` tokens being authorized with.
+     * This is done by calling its {universalReceiver} function with the `_TYPEID_LSP7_TOKENOPERATOR` as typeId, if `operator` is a contract that supports the LSP1 interface.
+     * If `operator` is an EOA or a contract that does not support the LSP1 interface, nothing will happen and no notification will be sent.
+
+     * @param operator The address to call the {universalReceiver} function on.
+     * @param lsp1Data the data to be sent to the `operator` address in the `universalReceiver` call.
+     */
+    function _notifyTokenOperator(
+        address operator,
+        bytes memory lsp1Data
+    ) internal virtual {
+        LSP1Utils.notifyUniversalReceiver(
+            operator,
+            _TYPEID_LSP7_TOKENOPERATOR,
+            lsp1Data
+        );
     }
 
     // --- Methods for ERC20 compatibility ---
@@ -556,7 +694,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
     }
 
     function approve(address operator, uint256 amount) public virtual returns (bool) {
-        authorizeOperator(operator, amount);
+        _updateOperator(msg.sender, operator, amount, false, "");
         return true;
     }
 
