@@ -115,7 +115,7 @@ async function deployLocalContracts(mute) {
   const SwapV1Mock = await ethers.getContractFactory("SwapV1Mock");
   const swapV1Mock = await SwapV1Mock.deploy(args);
   await swapV1Mock.deployed();
-  if (!mute) console.log("SwapV1Mock deployed to:", oracles.address);
+  if (!mute) console.log("SwapV1Mock deployed to:", swapV1Mock.address);
 
   if (!mute) console.log("Setup SwapV1Mock...");
   await swapV1Mock.setup(stakedLyxToken.address, args);
