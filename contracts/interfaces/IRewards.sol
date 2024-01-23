@@ -60,7 +60,7 @@ interface IRewards {
         uint256[] unstakeRequestsIndexes
     );
 
-    event RewardsCashedOut(address indexed account, uint256 amount);
+    event SLyxClaimed(address indexed account, uint256 amount);
 
     event RewardsCompounded(address indexed account, uint256 amount);
 
@@ -183,20 +183,12 @@ interface IRewards {
     function claim(address account, uint256 amount) external;
 
     /**
-     * @dev Cash out accumulated rewards for the specified amount.
+     * @dev Claim accumulated sLYX rewards for the specified amount.
      * Requires account balance and contract balance to be sufficient. Transfers Lyx to the user.
      * Emits a {RewardsCashedOut} event.
      * @param amount The amount of rewards to cash out.
      */
-    function cashOutRewards(uint256 amount) external;
-
-
-    /**
-     * @dev Compound accumulated rewards for the specified amount: transfer them to the pool as a stake on the behalf of the msg.sender.
-     * Requires account balance and contract balance to be sufficient. Stakes the rewards to the pool.
-     * @param amount - The amount of rewards to compound.
-     */
-    function compoundRewards(uint256 amount) external;
+    function claimSLYX(uint256 amount) external;
 
     /**
      * @dev Claim unstake for the specified request indexes.

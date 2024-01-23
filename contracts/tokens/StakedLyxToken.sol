@@ -458,7 +458,7 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
         uint256 amount,
         bool allowNonLSP1Recipient,
         bytes memory data) external override {
-        require(msg.sender == address(pool), "StakedLyxToken: access denied");
+        require(msg.sender == address(pool) || msg.sender == address(rewards), "StakedLyxToken: access denied");
 
         // start calculating account rewards with updated deposit amount
         bool rewardsDisabled = rewards.updateRewardCheckpoint(to);
