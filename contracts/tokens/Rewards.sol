@@ -238,7 +238,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     function updateTotalRewards(uint256 newTotalRewards) external override {
         require(msg.sender == oracles, "Rewards: access denied");
 
-        uint256 totalDeposits = stakedLyxToken.totalDeposits() + uint256(totalAvailableRewards());
+        uint256 totalDeposits = stakedLyxToken.totalDeposits();
         if (totalDeposits == 0) return;
 
         uint256 feesCollected = feesEscrow.transferToRewards();
@@ -284,9 +284,6 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         }
 
         lastUpdateBlockNumber = block.number;
-
-        pool.receiveWithoutActivation{value: periodRewards}();
-
         emit RewardsUpdated(
             periodRewards,
             newTotalRewards,
@@ -333,12 +330,27 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     /**
      * @dev See {IRewards-cashOutRewards}.
      */
-    function claimSLYX(uint256 amount) external override nonReentrant {
+    function cashOutRewards(uint256 amount) external override nonReentrant {
+        address payable recipient = payable(msg.sender);
+
         _cashOutAccountRewards(recipient, amount);
 
         // Transfer Ether after updating the state
-        stakedLyxToken.mint(msg.sender, amount, true, "");
-        emit SLyxClaimed(recipient, amount);
+        recipient.transfer(amount);
+        emit RewardsCashedOut(recipient, amount);
+    }
+
+    /**
+     * @dev See {IRewards-compoundRewards}.
+     */
+    function compoundRewards(uint256 amount) external override nonReentrant {
+        address recipient = msg.sender;
+
+        _cashOutAccountRewards(recipient, amount);
+
+        // Stake the rewards to the pool
+        pool.stakeOnBehalf{value : amount}(recipient);
+        emit RewardsCompounded(recipient, amount);
     }
 
 
