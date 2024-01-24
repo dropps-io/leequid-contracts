@@ -354,8 +354,6 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
      * @dev See {IRewards-compoundOnBehalf}.
      */
     function compoundOnBehalf(address[] calldata accounts) external override {
-        require(msg.sender == address(oracles), "Rewards: access denied");
-
         for (uint256 i = 0; i < accounts.length; i++) {
             require(autoCompoundingEnabled[accounts[i]], "Rewards: auto-compounding disabled");
             _compound(accounts[i], balanceOf(accounts[i]));
@@ -366,8 +364,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
      * @dev See {IRewards-compoundRewards}.
      */
     function compoundRewards(uint256 amount) external override nonReentrant {
-        address recipient = msg.sender;
-        _compound(recipient, amount);
+        _compound(msg.sender, amount);
     }
 
     /**

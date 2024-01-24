@@ -320,13 +320,6 @@ contract Oracles is IOracles, OwnablePausableUpgradeable {
     }
 
     /**
-     * @dev See {IOracles-compoundOnBehalf}.
-     */
-    function compoundOnBehalf(address[] calldata accounts) external override onlyOrchestrator whenNotPaused {
-        rewards.compoundOnBehalf(accounts);
-    }
-
-    /**
      * @dev verifySignatures
      *
      * @param candidateId - The hashed value signed by the oracles
