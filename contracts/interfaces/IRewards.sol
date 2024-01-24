@@ -199,7 +199,6 @@ interface IRewards {
     /**
      * @dev Compound in behalf of accounts accumulated rewards for the specified amount: transfer them to the pool as a stake on the behalf of the msg.sender.
      * Requires account balance and contract balance to be sufficient. Stakes the rewards to the pool.
-     * Can only be called by the Oracles contract
      * @param accounts - The accounts to compound for.
      */
     function compoundOnBehalf(address[] calldata accounts) external;
