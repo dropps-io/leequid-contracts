@@ -190,6 +190,19 @@ interface IRewards {
      */
     function cashOutRewards(uint256 amount) external;
 
+    /**
+     * @dev Toggle auto-compounding of rewards.
+     * If auto-compounding is enabled, the protocol has the permission to compound rewards on behalf of the user.
+     */
+    function toggleAutoCompounding() external;
+
+    /**
+     * @dev Compound in behalf of accounts accumulated rewards for the specified amount: transfer them to the pool as a stake on the behalf of the msg.sender.
+     * Requires account balance and contract balance to be sufficient. Stakes the rewards to the pool.
+     * Can only be called by the Oracles contract
+     * @param accounts - The accounts to compound for.
+     */
+    function compoundOnBehalf(address[] calldata accounts) external;
 
     /**
      * @dev Compound accumulated rewards for the specified amount: transfer them to the pool as a stake on the behalf of the msg.sender.

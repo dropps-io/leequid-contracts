@@ -961,6 +961,90 @@ describe("Rewards contract", function () {
     });
   });
 
+  describe("compoundOnBehalf", function () {
+    const stakedAmount = 100000; // eth
+    const totalRewards = 100; // eth
+    const totalRewardsWei = ethers.utils.parseEther(totalRewards.toString()); // eth
+    const stakePerUser = ethers.utils.parseEther((stakedAmount / 4).toString());
+
+    beforeEach(async function () {
+      await pool.connect(user1).stake({ value: stakePerUser });
+      await pool.connect(user2).stake({ value: stakePerUser });
+      await pool.connect(user3).stake({ value: stakePerUser });
+      await pool.connect(user4).stake({ value: stakePerUser });
+    });
+
+    it("should not be able to compound if not enabled by user", async function () {
+      const transaction = {
+        to: rewards.address,
+        value: totalRewardsWei,
+        gasLimit: "30000000",
+      };
+      await chain.sendTransaction(transaction);
+      await rewards.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      await expect(rewards.connect(admin).compoundOnBehalf([user1.address])).to.be.revertedWith(
+        "Rewards: auto-compounding disabled"
+      );
+    });
+
+    it("should be able to compound", async function () {
+      const transaction = {
+        to: rewards.address,
+        value: totalRewardsWei,
+        gasLimit: "30000000",
+      };
+      await chain.sendTransaction(transaction);
+      await rewards.connect(admin).updateTotalRewards(totalRewardsWei);
+
+      const poolEthBalanceBefore = await ethers.provider.getBalance(pool.address);
+
+      await rewards.connect(user1).toggleAutoCompounding();
+
+      await rewards.connect(admin).compoundOnBehalf([user1.address]);
+
+      const poolEthBalanceAfter = await ethers.provider.getBalance(pool.address);
+
+      const totalCashedOutRewards = await rewards.totalCashedOut();
+
+      const protocolFeeRecipientBalance = await rewards.balanceOf(admin.address);
+      const userBalance = await rewards.balanceOf(user2.address);
+      const user1Balance = await rewards.balanceOf(user1.address);
+      const contractEthBalance = await ethers.provider.getBalance(rewards.address);
+      const sLYXBalance = await stakedLyxToken.balanceOf(user1.address);
+
+      expect(sLYXBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          (stakedAmount / 4 + (totalRewards - totalRewards * protocolFee) / 4).toString()
+        )
+      );
+      expect(totalCashedOutRewards).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards - totalRewards * protocolFee) / 4).toString()
+        )
+      );
+      expect(protocolFeeRecipientBalance).to.equal(
+        ethers.utils.parseEther((totalRewards * protocolFee).toString())
+      );
+      expect(userBalance).to.equal(
+        ethers.utils.parseEther(
+          // eslint-disable-next-line no-mixed-operators
+          ((totalRewards - totalRewards * protocolFee) / 4).toString()
+        )
+      );
+      expect(user1Balance).to.equal(ethers.utils.parseEther("0"));
+      expect(contractEthBalance).to.equal(
+        // eslint-disable-next-line no-mixed-operators
+        ethers.utils.parseEther((totalRewards - (totalRewards * (1 - protocolFee)) / 4).toString())
+      );
+      expect(parseFloat(ethers.utils.formatEther(poolEthBalanceAfter))).to.be.gt(
+        parseFloat(ethers.utils.formatEther(poolEthBalanceBefore))
+      );
+    });
+  });
+
   describe("claimUnstake", function () {
     const stakedAmount = 100000; // eth
     const stakePerUser = ethers.utils.parseEther((stakedAmount / 4).toString());

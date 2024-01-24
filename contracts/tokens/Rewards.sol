@@ -62,6 +62,9 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     // @dev Address of the Pool contract.
     IPool private pool;
 
+    // @dev whether auto-compounding is enabled for the account.
+    mapping(address => bool) public autoCompoundingEnabled;
+
     constructor() {
         _disableInitializers();
     }
@@ -341,16 +344,44 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     }
 
     /**
+     * @dev See {IRewards-toggleAutoCompounding}.
+     */
+    function toggleAutoCompounding() external override {
+        autoCompoundingEnabled[msg.sender] = !autoCompoundingEnabled[msg.sender];
+    }
+
+    /**
+     * @dev See {IRewards-compoundOnBehalf}.
+     */
+    function compoundOnBehalf(address[] calldata accounts) external override {
+        require(msg.sender == address(oracles), "Rewards: access denied");
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            require(autoCompoundingEnabled[accounts[i]], "Rewards: auto-compounding disabled");
+            _compound(accounts[i], balanceOf(accounts[i]));
+        }
+    }
+
+    /**
      * @dev See {IRewards-compoundRewards}.
      */
     function compoundRewards(uint256 amount) external override nonReentrant {
         address recipient = msg.sender;
+        _compound(recipient, amount);
+    }
 
-        _cashOutAccountRewards(recipient, amount);
+    /**
+     * @dev Internal function to compound account rewards.
+     * the function stakes the rewards of the user and emits a {RewardsCompounded} event.
+     * @param account - The account to cash out rewards for.
+     * @param amount - The amount of rewards to cash out.
+     */
+    function _compound(address account, uint256 amount) internal {
+        _cashOutAccountRewards(account, amount);
 
         // Stake the rewards to the pool
-        pool.stakeOnBehalf{value : amount}(recipient);
-        emit RewardsCompounded(recipient, amount);
+        pool.stakeOnBehalf{value : amount}(account);
+        emit RewardsCompounded(account, amount);
     }
 
 
