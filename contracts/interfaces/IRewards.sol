@@ -64,6 +64,8 @@ interface IRewards {
 
     event RewardsCompounded(address indexed account, uint256 amount);
 
+    event AutoCompoundingToggled(address indexed account, bool isAutoCompounding);
+
     /**
     * @dev Function for getting the address of the merkle distributor.
     */
@@ -193,6 +195,7 @@ interface IRewards {
     /**
      * @dev Toggle auto-compounding of rewards.
      * If auto-compounding is enabled, the protocol has the permission to compound rewards on behalf of the user.
+     * emits a {AutoCompoundingToggled} event.
      */
     function toggleAutoCompounding() external;
 

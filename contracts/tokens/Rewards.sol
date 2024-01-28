@@ -348,6 +348,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
      */
     function toggleAutoCompounding() external override {
         autoCompoundingEnabled[msg.sender] = !autoCompoundingEnabled[msg.sender];
+        emit AutoCompoundingToggled(msg.sender, autoCompoundingEnabled[msg.sender]);
     }
 
     /**
