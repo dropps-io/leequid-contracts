@@ -1143,4 +1143,83 @@ describe("Rewards contract", function () {
       );
     });
   });
+
+  describe("claimUnstakeOnBehalf", function () {
+    const stakedAmount = 100000; // eth
+    const stakePerUser = ethers.utils.parseEther((stakedAmount / 4).toString());
+
+    beforeEach(async function () {
+        await pool.connect(user1).stake({ value: stakePerUser });
+        await pool.connect(user1).stake({ value: stakePerUser });
+        await pool.connect(user2).stake({ value: stakePerUser });
+
+        await stakedLyxToken.connect(user1).unstake(stakePerUser);
+        await stakedLyxToken.connect(user2).unstake(stakePerUser);
+
+        await pool.connect(user3).stake({ value: stakePerUser });
+        await pool.connect(user4).stake({ value: stakePerUser });
+    });
+
+    it("should revert if empty indexes array", async function () {
+        await expect(rewards.connect(user1).claimUnstakeOnBehalf(user2.address, []))
+            .to.be.revertedWith("Rewards: no unstake indexes provided");
+    });
+
+    it("should work well when amount claimable by another account", async function () {
+        let balanceBefore = await ethers.provider.getBalance(user1.address);
+        await expect(rewards.connect(user3).claimUnstakeOnBehalf(user1.address, [1]))
+            .to.emit(rewards, "UnstakeClaimed")
+            .withArgs(user1.address, stakePerUser, [1]);
+        let balanceAfter = await ethers.provider.getBalance(user1.address);
+
+        expect(parseInt(ethers.utils.formatEther(balanceAfter))).to.be.greaterThan(
+            parseInt(ethers.utils.formatEther(balanceBefore))
+        );
+
+        balanceBefore = await ethers.provider.getBalance(user2.address);
+        await expect(rewards.connect(user4).claimUnstakeOnBehalf(user2.address, [2]))
+            .to.emit(rewards, "UnstakeClaimed")
+            .withArgs(user2.address, stakePerUser, [2]);
+        balanceAfter = await ethers.provider.getBalance(user2.address);
+
+        expect(parseInt(ethers.utils.formatEther(balanceAfter))).to.be.greaterThan(
+            parseInt(ethers.utils.formatEther(balanceBefore))
+        );
+    });
+
+    it("should revert if contract is paused", async function () {
+        await rewards.connect(admin).pause();
+        await expect(rewards.connect(user1).claimUnstakeOnBehalf(user2.address, [2]))
+            .to.be.revertedWith("Pausable: paused");
+    });
+
+    it("should not allow claiming the same unstake twice on behalf of another account", async function () {
+        await rewards.connect(user3).claimUnstakeOnBehalf(user1.address, [1]);
+        await expect(rewards.connect(user3).claimUnstakeOnBehalf(user1.address, [1]))
+            .to.be.revertedWith("StakedLyxToken: unstake request not claimable");
+    });
+
+    it("should not allow claiming multiple unstake requests if one is not owned by the target account", async function () {
+        await expect(rewards.connect(user3).claimUnstakeOnBehalf(user1.address, [1, 2]))
+            .to.be.revertedWith("StakedLyxToken: unstake request not from this account");
+    });
+
+    it("should allow claiming multiple unstake requests on behalf of another account", async function () {
+        await stakedLyxToken.connect(user1).unstake(stakePerUser);
+        await pool.connect(user3).stake({ value: stakePerUser });
+
+        let balanceBefore = await ethers.provider.getBalance(user1.address);
+
+        await expect(rewards.connect(user3).claimUnstakeOnBehalf(user1.address, [1, 3]))
+            .to.emit(rewards, "UnstakeClaimed")
+            .withArgs(user1.address, ethers.utils.parseEther((stakedAmount / 2).toString()), [1, 3]);
+
+        let balanceAfter = await ethers.provider.getBalance(user1.address);
+
+        expect(parseInt(ethers.utils.formatEther(balanceAfter))).to.be.greaterThan(
+            parseInt(ethers.utils.formatEther(balanceBefore))
+        );
+    });
+});
+
 });

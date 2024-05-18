@@ -219,4 +219,12 @@ interface IRewards {
      * @param unstakeRequestIndexes - Array of indexes corresponding to the unstake requests to be claimed.
      */
     function claimUnstake(uint256[] calldata unstakeRequestIndexes) external;
+
+    /**
+     * @dev Claim unstake for the specified request indexes for a specific address.
+     * Emits an {UnstakeClaimed} event. Transfers the total unstake amount to the user.
+     * @param account - Address of the account to claim for.
+     * @param unstakeRequestIndexes - Array of indexes corresponding to the unstake requests to be claimed.
+     */
+    function claimUnstakeOnBehalf(address payable account, uint256[] calldata unstakeRequestIndexes) external;
 }

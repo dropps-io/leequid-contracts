@@ -320,14 +320,15 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
      * @dev See {IRewards-claimUnstake}.
      */
     function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant whenNotPaused {
-        require(unstakeRequestIndexes.length > 0, "Rewards: no unstake indexes provided");
         address payable account = payable(msg.sender);
+        _claimUnstake(account, unstakeRequestIndexes);
+    }
 
-        uint256 totalUnstakeAmount = stakedLyxToken.claimUnstake(account, unstakeRequestIndexes);
-
-        emit UnstakeClaimed(account, totalUnstakeAmount, unstakeRequestIndexes);
-
-        account.transfer(totalUnstakeAmount);
+    /**
+     * @dev See {IRewards-claimUnstakeOnBehalf}.
+     */
+    function claimUnstakeOnBehalf(address payable account, uint256[] calldata unstakeRequestIndexes) external override nonReentrant whenNotPaused {
+        _claimUnstake(account, unstakeRequestIndexes);
     }
 
     /**
@@ -380,6 +381,22 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         // Stake the rewards to the pool
         pool.stakeOnBehalf{value : amount}(account);
         emit RewardsCompounded(account, amount);
+    }
+
+    /**
+     * @dev Internal function to unstake for the specified request indexes for a specific address.
+     * Emits an {UnstakeClaimed} event. Transfers the total unstake amount to the user.
+     * @param account - Address of the account to claim for.
+     * @param unstakeRequestIndexes - Array of indexes corresponding to the unstake requests to be claimed.
+     */
+    function _claimUnstake(address payable account, uint256[] calldata unstakeRequestIndexes) internal whenNotPaused {
+        require(unstakeRequestIndexes.length > 0, "Rewards: no unstake indexes provided");
+
+        uint256 totalUnstakeAmount = stakedLyxToken.claimUnstake(account, unstakeRequestIndexes);
+
+        emit UnstakeClaimed(account, totalUnstakeAmount, unstakeRequestIndexes);
+
+        account.transfer(totalUnstakeAmount);
     }
 
 
