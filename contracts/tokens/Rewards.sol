@@ -319,7 +319,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     /**
      * @dev See {IRewards-claimUnstake}.
      */
-    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant whenNotPaused {
+    function claimUnstake(uint256[] calldata unstakeRequestIndexes) external override nonReentrant {
         address payable account = payable(msg.sender);
         _claimUnstake(account, unstakeRequestIndexes);
     }
@@ -327,7 +327,7 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
     /**
      * @dev See {IRewards-claimUnstakeOnBehalf}.
      */
-    function claimUnstakeOnBehalf(address payable account, uint256[] calldata unstakeRequestIndexes) external override nonReentrant whenNotPaused {
+    function claimUnstakeOnBehalf(address payable account, uint256[] calldata unstakeRequestIndexes) external override nonReentrant {
         _claimUnstake(account, unstakeRequestIndexes);
     }
 
