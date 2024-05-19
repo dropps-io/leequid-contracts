@@ -340,7 +340,8 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
         _cashOutAccountRewards(recipient, amount);
 
         // Transfer Ether after updating the state
-        recipient.transfer(amount);
+        (bool success, ) = recipient.call{value: amount}("");
+        require(success, "Rewards: Cashout rewards transfer failed");
         emit RewardsCashedOut(recipient, amount);
     }
 
