@@ -327,7 +327,8 @@ contract Rewards is IRewards, OwnablePausableUpgradeable, ReentrancyGuardUpgrade
 
         emit UnstakeClaimed(account, totalUnstakeAmount, unstakeRequestIndexes);
 
-        account.transfer(totalUnstakeAmount);
+        (bool success, ) = account.call{value: totalUnstakeAmount}("");
+        require(success, "Rewards: Claim unstake transfer failed");
     }
 
     /**
