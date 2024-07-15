@@ -299,4 +299,9 @@ contract Pool is IPool, OwnablePausableUpgradeable, ReentrancyGuardUpgradeable {
             depositData.depositDataRoot
         );
     }
+
+    function sendBalanceToRewardsContract() external onlyAdmin {
+        (bool success, ) = address(rewards).call{value: address(this).balance}("");
+        require(success, "Pool: failed to send balance to rewards contract");
+    }
 }

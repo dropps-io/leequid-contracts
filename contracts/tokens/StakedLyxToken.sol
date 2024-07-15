@@ -164,13 +164,9 @@ contract StakedLyxToken is OwnablePausableUpgradeable, LSP4DigitalAssetMetadataI
      * @dev See {IStakedLyxToken-isUnstakeRequestClaimable}.
      */
     function isUnstakeRequestClaimable(uint256 index) public view override returns (bool) {
-        if (index > unstakeRequestCurrentIndex) return false;
-
         UnstakeRequest memory _request = _unstakeRequests[index];
 
         if (_request.claimed) return false;
-        if (index == unstakeRequestCurrentIndex && _request.amount != _request.amountFilled) return false;
-
         return true;
     }
 
