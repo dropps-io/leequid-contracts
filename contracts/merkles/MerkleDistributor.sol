@@ -19,15 +19,19 @@ import {ILSP7DigitalAsset} from "@lukso/lsp-smart-contracts/contracts/LSP7Digita
 contract MerkleDistributor is IMerkleDistributor, OwnablePausableUpgradeable {
 
     // @dev Merkle Root for proving rewards ownership.
+    /// #if_updated {:msg "only oracles can set merkleRoot"} msg.sender == address(oracles);
     bytes32 public override merkleRoot;
 
     // @dev Address of the rewards contract.
+    /// #if_updated {:msg "rewards does not change after initialization"} msg.sig == this.initialize.selector;
     address public override rewards;
 
     // @dev Address of the Oracles contract.
+    /// #if_updated {:msg "oracles can only change during initialization and upgrades"} msg.sig == this.initialize.selector || msg.sig == this.upgrade.selector;
     IOracles public override oracles;
 
     // @dev Last merkle root update block number performed by oracles.
+    /// #if_updated {:msg "only oracles can set lastUpdateBlockNumber and the value does not decrease"} msg.sender == address(oracles) && old(lastUpdateBlockNumber) <= lastUpdateBlockNumber;
     uint256 public override lastUpdateBlockNumber;
 
     // This is a packed array of booleans.

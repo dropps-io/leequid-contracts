@@ -21,6 +21,7 @@ contract FeesEscrow is IFeesEscrow {
     /**
      * @dev See {IFeesEscrow-transferToRewards}.
      */
+    /// #if_succeeds {:msg "transferToRewards transfers all ETH"} address(this).balance == 0;
     function transferToRewards() external override returns (uint256) {
         require(msg.sender == rewards, "FeesEscrow: invalid caller");
 
